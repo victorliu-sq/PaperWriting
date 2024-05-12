@@ -12,10 +12,6 @@ To address these two challenges, in this paper, we introduce FlashSMP, an effici
 
 
 
-
-
-
-
 ## Why challenge / What problem
 
 

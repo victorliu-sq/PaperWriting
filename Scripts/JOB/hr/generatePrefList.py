@@ -97,7 +97,7 @@ def categorize_and_sort_applicants(file_path):
 
 if __name__ == "__main__":
     # Specify the path to your CSV file
-    file_path = '/Users/jiaxinliu/Desktop/PaperWriting/DataSets/JOB/hr/aug_train.csv'
+    file_path = '/Users/jiaxinliu/Desktop/FlashSMPEvaluation/DataSets/JOB/hr/aug_train.csv'
     
     # Call the function
     categorize_and_sort_applicants(file_path)

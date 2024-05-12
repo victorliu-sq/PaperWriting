@@ -106,7 +106,7 @@ def extract_lower_bound(salary_estimate):
         return int(lower_bound)
 
 if __name__ == "__main__":
-    file_path = '/Users/jiaxinliu/Desktop/PaperWriting/DataSets/JOB/app/DataScientist.csv'  # Ensure the file path is correct
+    file_path = '/Users/jiaxinliu/Desktop/FlashSMPEvaluation/DataSets/JOB/app/DataScientist.csv'  # Ensure the file path is correct
     target_total = 19158  # Target total number of jobs
     duplicate_jobs_to_target(file_path, target_total)
 
