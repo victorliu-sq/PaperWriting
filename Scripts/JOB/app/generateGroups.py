@@ -1,5 +1,6 @@
 # import pandas as pd
 # import numpy as np
+# import csv
 
 # def duplicate_jobs_to_target(file_path, target_total):
 #     # Load the CSV file into a DataFrame
@@ -35,7 +36,7 @@
 #         if extra_needed > 0:
 #             duplication_array[:extra_needed] += 1
 
-#         # Duplicate the jobs according to the duplication array
+#         # Duplicate the jobs according to the duplication_array
 #         data = data.loc[data.index.repeat(duplication_array + 1)]  # '+1' to include the original job
 
 #     # Reassign 'Relabeled Job ID' to maintain unique IDs across duplicates
@@ -44,6 +45,18 @@
 
 #     # Sort data by the lower bound of the salary
 #     sorted_data = data.sort_values(by='Salary Lower Bound')
+
+#     # Group jobs by 10000 salary intervals
+#     sorted_data['Salary Group'] = (sorted_data['Salary Lower Bound'] // 10000) * 10000
+
+#     # Write groups to a single CSV file
+#     with open('grouped_jobs.csv', 'w', newline='') as file:
+#         writer = csv.writer(file, quoting=csv.QUOTE_NONNUMERIC)
+#         writer.writerow(['Salary Group', 'Job IDs'])
+
+#         for group, group_data in sorted_data.groupby('Salary Group'):
+#             job_ids = ", ".join(map(str, group_data['Relabeled Job ID'].tolist()))
+#             writer.writerow([group, job_ids])
 
 #     # Output total number of jobs
 #     total_jobs = sorted_data.shape[0]
@@ -65,7 +78,7 @@
 
 # if __name__ == "__main__":
 #     file_path = '/Users/jiaxinliu/Desktop/FlashSMPEvaluation/DataSets/JOB/app/DataScientist.csv'  # Ensure the file path is correct
-#     target_total = 20000 # Target total number of jobs
+#     target_total = 20000  # Target total number of jobs
 #     duplicate_jobs_to_target(file_path, target_total)
 
 import pandas as pd
@@ -109,9 +122,13 @@ def duplicate_jobs_to_target(file_path, target_total):
         # Duplicate the jobs according to the duplication_array
         data = data.loc[data.index.repeat(duplication_array + 1)]  # '+1' to include the original job
 
-    # Reassign 'Relabeled Job ID' to maintain unique IDs across duplicates
+    # Reassign 'Relabeled Job ID' to ensure IDs from 0 to 19999
     data.reset_index(drop=True, inplace=True)
     data['Relabeled Job ID'] = range(data.shape[0])
+
+    # Ensure the total number of job IDs is exactly 20000
+    if data.shape[0] > target_total:
+        data = data.iloc[:target_total]
 
     # Sort data by the lower bound of the salary
     sorted_data = data.sort_values(by='Salary Lower Bound')
