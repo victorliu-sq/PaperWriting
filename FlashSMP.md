@@ -71,19 +71,7 @@ TAXI/TAXI+. As with the BIKE dataset, we construct a two-sided market from taxi 
 
 
 
-## FOOD
-
-FOOD. From the restaurant data4, we collect the locations of restaurants and customers to calculate the distance and extract the rating from restaurants.
-
-
-
-(1) Restaurant Side:
-
-
-
-(2) Customier Side:
-
-Restaurant Rating + Restaurant Distance
+https://kaggle.com/datasets/marcusrb/uber-peru-dataset
 
 
 
@@ -109,6 +97,10 @@ Institution Type and Rank
 
 
 
+https://www.kaggle.com/datasets/mohansacharya/graduate-admissions
+
+
+
 ## JOB
 
 Person-fit is the core task in online recruitment platforms [11,
@@ -129,20 +121,3 @@ Salary
 
 
 
-## RAP
-
-Reviewer-paper assignment is a common service in con-
-ference/journal systems. We derive preferences from affinity and
-CoI scores using topics and collaboration networks in Aminer
-
-(1) Paper Side
-
-
-
-(2) Reviewer Side
-
-
-
-Affinity: This score measures the relevance or suitability of a reviewer for a particular paper. It is often calculated based on various factors, such as the reviewer's expertise, previous publications, and research interests. The idea is to quantify how well a reviewer's background and knowledge align with the topics and content of the paper. A higher affinity score indicates that the reviewer is likely to be more competent and insightful in evaluating the paper.
-
-CoI Score (Conflict of Interest Score): This score assesses the potential for a conflict of interest between a reviewer and the paper's authors. A conflict of interest can occur due to various reasons, such as prior collaborations, being from the same institution, financial interests, or personal relationships. A higher CoI score would suggest a greater likelihood of bias, and such reviewers are generally avoided or scrutinized more carefully to maintain the integrity of the peer review process.
