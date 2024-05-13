@@ -3,60 +3,82 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include <algorithm>
-#include <ctime>
-#include <cstdlib>
+#include <algorithm>  // Include for std::sort and std::unique
+#include <cstdlib>    // For std::exit()
 
-// Function to split a string by a delimiter into a vector
-std::vector<std::string> split(const std::string& str, char delimiter) {
-    std::vector<std::string> tokens;
-    std::string token;
-    std::istringstream tokenStream(str);
-    while (std::getline(tokenStream, token, delimiter)) {
-        tokens.push_back(token);
-    }
-    return tokens;
+// Function to remove double quotes from a string
+void removeQuotes(std::string& s) {
+    s.erase(remove(s.begin(), s.end(), '\"'), s.end());
 }
 
-// Main function
 int main() {
-    std::ifstream file("inverse_expanded_driver_groups_by_average_score.csv");
-    std::string line;
-    std::vector<std::vector<std::string>> allDriverIDs;
+    std::string filename = "inverse_expanded_driver_groups_by_average_score.csv";
+    std::ifstream file(filename);
 
     if (!file.is_open()) {
-        std::cerr << "Error opening file." << std::endl;
+        std::cerr << "Error: Could not open the file." << std::endl;
         return 1;
     }
 
-    // Seed the random number generator
-    std::srand(unsigned(std::time(nullptr)));
+    std::string line;
+    std::vector<int> driverIDs;
+    int lineNumber = 0;
 
-    // Skip the header line
-    std::getline(file, line);
+    // Read lines from the file
+    while (getline(file, line)) {
+        if (lineNumber++ == 0) continue; // Skip the header line if there is one
 
-    // Read each line from the CSV file
-    while (std::getline(file, line)) {
-        // Split each line into average score bin and driver IDs
-        std::vector<std::string> lineData = split(line, ',');
-        if (lineData.size() < 2) continue; // Skip malformed lines
+        std::stringstream ss(line);
+        std::string cell;
+        int cellNumber = 0;
 
-        // Extract driver IDs and randomize them
-        std::vector<std::string> driverIDs = split(lineData[1], ',');
-        std::random_shuffle(driverIDs.begin(), driverIDs.end());
+        // Read each cell in the line
+        while (getline(ss, cell, ',')) {
+            if (cellNumber++ == 0) continue; // Skip the first column
 
-        // Add randomized list to the main list
-        allDriverIDs.push_back(driverIDs);
+            std::stringstream idStream(cell);
+            std::string id;
+
+            // Parse all driver IDs
+            while (getline(idStream, id, ',')) {
+                try {
+                    if (!id.empty()) {
+                        removeQuotes(id);
+                        driverIDs.push_back(std::stoi(id));
+                    }
+                } catch (const std::invalid_argument& ia) {
+                    std::cerr << "Invalid argument: " << ia.what() << " at line " << lineNumber << " with ID '" << id << "'" << std::endl;
+                    file.close();
+                    std::exit(EXIT_FAILURE);
+                } catch (const std::out_of_range& oor) {
+                    std::cerr << "Out of range: " << oor.what() << " at line " << lineNumber << " with ID '" << id << "'" << std::endl;
+                    file.close();
+                    std::exit(EXIT_FAILURE);
+                }
+            }
+        }
     }
-
     file.close();
 
-    // Printing all driver IDs in the order of highest to lowest score
-    for (const auto& group : allDriverIDs) {
-        for (const auto& id : group) {
-            std::cout << id << std::endl;
+    // Verify all IDs from 0 to 19999 are present
+    std::sort(driverIDs.begin(), driverIDs.end());
+    auto unique_end = std::unique(driverIDs.begin(), driverIDs.end());
+    driverIDs.erase(unique_end, driverIDs.end()); // Remove duplicate entries
+
+    if (driverIDs.size() != 20000) {
+        std::cerr << "Error: Total driver IDs read (" << driverIDs.size() << ") does not match expected count of 20000." << std::endl;
+        return 1;
+    }
+
+    for (int i = 0; i < 20000; ++i) {
+        if (driverIDs[i] != i) {
+            std::cerr << "Error: Missing driver ID " << i << std::endl;
+            return 1;
         }
     }
 
+    std::cout << "All driver IDs from 0 to 19999 are present and correctly ordered." << std::endl;
+
     return 0;
 }
+
