@@ -37,7 +37,6 @@
 # expanded_driver_scores_df.to_csv("grouped_driver_ids_by_average_score.csv", index=False, quoting=csv.QUOTE_NONNUMERIC)
 # print("Grouped driver IDs by average score saved to 'grouped_driver_ids_by_average_score.csv'.")
 
-
 import pandas as pd
 import numpy as np
 import csv
@@ -84,18 +83,16 @@ target_group_sizes = (normalized_inverse_sizes * target_total_drivers).round().a
 difference = target_total_drivers - target_group_sizes.sum()
 target_group_sizes[target_group_sizes.idxmax()] += difference
 
-# Generate new IDs for each group according to the new target sizes
+# Reset ID assignment to ensure range 0-19999
+all_driver_ids = np.arange(target_total_drivers)  # Create an array of 20,000 IDs
+np.random.shuffle(all_driver_ids)  # Shuffle to randomize distribution
+
+# Allocate these shuffled IDs to each group
+start_index = 0
 expanded_driver_ids_inverse = {}
-next_id_start = max(driver_id_mapping.values()) + 1
 for bin_label, size in target_group_sizes.items():
-    current_ids = grouped_by_score_bin.get(bin_label)
-    if size <= len(current_ids):
-        expanded_driver_ids_inverse[bin_label] = current_ids[:size]
-    else:
-        needed_new_ids = size - len(current_ids)
-        new_ids_range = range(next_id_start, next_id_start + needed_new_ids)
-        expanded_driver_ids_inverse[bin_label] = np.concatenate([current_ids, new_ids_range])
-        next_id_start += needed_new_ids
+    expanded_driver_ids_inverse[bin_label] = all_driver_ids[start_index:start_index + size]
+    start_index += size
 
 # Prepare dataframe for output, sorted by driver score from highest to lowest
 expanded_driver_scores_inverse_df = pd.DataFrame({
