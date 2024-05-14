@@ -1,3 +1,4 @@
+#include <functional>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -11,6 +12,7 @@
 #include <vector>
 
 using PreferenceLists = std::vector<std::vector<int> >;
+using RankMatrix = std::vector<std::vector<int> >;
 
 // Function to remove double quotes from a string
 void removeQuotes(std::string& s) {
@@ -31,6 +33,36 @@ void generateLists(const std::vector<std::vector<int> >& groups, PreferenceLists
         }
         preferenceLists[i] = preferenceList;
     }
+}
+
+void generateListsMatrix(const std::vector<std::vector<int> > &groups,
+                         PreferenceLists &preferenceLists,
+                         RankMatrix &rankMatrix, int start, int end,
+                         int thread_id) {
+  unsigned seed =
+      std::chrono::system_clock::now().time_since_epoch().count() + thread_id;
+  std::default_random_engine engine(seed);
+
+  for (int i = start; i < end; ++i) {
+    std::vector<int> preferenceList;
+    for (auto &group : groups) {
+      std::vector<int> shuffledGroup = group;
+      std::shuffle(shuffledGroup.begin(), shuffledGroup.end(), engine);
+      preferenceList.insert(preferenceList.end(), shuffledGroup.begin(),
+                            shuffledGroup.end());
+    }
+    preferenceLists[i] = preferenceList;
+
+    int n = preferenceList.size();
+    std::cout<< "Number of elements in a lists is " << n << std::endl;
+    std::vector<int> rankList(n);
+    for (int rank = 0; rank < n; rank++) {
+       int idx = preferenceList[rank];
+        std::cout<< "Idx is " << idx << std::endl;
+       rankList[idx] = rank;
+    }
+    rankMatrix[i] = rankList;
+  }
 }
 
 // Function to read the initial groups from the file
@@ -71,14 +103,24 @@ std::vector<std::vector<int> > readGroups(const std::string& filename) {
     return groups;
 }
 
+void printRankMatrix(const RankMatrix &rm) {
+  for (const auto &row : rm) {
+    for (const auto &value : row) {
+      std::cout << " " << value << "  ";
+    }
+    std::cout << '\n';
+  }
+}
+
 int main() {
-    std::string filename = "/Users/jiaxinliu/Desktop/FlashSMPEvaluation/DataSets/ADM/app/grouped_school.csv";
+    std::string filename = "/Users/jiaxinliu/Desktop/FlashSMPEvaluation/Scripts/ADM/univ/grouped_school.csv";
     int numLists = 20000;
     // int numThreads = 4; // Adjust based on your hardware capabilities
     int numThreads =
       std::thread::hardware_concurrency(); // Use hardware concurrency as a
                                            // limit.
     PreferenceLists preferenceLists(numLists);
+    RankMatrix rankMatrix(numLists);
 
     std::vector<std::thread> threads;
     std::vector<std::vector<int> > groups = readGroups(filename);
@@ -87,7 +129,7 @@ int main() {
     for (int i = 0; i < numThreads; ++i) {
         int start = i * chunkSize;
         int end = (i == numThreads - 1) ? numLists : start + chunkSize;
-        threads.emplace_back(generateLists, std::ref(groups), std::ref(preferenceLists), start, end, i);
+        threads.emplace_back(generateListsMatrix, std::ref(groups), std::ref(preferenceLists), std::ref(rankMatrix), start, end, i);
     }
 
     for (auto& thread : threads) {
@@ -96,6 +138,7 @@ int main() {
 
     std::cout << "Generated " << preferenceLists.size() << " preference lists." << std::endl;
     std::cout << "First list size: " << preferenceLists[0].size() << std::endl;
+    printRankMatrix(rankMatrix);
 
     return 0;
 }

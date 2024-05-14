@@ -1,0 +1,5 @@
+"institution","integer_range"
+"Harvard University", "2, 3"
+"Yale University", "4, 5"
+"MIT", "6, 7"
+"Stanford University", "0, 1"
