@@ -59,7 +59,6 @@ std::vector<std::vector<int> > readGroups(const std::string& filename) {
             std::stringstream idStream(cell);
             std::string id;
             while (getline(idStream, id, ',')) {
-                std::cout << id << std::endl;
                 if (!id.empty()) {
                     removeQuotes(id);
                     group.push_back(std::stoi(id));
@@ -97,4 +96,3 @@ int main() {
 
     return 0;
 }
-
