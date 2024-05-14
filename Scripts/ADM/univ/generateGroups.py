@@ -1,31 +1,38 @@
 import pandas as pd
+import csv
 
-# Load the dataset
-data = pd.read_csv('Formatted_Expanded_Admission_Predict.csv')
+# Load the CSV file
+file_path = '/Users/jiaxinliu/Desktop/FlashSMPEvaluation/DataSets/ADM/app/Formatted_Expanded_Admission_Predict.csv'
+df = pd.read_csv(file_path)
 
-# Assign IDs to each student
-data['Student ID'] = range(data.shape[0])
+# Add a new column for studentID as integers from 0 to total number of students - 1
+df['studentID'] = range(len(df))
 
-# Sort data by University Rating first, then by GRE, TOEFL, and CGPA
-sorted_by_GRE = data.sort_values(by=['University Rating', 'GRE Score'], ascending=[False, False])
-sorted_by_TOEFL = data.sort_values(by=['University Rating', 'TOEFL Score'], ascending=[False, False])
-sorted_by_CGPA = data.sort_values(by=['University Rating', 'CGPA'], ascending=[False, False])
+# Sort by CGPA from highest to lowest
+df = df.sort_values(by='CGPA', ascending=False)
 
-# Function to save sorted data into a single CSV, with sections for each University Rating
-def save_sorted_data(sorted_data, file_name):
-    with open(f"{file_name}.csv", 'w') as file:
-        for rating in sorted_data['University Rating'].unique():
-            # Filter data for the current University Rating
-            filtered_data = sorted_data[sorted_data['University Rating'] == rating]
-            # Write University Rating header
-            file.write(f"University Rating {rating}\n")
-            # Write the filtered data
-            filtered_data.to_csv(file, index=False, line_terminator='\n')
-            file.write('\n')  # Add a newline for spacing between groups
+# Create a dictionary to hold the groups
+grouped = {}
 
-# Save the data into different files
-save_sorted_data(sorted_by_GRE, 'Sorted_by_GRE')
-save_sorted_data(sorted_by_TOEFL, 'Sorted_by_TOEFL')
-save_sorted_data(sorted_by_CGPA, 'Sorted_by_CGPA')
+# Function to determine the CGPA group
+def get_cgpa_group(cgpa):
+    return int(cgpa // 0.5) * 0.5
 
-print("Data has been sorted and saved into files for each sorting criterion.")
+# Group by CGPA with a 0.5 difference
+for index, row in df.iterrows():
+    cgpa_group = get_cgpa_group(row['CGPA'])
+    if cgpa_group not in grouped:
+        grouped[cgpa_group] = []
+    grouped[cgpa_group].append(int(row['studentID']))
+
+# Write the groups to a new CSV file
+output_file_path = 'Grouped_Students.csv'
+with open(output_file_path, mode='w', newline='') as file:
+    writer = csv.writer(file, quoting=csv.QUOTE_NONNUMERIC)
+    writer.writerow(['CGPA Group', 'studentIDs'])
+    for cgpa_group, student_ids in sorted(grouped.items(), reverse=True):
+        # Convert the list of student IDs to a comma-separated string
+        student_ids_str = ', '.join(map(str, student_ids))
+        writer.writerow([cgpa_group, student_ids_str])
+
+print(f'Grouped students have been written to {output_file_path}')
