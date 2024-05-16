@@ -42,11 +42,11 @@ parallelizing SMP computation presents considerable challenges, both in algorith
 
 ## Definition of Challenges
 
-SMP is very workload-dependent.
+### Draft
+
+Stable Marriage Problem is very workload-dependent.
 
 Differnt workload can have completely distinct properties and that will greatly affect how to defign an effective algorithm and implement it in an efficient way.
-
-
 
 1
 
@@ -70,9 +70,9 @@ Since the parallism drops so quickly, the reason why we use GPU is to utilize it
 
 3.
 
-in extreme case, 
 
-If preferences lists rank members on the opposite side distinctively, then in a short time, most of men will be paired and most of time only one man will be proposing to women \cite{NationalLabPaper}
+
+in extreme case, If preferences lists rank members on the opposite side distinctively, then in a short time, most of men will be paired and most of time only one man will be proposing to women \cite{NationalLabPaper}
 
 In that case, the parallism can only be exploited at first. And the problem will be highly serial problem and it can only be solved by one thread sequentailly. We do not require the synchronization to guarantee the correctness to prevern data racing, Thus any extra synchronization method will only introduce extra overhead.
 
@@ -80,21 +80,39 @@ In this case, CPU will outperform GPU since CPU has lower latency for each singl
 
 
 
-4.
+### AI
+
+The Stable Marriage Problem presents significant challenges when developing algorithms to solve it in parallel due to its workload-dependent nature. Different workloads can exhibit completely distinct properties, significantly affecting the design of an effective algorithm and its efficient implementation.
 
 
 
-if preference lists divide the members on the opposite side into groups and rank groups in the same way while randomize the people inside each group, which we call the mixed instance, then the number of proposing men will not dramatically decrease to a single man to make peoposal
+If preference lists rank members identically, all men will compete for the same woman. In this scenario, synchronization methods are required to ensure a woman accepts the best proposal while rejecting others. After this proposal, only one man will be paired, and the remaining men will move to the next woman. Consequently, the number of men making proposals will only decrement one at a time, thus preserving parallelism. GPUs can accelerate the algorithm due to their high bandwidth.
+
+
+
+However, in real-world scenarios, it is unlikely that everyone will rank members identically. Introducing randomness to the rankings affects the degree of parallelism. For instance, if all men propose to up to half of the distinct women in the first round, then half of them will be paired, and the number of independent threads will decrease by half. As parallelism drops rapidly, the benefit of using a GPU for its high bandwidth is overshadowed by the synchronization overhead.
+
+
+
+In extreme cases, if preference lists rank members distinctly and oppositely, most men will be paired quickly, and eventually, only one man will be proposing at a time. This situation results in a highly serial problem that can only be solved sequentially by one thread. No synchronization is required to prevent data races, and any additional synchronization methods would introduce unnecessary overhead.
 
 
 
 ## Problem w/ Previous Work
 
+Previous work has showcased the potential of implementing parallel GS algorithm on GPU due to its independet nature at the first round of proposing.
 
+In hard instances, they use atomicCAS to guarantee the correctness of algorithm, which can introduce lots of wasted workload and affect the efficiency a lot even scaling to large size of SMP instances.
+
+in easy instances. Their synchronization overhead could dominate and even run slower than CPU implementation.
+
+Therefore, there is still no an universally effective implementation of GS algorithm to solve all kinds of SMP instance due to its nature of distinction. 
 
 
 
 ## Our Work
+
+In this paper, we present FlashSMP
 
 1.High-Contention
 
@@ -117,6 +135,10 @@ if preference lists divide the members on the opposite side into groups and rank
 
 
 # Experiment
+
+if preference lists divide the members on the opposite side into groups and rank groups in the same way while randomize the people inside each group, which we call the mixed instance, then the number of proposing men will not dramatically decrease to a single man to make peoposal
+
+
 
 ## Bike
 
