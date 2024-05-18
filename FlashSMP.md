@@ -2,7 +2,7 @@
 
 FlashSMP:
 
-A stable marriage require cobabitation, atomicMin and Low latency
+A stable marriage needs to cohabitate, resolve conflicts, and embrace complementary strengths
 
 
 
@@ -12,31 +12,19 @@ The Stable Marriage Problem (SMP) is a classical challenge to establish a stable
 
 
 
-To address these 3 challenges, in this paper, we introduce FlashSMP, an efficient parallel SMP algorithm and its implementation on hybrid environment of GPU and CPU. 
+To address these 3 challenges, in this paper, we introduce FlashSMP, an efficient parallel SMP algorithm and its implementation in a hybrid environment of GPU and CPU. 
+
+FlashSMP's high performance stems from three key development efforts. 
+
+First, we effectively exploit the data accessing locality with a new data structure called PRNodes to "cohabitate".
+
+Second, FlashSMP employs a more advanced atomic operation called "atomicMin" provided by CUDA to reduce the inefficiencies caused by atomicCAS under high memory contention, an effort we term "resolving conflicts." 
+
+Thirdly, FlashSMP is implemented in a hybrid environment of both GPU and CPU, leveraging the high bandwidth of the GPU and the low latency of the CPU to achieve optimal performance across a wide range of workloads. We refer to this enhancement as "embrace complementary strengths"
 
 
 
-The high performance of FlashSMP comes from 3 algorithms development efforts. First, we effectively exploit the data accessing locality with a new data structure called PRNodes to eliminate the "residence separation". 
-
-
-
-Second, FlashSMP employs a more advanced atomic operation called "atomicMin" provided by CUDA to reduce the inefficiencies caused by atomicCAS under high memory contention. We call this effort to improve SMP as "resolve conflicts in communication".
-
-
-
-Thirdly, FlashSMP is implemented in a hybrid environment of both GPU and CPU, leveraging the high bandwidth of the GPU and the low latency of the CPU to achieve optimal performance across a wide range of workloads. We refer to this enhancement as "embracing complementary strengths"
-
-
-
-Finally, we demonstrate that FlashSMP exhibits high scalability, consistently delivering exceptional performance even as the problem size grows significantly, through extensive experiments using both synthetic and real-world datasets.
-
-Our evaluation results show that FlashSMP significantly outperforms state-of-the-art parallel algorithms, achieving speedups of up to 28.3x across various workloads.
-
-
-
-## AI
-
-The stable marriage problem (SMP) is a well-known combinatorial problem with significant practical applications. The parallel McVitie-Wilson algorithm has been the only parallel algorithm that outperforms sequential implementations for SMP, utilizing atomic compare-and-swap (atomicCAS) operations to prevent data races. However, this approach exhibits inefficiencies on GPUs due to high contention. We introduce FlashSMP, a novel algorithm leveraging atomic minimum (atomicMIN) operations, proven mathematically to reduce wasted work under high contention. Unlike its predecessor, FlashSMP employs both CPU and GPU, capitalizing on the high bandwidth of GPUs and low latency of CPUs for optimal performance. Additionally, FlashSMP includes a preprocessing step to eliminate data dependencies, enabling efficient memory access patterns. Our extensive evaluations demonstrate that FlashSMP consistently outperforms the parallel McVitie-Wilson algorithm across all scenarios, establishing it as the new state-of-the-art for SMP.
+Finally, we demonstrate FlashSMP's high scalability through extensive experiments using both synthetic and real-world datasets, consistently delivering exceptional performance even as the problem size grows significantly. Our evaluation results show that FlashSMP significantly outperforms state-of-the-art parallel algorithms, achieving speedups of up to 28.3x across various workloads.
 
 
 
