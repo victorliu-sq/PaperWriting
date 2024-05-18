@@ -40,141 +40,77 @@ The SMP has been a cornerstone in combinatorial optimization with applications s
 
 
 
-## Why challenge / What problem is left over and required handle
+## Shortcoming of previous work
 
-Efficient solutions to SMP are critical, especially as problem sizes grow and computational resources evolve.
-
-However, despite its importance, there has been relatively limited research focused on the development of parallel SMP algorithms, largely due to the inherent complexities associated with this task.
-
-To out knowledge, the only parallel algorithm makes sense, which means it runs faster than the sequential GS algorithm, is the parallel Mcvitie-Wilson Algorithm presented in \cite{NationalLab}
+Efficient algorithms for Stable Marriage Problems (SMP) are critical as problem sizes grow and computational resources evolve. Technological advancements in the twentieth century led to regular increases in processor clock speeds, naturally accelerating the GS algorithm. However, since the early 21st century, we have seen an end to these "free rides" as Moore's Law approaches its limits \cite{10.5555/2385452}. With the rise of advanced parallel architectures like multicore processors and GPUs, exploiting the parallelism of SMP algorithms has become both inevitable and necessary.
 
 
 
-
-
-parallelizing SMP computation presents considerable challenges, both in algorithmic design and implementation. 
-
+Despite its importance, research on parallel SMP algorithms has been limited due to the inherent complexities of this task. To our knowledge, the only parallel algorithm that outperforms the sequential Gale-Shapley (GS) algorithm is the parallel McVitie-Wilson algorithm. While this algorithm has set a benchmark by running faster than sequential solutions, its performance on GPUs is hindered by high contention for shared resources and high-latency memory operations, making it less efficient than its CPU implementation. This highlights the pressing need for a more efficient algorithm that fully exploits the high bandwidth of modern computing architectures, particularly GPUs.
 
 
 
-
-## AI
-
-While the parallel McVitie-Wilson algorithm has set a benchmark by running faster than sequential solutions, its performance on GPUs is hindered by high contention during atomic operations and its exclusive implementation on either CPUs or GPUs. There is a pressing need for a more efficient algorithm that fully exploits modern heterogeneous computing environments.
+Parallelizing SMP computation presents significant challenges for developing parallel algorithms due to its workload-dependent nature. 
 
 
-
-## Target
-
-This research aims to address the limitations of the parallel McVitie-Wilson algorithm by developing an algorithm that not only improves GPU performance but also integrates CPU and GPU resources for optimal execution.
 
 
 
 ## Definition of Challenges
 
-### Draft
+Developing an efficient parallel SMP algorithm presents three non-trivial challenges for us to address.
 
-Stable Marriage Problem is very workload-dependent.
 
-Differnt workload can have completely distinct properties and that will greatly affect how to defign an effective algorithm and implement it in an efficient way.
+
+The workload, namely SMP instances, consists of preference lists for each individual: each man ranks women from highest to lowest preference, and each woman ranks men similarly.
+
+In a parallel algorithm, each unpaired man is represented by a thread to make proposals.
+
+When multiple men propose to the same woman, the threads compete for the same shared memory location, requiring synchronization to ensure the woman accepts the best proposal.
+
+
 
 1
 
-If preference lists rank members in the exactly the same way as others, then all men will competing for the same woman. 
-
-In this case, we need the synchronization method to make sure a woman will accept the best proposal and all other men will be rejected.
-
-After this proposal, only one man will be paired, and all the failing men will move to the next women. In that case, the number of men making proposal will only decrement one at a time so the parrellism is mostly reserved. And GPU will provide a great paradigm to accelerate the algorithm thanks to the high bandwidth provided by GPU.
+Another significant challenge in developing efficient SMP algorithms is optimizing memory access patterns to reduce latency and improve cache performance. Poor memory access patterns can lead to frequent cache misses, which degrade the overall performance of both sequential and parallel implementations.
 
 
 
 2.
 
-However, it is clearly  impossible that in real-world every one will rank the member in the same order. Once we introduce randomness to ranking, the degree of parallism will be affected.
-
-For instance, If all man will propose up to half of distinct woman in the first round of proposal, then half of them will be paired, and the number independent threads will decrease by half.  
-
-Since the parallism drops so quickly, the reason why we use GPU is to utilize its high bandwidth will ecplise and the overhead of synchronization will dominate
+The second challenge is that In extreme cases where all preference lists are identical, all men will compete for the same woman. This scenario requires robust synchronization methods. CAS-based data structures, as Morrison and Afek have pointed out [19], may perform poorly under high contention due to work wasted by CAS failures.
 
 
 
 3.
 
-
-
-in extreme case, If preferences lists rank members on the opposite side distinctively, then in a short time, most of men will be paired and most of time only one man will be proposing to women \cite{NationalLabPaper}
-
-In that case, the parallism can only be exploited at first. And the problem will be highly serial problem and it can only be solved by one thread sequentailly. We do not require the synchronization to guarantee the correctness to prevern data racing, Thus any extra synchronization method will only introduce extra overhead.
-
-In this case, CPU will outperform GPU since CPU has lower latency for each single operation due to its over 10 levels of memory hierarchy.
+The next challenge is that Parallelism can drop significantly when variations are introduced in the preference lists. For example, if all men propose to half of the women in the first round, half of them will be paired. As women pair off and remain paired, the number of free men and active threads decreases. Eventually, only one man will be making proposals, leading to a serial problem. The synchronization overhead then outweighs the benefits of GPU's high bandwidth, making GPU implementations often perform worse than CPU implementations. 
 
 
 
-### AI
+4.
 
-The Stable Marriage Problem presents significant challenges when developing algorithms to solve it in parallel due to its workload-dependent nature. Different workloads can exhibit completely distinct properties, significantly affecting the design of an effective algorithm and its efficient implementation.
-
-
-
-If preference lists rank members identically, all men will compete for the same woman. In this scenario, synchronization methods are required to ensure a woman accepts the best proposal while rejecting others. After this proposal, only one man will be paired, and the remaining men will move to the next woman. Consequently, the number of men making proposals will only decrement one at a time, thus preserving parallelism. GPUs can accelerate the algorithm due to their high bandwidth.
-
-
-
-However, in real-world scenarios, it is unlikely that everyone will rank members identically. Introducing randomness to the rankings affects the degree of parallelism. For instance, if all men propose to up to half of the distinct women in the first round, then half of them will be paired, and the number of independent threads will decrease by half. As parallelism drops rapidly, the benefit of using a GPU for its high bandwidth is overshadowed by the synchronization overhead.
-
-
-
-In extreme cases, if preference lists rank members distinctly and oppositely, most men will be paired quickly, and eventually, only one man will be proposing at a time. This situation results in a highly serial problem that can only be solved sequentially by one thread. No synchronization is required to prevent data races, and any additional synchronization methods would introduce unnecessary overhead.
-
-
-
-### AI
-
-The key challenges in developing an improved algorithm include:
-
-- **Efficient synchronization**: Reducing contention and wasted work during atomic operations.
-- **Heterogeneous execution**: Seamlessly integrating CPU and GPU resources.
-- **Data dependency elimination**: Preprocessing data to remove dependencies and improve memory access patterns.
-- **Workload adaptation**: Ensuring the algorithm performs well across different scenarios.
-
-
-
-## Shortcomings w/ Previous Work
-
-Previous work has showcased the potential of implementing parallel GS algorithm on GPU due to its independent nature at the first round of proposing to improve the efficienty.
-
-In hard instances, they use atomicCAS to guarantee the correctness of algorithm, which can introduce lots of wasted workload and affect the efficiency a lot even scaling to large size of SMP instances.
-
-in easy instances. Their synchronization overhead could dominate and even run slower than CPU implementation.
-
-Therefore, there is still no an universally effective implementation of GS algorithm to solve all kinds of SMP instance due to its nature of distinction. 
+Another challenge is that Different workloads can exhibit distinct properties, significantly affecting the design and implementation of an effective algorithm. Therefore, developing an efficient parallel SMP algorithm requires careful consideration of these varying workload characteristics. That is resolution of conflicts in instance where preference lists are distinct cannot affect the efficiency of algorithm on , the approach to improve the performance of sertial problem should also take into consideration whether efficiency on workload with distinct preference lists will be influenced.   
 
 
 
 ## Our Work
 
-In this paper, we present FlashSMP.
+In order to overcome these challenges, we present FlashSMP,an innovative algorithm that:
 
-The key feature of FlashSMP is its ability to efficiently solve handle all kinds of SMP workloads out of all possilble algorithms.
-
-
-
-1.High-Contention
-
-2.Serial Tailing
-
-3.Locality
+1.Utilizes atomicMIN operations instead of atomicCAS, reducing wasted work under high contention for Reducing contention and wasted work during atomic operations to achieve efficient synchronization.
 
 
 
-### AI
+2Seamlessly integrating CPU and GPU resources and implement FlashSMP in heterogeneous computing environments.
 
-To overcome these challenges, we present FlashSMP, an innovative algorithm that:
+3.Incorporates a preprocessing step to eliminate data dependencies, enabling efficient memory access patterns.
 
-- Utilizes atomicMIN operations instead of atomicCAS, reducing wasted work under high contention.
-- Combines CPU and GPU execution to exploit their respective strengths.
-- Incorporates a preprocessing step to eliminate data dependencies, enabling efficient memory access patterns.
-- Adapts to different workloads, consistently outperforming the parallel McVitie-Wilson algorithm.
+By carefully arranging the related data to be grouped together to be accessed together, we can take advantage of the spatial locality inherent in modern memory hierarchies. This approach can lead to significant performance gains by minimizing the latency associated with memory access, benefiting both sequential and parallel implementations of the algorithm.
+
+
+
+As a result, FlashSMP Adapts to different workloads and Ensuring the algorithm consistently performs well across different scenarios.
 
 
 
