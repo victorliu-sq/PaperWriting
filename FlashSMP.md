@@ -16,6 +16,12 @@ To address these two challenges, in this paper, we introduce FlashSMP, an effici
 
 
 
+## AI
+
+The stable marriage problem (SMP) is a well-known combinatorial problem with significant practical applications. The parallel McVitie-Wilson algorithm has been the only parallel algorithm that outperforms sequential implementations for SMP, utilizing atomic compare-and-swap (atomicCAS) operations to prevent data races. However, this approach exhibits inefficiencies on GPUs due to high contention. We introduce FlashSMP, a novel algorithm leveraging atomic minimum (atomicMIN) operations, proven mathematically to reduce wasted work under high contention. Unlike its predecessor, FlashSMP employs both CPU and GPU, capitalizing on the high bandwidth of GPUs and low latency of CPUs for optimal performance. Additionally, FlashSMP includes a preprocessing step to eliminate data dependencies, enabling efficient memory access patterns. Our extensive evaluations demonstrate that FlashSMP consistently outperforms the parallel McVitie-Wilson algorithm across all scenarios, establishing it as the new state-of-the-art for SMP.
+
+
+
 # Introduction
 
 ## Importance
@@ -32,11 +38,31 @@ It has been demonstrated that every instance of the SMP admits at least one stab
 
 
 
-## Why challenge / What problem
+## AI
+
+The stable marriage problem (SMP) has long been a topic of interest in combinatorial optimization, with applications ranging from matching markets to resource allocation. Efficient solutions to SMP are critical, especially as problem sizes grow and computational resources evolve.
+
+
+
+## Why challenge / What problem is left over and required handle
 
 However, despite its importance, there has been relatively limited research focused on the development of parallel SMP algorithms, largely due to the inherent complexities associated with this task.
 
 parallelizing SMP computation presents considerable challenges, both in algorithmic design and implementation. 
+
+
+
+
+
+## AI
+
+While the parallel McVitie-Wilson algorithm has set a benchmark by running faster than sequential solutions, its performance on GPUs is hindered by high contention during atomic operations and its exclusive implementation on either CPUs or GPUs. There is a pressing need for a more efficient algorithm that fully exploits modern heterogeneous computing environments.
+
+
+
+## Target
+
+This research aims to address the limitations of the parallel McVitie-Wilson algorithm by developing an algorithm that not only improves GPU performance but also integrates CPU and GPU resources for optimal execution.
 
 
 
@@ -98,9 +124,20 @@ In extreme cases, if preference lists rank members distinctly and oppositely, mo
 
 
 
+### AI
+
+The key challenges in developing an improved algorithm include:
+
+- **Efficient synchronization**: Reducing contention and wasted work during atomic operations.
+- **Heterogeneous execution**: Seamlessly integrating CPU and GPU resources.
+- **Data dependency elimination**: Preprocessing data to remove dependencies and improve memory access patterns.
+- **Workload adaptation**: Ensuring the algorithm performs well across different scenarios.
+
+
+
 ## Problem w/ Previous Work
 
-Previous work has showcased the potential of implementing parallel GS algorithm on GPU due to its independet nature at the first round of proposing.
+Previous work has showcased the potential of implementing parallel GS algorithm on GPU due to its independent nature at the first round of proposing to improve the efficienty.
 
 In hard instances, they use atomicCAS to guarantee the correctness of algorithm, which can introduce lots of wasted workload and affect the efficiency a lot even scaling to large size of SMP instances.
 
@@ -112,13 +149,41 @@ Therefore, there is still no an universally effective implementation of GS algor
 
 ## Our Work
 
-In this paper, we present FlashSMP
+In this paper, we present FlashSMP.
+
+The key feature of FlashSMP is its ability to efficiently solve handle all kinds of SMP workloads out of all possilble algorithms.
+
+
 
 1.High-Contention
 
 2.Serial Tailing
 
 3.Locality
+
+
+
+### AI
+
+To overcome these challenges, we present FlashSMP, an innovative algorithm that:
+
+- Utilizes atomicMIN operations instead of atomicCAS, reducing wasted work under high contention.
+- Combines CPU and GPU execution to exploit their respective strengths.
+- Incorporates a preprocessing step to eliminate data dependencies, enabling efficient memory access patterns.
+- Adapts to different workloads, consistently outperforming the parallel McVitie-Wilson algorithm.
+
+
+
+## Contribution
+
+### AI
+
+The main contributions of this paper are:
+
+1. **Algorithm Design**: Introduction of FlashSMP, which utilizes atomicMIN operations and integrates CPU-GPU execution.
+2. **Mathematical Proof**: Rigorous proof demonstrating the superiority of atomicMIN over atomicCAS in high-contention scenarios.
+3. **Performance Evaluation**: Comprehensive benchmarks showing FlashSMP's superior performance across various scenarios.
+4. **Preprocessing Technique**: Development of a preprocessing step to enhance memory access efficiency.
 
 
 
@@ -131,6 +196,10 @@ In this paper, we present FlashSMP
 3.Real Data+Synthesized Data-Mixed Instance
 
 
+
+## Paper Structure
+
+The remainder of this paper is organized as follows: Section 2 reviews related work and background. Section 3 details the design and implementation of FlashSMP. Section 4 presents our experimental setup and results. Section 5 discusses the implications and potential future work. Finally, Section 6 concludes the paper.
 
 
 
@@ -220,6 +289,10 @@ Work Experience
 (2) Worker Side:
 
 Salary
+
+
+
+# Drafts
 
 
 
