@@ -32,27 +32,25 @@ Finally, we demonstrate FlashSMP's high scalability through extensive experiment
 
 ## Importance
 
-The motivation of the Stable Marriage Problem (SMP), introduced by David Gale and Lloyd Shapley in 1962, is to find a matching between two equally numbered sets of participants with ranked preferences such that no pair of people would prefer each other over their current partners.  
+The Stable Marriage Problem (SMP), introduced by David Gale and Lloyd Shapley in 1962, seeks to find a stable matching between two equally numbered sets of participants with ranked preferences, ensuring no pair of individuals would prefer each other over their assigned partners. Gale and Shapley also introduced the Gale-Shapley (GS) Algorithm, also known as the Deferred Acceptance (DA) algorithm, which guarantees a stable matching for any instance of the SMP.\cite{gale1962college} 
+
+The SMP has been a cornerstone in combinatorial optimization with applications spanning matching markets, resource allocation, and more. Its fundamental role in real-world applications such as matching doctors to hospitals, students to schools, and organ donors to patients underscores its significance. The profound impact of SMP on these fields was recognized when Dr. Alvin Roth and Dr. Lloyd Shapley received the Nobel Prize in Economics in 2012.
 
 
-
-The SMP plays a fundamental role in a wide range of crucial real-world applications, such as matching doctors to hospitals, students to schools, and organ donors to patients. This broad applicability and the profound influence of SMP on these fields, Dr. Alvin Roth and Dr. Shapley received the Nobel Prize in Economics in 2012. 
-
-
-
-It has been demonstrated that every instance of the SMP admits at least one stable matching and presented the Deferred Acceptance (DA) algorithm, also known as Gale-Shapely (GS) Algorithm,  which is guaranteed to find such a matching. \cite{gale1962college}
-
-
-
-## AI
-
-The stable marriage problem (SMP) has long been a topic of interest in combinatorial optimization, with applications ranging from matching markets to resource allocation. Efficient solutions to SMP are critical, especially as problem sizes grow and computational resources evolve.
 
 
 
 ## Why challenge / What problem is left over and required handle
 
+Efficient solutions to SMP are critical, especially as problem sizes grow and computational resources evolve.
+
 However, despite its importance, there has been relatively limited research focused on the development of parallel SMP algorithms, largely due to the inherent complexities associated with this task.
+
+To out knowledge, the only parallel algorithm makes sense, which means it runs faster than the sequential GS algorithm, is the parallel Mcvitie-Wilson Algorithm presented in \cite{NationalLab}
+
+
+
+
 
 parallelizing SMP computation presents considerable challenges, both in algorithmic design and implementation. 
 
@@ -141,7 +139,7 @@ The key challenges in developing an improved algorithm include:
 
 
 
-## Problem w/ Previous Work
+## Shortcomings w/ Previous Work
 
 Previous work has showcased the potential of implementing parallel GS algorithm on GPU due to its independent nature at the first round of proposing to improve the efficienty.
 
