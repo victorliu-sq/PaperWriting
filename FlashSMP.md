@@ -8,11 +8,29 @@ A stable marriage require cobabitation, atomicMin and Low latency
 
 # Abstract
 
-The Stable Marriage Problem (SMP) is a classical challenge to establish a stable pairing between two groups, traditionally referred to as "men" and "women." Each member of these groups has a ranked preference list for potential partners from the opposite group. The primary objective is to create pairings that are mutually stable, ensuring that no pair of individuals in the resulting arrangement would prefer each other over their assigned partners. The SMP computation has been widely used in various applications, including college admissions, optimizing job scheduling to make efficient use of computing, networking, and storage resources, allocating medical resources, making economic predictions and policy decisions, and many others. The basic SMP computations rely on the Gale-Shapley algorithm, a sequential process that constructs stable pairings iteratively based on the ranked preferences of individuals from both groups. This algorithm is highly time-consuming and data-intensive. While efforts have been made over the years to parallelize the Gale-Shapley algorithm, these attempts have been hindered by two major bottlenecks, namely, frequent data movement operations and atomic operation overhead.   
+The Stable Marriage Problem (SMP) is a classical challenge to establish a stable pairing between two groups, traditionally referred to as "men" and "women." Each member of these groups has a ranked preference list for potential partners from the opposite group. The primary objective is to create pairings that are mutually stable, ensuring that no pair of individuals in the resulting arrangement would prefer each other over their assigned partners. The SMP computation has been widely used in various applications, including college admissions, optimizing job scheduling to make efficient use of computing, networking, and storage resources, allocating medical resources, making economic predictions and policy decisions, and many others. The basic SMP computations rely on the Gale-Shapley algorithm, a sequential process that constructs stable pairings iteratively based on the ranked preferences of individuals from both groups. This algorithm is highly time-consuming and data-intensive. While efforts have been made over the years to parallelize the Gale-Shapley algorithm, these attempts have been hindered by three major bottlenecks, namely, suboptimal data access patterns, the overhead of atomic operations caused by inefficiencies with atomicCAS, and the restriction of implementation to either CPU or GPU.   
 
 
 
-To address these two challenges, in this paper, we introduce FlashSMP, an efficient parallel SMP algorithm and its implementation on GPU. The high performance of FlashSMP comes from two algorithms development efforts. First, we effectively exploit the data accessing locality with a new data structure to eliminate the "residence separation". Second, FlashSMP does not need global synchronization that is normally supported by machine-dependent atomic operations with high overhead. We call this effort to improve SMP as ``to eliminate communication locks"。 We give a rigorous analysis for the correctness of this synchronization-free and hardware-independent algorithm. With other GPU programming optimization efforts, we show the effectiveness of FlashSMP by intensive experiments, achieving a speedup of over 70 times compared to the Gale-Shapley algorithm. FlashSMP also significantly outperforms  several other existing parallel algorithms. Furthermore, FlashSMP exhibits high scalability, consistently delivering exceptional performance even as the problem size grows significantly.
+To address these 3 challenges, in this paper, we introduce FlashSMP, an efficient parallel SMP algorithm and its implementation on hybrid environment of GPU and CPU. 
+
+
+
+The high performance of FlashSMP comes from 3 algorithms development efforts. First, we effectively exploit the data accessing locality with a new data structure called PRNodes to eliminate the "residence separation". 
+
+
+
+Second, FlashSMP employs a more advanced atomic operation called "atomicMin" provided by CUDA to reduce the inefficiencies caused by atomicCAS under high memory contention. We call this effort to improve SMP as "resolve conflicts in communication".
+
+
+
+Thirdly, FlashSMP is implemented in a hybrid environment of both GPU and CPU, leveraging the high bandwidth of the GPU and the low latency of the CPU to achieve optimal performance across a wide range of workloads. We refer to this enhancement as "embracing complementary strengths"
+
+
+
+Finally, we demonstrate that FlashSMP exhibits high scalability, consistently delivering exceptional performance even as the problem size grows significantly, through extensive experiments using both synthetic and real-world datasets.
+
+Our evaluation results show that FlashSMP significantly outperforms state-of-the-art parallel algorithms, achieving speedups of up to 28.3x across various workloads.
 
 
 
