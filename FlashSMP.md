@@ -229,7 +229,9 @@ To check if this matching is stable:
 - M2 prefers W2, and W2 is his top choice. W2 prefers M1 over M2, but W2 is already matched with M1, whom she prefers.
 - M3 prefers W3, and W3 is his top choice. W3 prefers M1 over M3, but W3 is already matched with M3.
 
-Since no two participants prefer each other over their current partners, this matching is stable.
+Since no two participants prefer each other over their current partners, this matching is stable.\
+
+
 
 #### Unstable Matching Example:
 
@@ -248,19 +250,39 @@ Since M1 and W1 prefer each other over their current partners, this matching is 
 
 
 
-
-
-### Preference List
-
-
-
-### Rank Matrix
-
-
-
 ## GS
 
+The Gale-Shapley algorithm, also known as the Deferred Acceptance algorithm, is a foundational method for solving the Stable Marriage Problem (SMP). Proposed by David Gale and Lloyd Shapley in 1962, the algorithm guarantees finding a stable matching between two equally sized sets of participants, typically referred to as men and women, each with their own preference lists.
 
+The algorithm operates in iterative rounds where each unengaged man proposes to the highest-ranked woman on his preference list who has not yet rejected him. Women then consider these proposals and tentatively accept the one they prefer most while rejecting the rest. If a woman receives multiple proposals, she keeps the proposal from the man she prefers the most (even if she was already holding a different proposal) and rejects all others. This process continues until there are no more unengaged men left.
+
+Initially, all participants are free (unmatched). During the proposal phase, each free man proposes to the highest-ranked woman on his list who has not yet rejected him. In the acceptance phase, each woman receiving one or more proposals chooses the man she prefers the most among the proposers and tentatively accepts his proposal, rejecting all other proposals. This proposal and acceptance cycle repeats until there are no more free men.
+
+Consider the following example with three men (M1, M2, M3) and three women (W1, W2, W3) with the respective preference lists:
+
+Men:
+
+- M1: W1, W2, W3
+- M2: W2, W1, W3
+- M3: W2, W3, W1
+
+Women:
+
+- W1: M1, M2, M3
+- W2: M2, M1, M3
+- W3: M1, M3, M2
+
+The execution of the Gale-Shapley algorithm proceeds as follows:
+
+Initially, M1 proposes to W1. W1 accepts M1's proposal tentatively, resulting in the tentative match (M1, W1). Next, M2 proposes to W2, and W2 accepts M2's proposal tentatively, resulting in the tentative match (M2, W2). Then, M3 proposes to W2. W2 prefers M3 over M2, so she accepts M3's proposal and rejects M2. The tentative matches are now (M1, W1) and (M3, W2).
+
+M2, now free, proposes to W1. However, W1 prefers M1 over M2 and rejects M2. The tentative matches remain unchanged. M2, still free, proposes to W1 again, and W1 once again rejects him in favor of M1. The tentative matches still remain (M1, W1) and (M3, W2). Subsequently, M2 proposes to W3. W3 accepts M2's proposal tentatively, resulting in the tentative match (M2, W3).
+
+M1, now free, proposes to W2. W2 prefers M1 over M3, so she accepts M1's proposal and rejects M3. The tentative matches are now (M1, W2) and (M2, W3). M3, now free, proposes to W3. However, W3 prefers M2 over M3 and rejects M3. The tentative matches remain (M1, W2) and (M2, W3). Finally, M3 proposes to W1, but W1 prefers M1 over M3 and rejects him, leaving the tentative matches unchanged.
+
+The algorithm terminates with the following stable matching: M1 is matched with W2, M2 is matched with W3, and M3 is unmatched. This matching is stable as there are no two individuals who prefer each other over their current partners.
+
+The Gale-Shapley algorithm ensures that such a stable matching is always found, demonstrating its robustness and efficiency in solving the Stable Marriage Problem. The properties of the Gale-Shapley algorithm include guaranteed stability, male-optimality, and polynomial time complexity (O(n^2)), making it efficient for practical use. The algorithm has widespread applications beyond the traditional SMP, including college admissions, job placements, and organ donation matching, highlighting its importance in various domains requiring stable matchings.
 
 
 
