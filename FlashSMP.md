@@ -46,15 +46,33 @@ Efficient algorithms for Stable Marriage Problems (SMP) are critical as problem 
 
 Despite its importance, research on parallel SMP algorithms has been limited due to the inherent complexities of this task. To our knowledge, the only parallel algorithm that outperforms the sequential Gale-Shapley (GS) algorithm is the parallel McVitie-Wilson algorithm. While this algorithm has set a benchmark by running faster than sequential solutions, its performance on GPUs is hindered by high contention for shared resources and high-latency memory operations, making it even less efficient than its CPU implementation. 
 
-This highlights the possibility of developing a more efficient algorithm that fully exploits the high bandwidth of modern computing architectures, particularly GPUs.
-
 
 
 ## Challenges
 
+To develop a more efficient parallel algorithm for SMP that fully leverages the high bandwidth of modern computing architectures, particularly GPUs, we need to address four significant challenges:
+
+First, optimizing memory access patterns to reduce latency and enhance cache performance is crucial due to the memory-intensive nature of the Gale-Shapley (GS) algorithm. Inefficient memory access patterns can result in frequent cache misses, thereby degrading both sequential and parallel performance.
 
 
-In order to develop a more efficient parallel algorithm to SMP that fully exploits the high bandwidth of modern computing architectures, particularly GPUs, we need to address 4 non-trivial challenges:
+
+Second, when multiple proposers contend for the same recipient, the threads representing these proposers compete for the same shared memory location, necessitating robust synchronization mechanisms such as atomic compare-and-swap (atomicCAS) to prevent data races. In extreme scenarios where all proposers follow the same sequence, memory contention can become severe, leading to substantial performance degradation due to the inefficiency caused by CAS failures.
+
+
+
+Third, parallelism can diminish significantly when there are disparities in individual preferences. 
+
+For instance, if all proposers target half of the recipients at the beginning, then in the first round, half of the proposers will successfully pair with recipients.
+
+As recipients pair off and remain paired, the number of available proposers and active threads will steadily decrease.
+
+This scenario eventually leads to a serial bottleneck, where only a single proposer remains active, thereby negating the advantages of the GPU's high bandwidth due to synchronization overhead.
+
+
+
+Lastly, different workloads can exhibit distinct properties, which significantly affect the design and implementation of an effective algorithm. Therefore, developing an efficient parallel SMP algorithm requires careful consideration of these varying workload characteristics. The solutions to the aforementioned issues should be designed to maintain efficient performance across diverse scenarios, without negatively impacting any particular instance.
+
+
 
 1
 
