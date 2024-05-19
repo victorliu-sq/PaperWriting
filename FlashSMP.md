@@ -110,7 +110,7 @@ Lastly, Different workloads can exhibit distinct properties, significantly affec
 
 
 
-## First
+### AI
 
 To develop a more efficient parallel algorithm for SMP that fully leverages the high bandwidth of modern computing architectures, particularly GPUs, we need to address four significant challenges:
 
@@ -176,11 +176,79 @@ Specifically, we make the following contributions:
 
 ## Paper Structure
 
-The remainder of this paper is organized as follows: Section 2 reviews related work and background. Section 3 details the design and implementation of FlashSMP. Section 4 presents our experimental setup and results. Section 5 discusses the implications and potential future work. Finally, Section 6 concludes the paper.
+The remainder of this paper is organized as follows: 
+
+Section 2 provides background information on the Stable Marriage Problem. 
 
 
 
-# Experiment
+Section 3 details the design and implementation of FlashSMP, including the development of the PRNodes data structure and the preprocessing step to improve data locality and memory access efficiency. This section also discusses the rigorous mathematical proof demonstrating the superiority of atomicMIN over atomicCAS in high-contention scenarios, along with the complementary strengths of CPUs and GPUs, supported by our experimental benchmarks. 
+
+
+
+Section 4 presents our experimental setup and results, offering a comprehensive evaluation of FlashSMP's performance and highlighting its efficiency and adaptability across various workloads. 
+
+
+
+Section 5 reviews related work, including existing serial and parallel algorithms for SMP. Finally, Section 6 concludes the paper, summarizing our findings and suggesting potential directions for future research.
+
+
+
+# Section2-Background
+
+## SMP
+
+### SMP
+
+
+
+### Preference List
+
+
+
+### Rank Matrix
+
+
+
+## GS
+
+
+
+
+
+# Section3-FlashSMP
+
+## Cohabitation-PRNode
+
+As discussed in Section 2, solving the SMP traditionally relies on two key data structures: preference lists and rank matrices. Preference lists arrange each man's proposals from the most to the least preferred woman. To evaluate a proposal, a woman then looks up the rank matrix to determine the proposer's relative ranking from her perspective. The limitations and inefficiencies of this approach do not become apparent until the algorithm and data structures are implemented on real hardware. 
+
+Because fast memory is expensive, a modern memory hierarchy is structured into levels—each smaller, faster, and more expensive per byte than the next lower level, which is farther from the processor. Modern architectures also employs a strategy known as locality, where consecutive data stored in memory locations are loaded in batches into the cache. This occurs in two forms: temporal locality and spatial locality. When a processor references some data, it first looks it up in the cache. If not found, the data must be fetched from a lower level of the hierarchy and placed in the cache before proceeding.To improve efficiency, data is moved in blocks, exploiting the spatial locality \cite{architecture6th}.
+
+While the preference list's order suggests an opportunity to exploit spatial locality for men making proposals from most preferred woman to the least preferred, however, accessing the rank matrix introduces inefficiencies. Specifically, finding a man’s rank within a woman’s rank matrix requires random access patterns, hindering efficient data movements.
+
+In Figure 3, we illustrate an example where man $m_1$ attempts to propose to women in order of his preference list. However, the memory location of his rank in the proposed woman's preference list is randomly located. When the man proposes to the next woman and refers to the corresponding location in the rank matrix, this location does not exist in the cache, resulting in a cache miss and necessitating a read from the furthest level of memory, which is very expensive.
+
+Thus, when implemented on hardware, accessing the rank matrix by the proposed woman often results in data being loaded into a lower level of memory. Due to the layout of the rank matrix, there is minimal spatial locality to exploit, making it time-consuming to read from memory the rank of a man corresponding to the preference list of the proposed woman.
+
+
+
+## Conflict Resolution-atomicMin
+
+The Deferred Acceptance (DA) algorithm naturally lends itself to parallelization, as multiple proposers (men) can make proposals simultaneously. For example, by assigning each thread to simulate a man making proposals when implemented on an actual multithreading hardware, all men will initially propose to their preferred women. However, for the DA algorithm to make progress, it is crucial for threads to communicate with each other. Considering the preference lists given in Figure\ref{perferences}, men m1, m3, m5, and m6 will be paired with their proposed women directly whereas m2 and m7, as well as m4 and m8, will communicate to resolve conflicts if they are proposing to the same woman simultaneously.
+
+A straightforward solution is to use barrier synchronization. In parallel computing, a barrier is a method that forces threads or processes to wait until all participating threads reach a certain point in the code to ensure synchronized behavior. However, this approach can lead to high communication traffic due to all threads repeatedly accessing a global variable to check their status, diminishing scalability. An alternative method, as utilized in \cite{lerring2017parallel}, involves the use of an atomic instruction known as compare-and-swap (CAS) for synchronization in multithreading. CAS works by taking two values: a new value to be written to a memory location and a comparison value to ensure the operation's validity. It reads the old value from the memory, compares it with the provided comparison value, and, if they match, writes the new value to the memory location—all in a single atomic operation. The old value is returned, indicating whether the substitution was successful based on whether the return value matches the comparison value. Nevertheless, CAS can lead to inefficiencies in high-contention scenarios, such as when multiple threads (simulating men proposing to the same woman) compete to update a shared resource. In such cases, only one thread succeeds, while the others must retry, leading to wasted efforts due to CAS failures and significant overhead from frequent synchronization among many processors.
+
+
+
+## GPU and CPU
+
+GPU can accelerate performance over CPU due to its massively parallel architecture and high bandwidth memory. \cite{nestedGPU}
+
+
+
+
+
+# Section4-Experiment
 
 if preference lists divide the members on the opposite side into groups and rank groups in the same way while randomize the people inside each group, which we call the mixed instance, then the number of proposing men will not dramatically decrease to a single man to make peoposal
 
