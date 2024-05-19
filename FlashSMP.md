@@ -50,28 +50,6 @@ Despite its importance, research on parallel SMP algorithms has been limited due
 
 ## Challenges
 
-To develop a more efficient parallel algorithm for SMP that fully leverages the high bandwidth of modern computing architectures, particularly GPUs, we need to address four significant challenges:
-
-First, optimizing memory access patterns to reduce latency and enhance cache performance is crucial due to the memory-intensive nature of the Gale-Shapley (GS) algorithm. Inefficient memory access patterns can result in frequent cache misses, thereby degrading both sequential and parallel performance.
-
-
-
-Second, when multiple proposers contend for the same recipient, the threads representing these proposers compete for the same shared memory location, necessitating robust synchronization mechanisms such as atomic compare-and-swap (atomicCAS) to prevent data races. In extreme scenarios where all proposers follow the same sequence, memory contention can become severe, leading to substantial performance degradation due to the inefficiency caused by CAS failures.
-
-
-
-Third, parallelism can diminish significantly when there are disparities in individual preferences. 
-
-For instance, if all proposers target half of the recipients at the beginning, then in the first round, half of the proposers will successfully pair with recipients.
-
-As recipients pair off and remain paired, the number of available proposers and active threads will steadily decrease.
-
-This scenario eventually leads to a serial bottleneck, where only a single proposer remains active, thereby negating the advantages of the GPU's high bandwidth due to synchronization overhead.
-
-
-
-Lastly, different workloads can exhibit distinct properties, which significantly affect the design and implementation of an effective algorithm. Therefore, developing an efficient parallel SMP algorithm requires careful consideration of these varying workload characteristics. The solutions to the aforementioned issues should be designed to maintain efficient performance across diverse scenarios, without negatively impacting any particular instance.
-
 
 
 1
@@ -132,27 +110,47 @@ Lastly, Different workloads can exhibit distinct properties, significantly affec
 
 
 
+## First
 
+To develop a more efficient parallel algorithm for SMP that fully leverages the high bandwidth of modern computing architectures, particularly GPUs, we need to address four significant challenges:
+
+First, optimizing memory access patterns to reduce latency and enhance cache performance is crucial due to the memory-intensive nature of the Gale-Shapley (GS) algorithm. Inefficient memory access patterns can result in frequent cache misses, thereby degrading both sequential and parallel performance.
+
+
+
+Second, when multiple proposers contend for the same recipient, the threads representing these proposers compete for the same shared memory location, necessitating robust synchronization mechanisms such as atomic compare-and-swap (atomicCAS) to prevent data races. In extreme scenarios where all proposers follow the same sequence, memory contention can become severe, leading to substantial performance degradation due to the inefficiency caused by CAS failures.
+
+
+
+Third, parallelism can diminish significantly when there are disparities in individual preferences. 
+
+For instance, if all proposers target half of the recipients at the beginning, then in the first round, half of the proposers will successfully pair with recipients.
+
+As recipients pair off and remain paired, the number of available proposers and active threads will steadily decrease.
+
+This scenario eventually leads to a serial bottleneck, where only a single proposer remains active, thereby negating the advantages of the GPU's high bandwidth due to synchronization overhead.
+
+
+
+Lastly, different workloads can exhibit distinct properties, which significantly affect the design and implementation of an effective algorithm. Therefore, developing an efficient parallel SMP algorithm requires careful consideration of these varying workload characteristics. The solutions to the aforementioned issues should be designed to maintain efficient performance across diverse scenarios, without negatively impacting any particular instance.
 
 
 
 ## Our Work
 
-In order to overcome these challenges, we present FlashSMP,an innovative algorithm that:
+In order to overcome these challenges, we present FlashSMP, an innovative algorithm that addresses these issues as follows:
 
-1.By closely analyzing the GS algorithm, we have uncovered that there exists a one-to-one correspondence between the woman index and the rank of man in the preference list of women. Thus we Incorporates a preprocessing step to eliminate data dependencies, enabling efficient memory access patterns.
+By closely analyzing the Gale-Shapley (GS) algorithm, we have uncovered a one-to-one correspondence between the recipient index and the rank of the proposer in the preference list of women. We incorporate a preprocessing step to eliminate data dependencies, thereby enabling efficient memory access patterns and reducing latency.
 
-
-
-2.Utilizes atomicMIN operations instead of atomicCAS, reducing wasted work under high contention for Reducing contention and wasted work during atomic operations to achieve efficient synchronization.
+By carefully arranging related data to be accessed together, we take advantage of the spatial locality inherent in modern memory hierarchies. This method significantly enhances performance by minimizing memory access latency, benefiting both sequential and parallel implementations.
 
 
 
-3.Seamlessly integrating CPU and GPU resources and implement FlashSMP in heterogeneous computing environments.By carefully arranging the related data to be grouped together to be accessed together, we can take advantage of the spatial locality inherent in modern memory hierarchies. This approach can lead to significant performance gains by minimizing the latency associated with memory access, benefiting both sequential and parallel implementations of the algorithm.
+Then FlashSMP utilizes atomicMIN operations instead of atomicCAS, reducing wasted work under high contention. This approach minimizes contention and improves synchronization efficiency during atomic operations.
 
+In addition, our algorithm seamlessly integrates CPU and GPU resources, implementing FlashSMP in heterogeneous computing environments. By doing so, when the number of active threads is large, we can utilize the high bandwidth of GPU to make proposals in parallel while utilizing the low latency of CPU to make proposal fast. 
 
-
-4.As a result, FlashSMP Adapts to different workloads and Ensuring the algorithm consistently performs well across different scenarios. 
+Finally, our evaluations showcase that FlashSMP adapts to different workloads, ensuring the algorithm consistently performs well across diverse scenarios.
 
 
 
