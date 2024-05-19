@@ -38,45 +38,41 @@ The SMP has been a cornerstone in combinatorial optimization with applications s
 
 
 
-
-
 ## Shortcoming of previous work
 
 Efficient algorithms for Stable Marriage Problems (SMP) are critical as problem sizes grow and computational resources evolve. Technological advancements in the twentieth century led to regular increases in processor clock speeds, naturally accelerating the GS algorithm. However, since the early 21st century, we have seen an end to these "free rides" as Moore's Law approaches its limits \cite{10.5555/2385452}. With the rise of advanced parallel architectures like multicore processors and GPUs, exploiting the parallelism of SMP algorithms has become both inevitable and necessary.
 
 
 
-Despite its importance, research on parallel SMP algorithms has been limited due to the inherent complexities of this task. To our knowledge, the only parallel algorithm that outperforms the sequential Gale-Shapley (GS) algorithm is the parallel McVitie-Wilson algorithm. While this algorithm has set a benchmark by running faster than sequential solutions, its performance on GPUs is hindered by high contention for shared resources and high-latency memory operations, making it less efficient than its CPU implementation. This highlights the pressing need for a more efficient algorithm that fully exploits the high bandwidth of modern computing architectures, particularly GPUs.
-
-
-
-Parallelizing SMP computation presents significant challenges for developing parallel algorithms due to its workload-dependent nature. 
-
-
+Despite its importance, research on parallel SMP algorithms has been limited due to the inherent complexities of this task. To our knowledge, the only parallel algorithm that outperforms the sequential Gale-Shapley (GS) algorithm is the parallel McVitie-Wilson algorithm. While this algorithm has set a benchmark by running faster than sequential solutions, its performance on GPUs is hindered by high contention for shared resources and high-latency memory operations, making it even less efficient than its CPU implementation. This highlights the pressing need for a more efficient algorithm that fully exploits the high bandwidth of modern computing architectures, particularly GPUs.
 
 
 
 ## Definition of Challenges
 
-Developing an efficient parallel SMP algorithm presents three non-trivial challenges for us to address.
+Developing an efficient parallel SMP algorithm presents 4 non-trivial challenges for us to address.
 
-
-
-The workload, namely SMP instances, consists of preference lists for each individual: each man ranks women from highest to lowest preference, and each woman ranks men similarly.
-
-In a parallel algorithm, each unpaired man is represented by a thread to make proposals.
-
-When multiple men propose to the same woman, the threads compete for the same shared memory location, requiring synchronization to ensure the woman accepts the best proposal.
-
-
+The workload, namely SMP instances, consists of preference lists for each individual where each man ranks women from highest to lowest preference, and each woman ranks men similarly.
 
 1
 
-Another significant challenge in developing efficient SMP algorithms is optimizing memory access patterns to reduce latency and improve cache performance. Poor memory access patterns can lead to frequent cache misses, which degrade the overall performance of both sequential and parallel implementations.
+The first challenge in developing efficient SMP algorithms is optimizing memory access patterns to reduce latency and improve cache performance since GS is a memory operation intensive algorithm.
+
+Poor memory access patterns can lead to frequent cache misses, which degrade the overall performance of both sequential and parallel implementations.
+
+By closely analyzing the GS algorithm, we have uncovered that there exists a one-to-one correspondence between the woman index and the rank of man in the preference list of women. 
+
+
+
+
 
 
 
 2.
+
+In a parallel algorithm, each unpaired man is represented by a thread to make proposals.
+
+When multiple men propose to the same woman, the threads compete for the same shared memory location, requiring synchronization to ensure the woman accepts the best proposal.
 
 The second challenge is that In extreme cases where all preference lists are identical, all men will compete for the same woman. This scenario requires robust synchronization methods. CAS-based data structures, as Morrison and Afek have pointed out [19], may perform poorly under high contention due to work wasted by CAS failures.
 
@@ -90,6 +86,8 @@ The next challenge is that Parallelism can drop significantly when variations ar
 
 4.
 
+This challenge is because Parallelizing SMP computation presents significant challenges for developing parallel algorithms due to its workload-dependent nature. 
+
 Another challenge is that Different workloads can exhibit distinct properties, significantly affecting the design and implementation of an effective algorithm. Therefore, developing an efficient parallel SMP algorithm requires careful consideration of these varying workload characteristics. That is resolution of conflicts in instance where preference lists are distinct cannot affect the efficiency of algorithm on , the approach to improve the performance of sertial problem should also take into consideration whether efficiency on workload with distinct preference lists will be influenced.   
 
 
@@ -98,42 +96,36 @@ Another challenge is that Different workloads can exhibit distinct properties, s
 
 In order to overcome these challenges, we present FlashSMP,an innovative algorithm that:
 
-1.Utilizes atomicMIN operations instead of atomicCAS, reducing wasted work under high contention for Reducing contention and wasted work during atomic operations to achieve efficient synchronization.
+1.Incorporates a preprocessing step to eliminate data dependencies, enabling efficient memory access patterns.
 
 
 
-2Seamlessly integrating CPU and GPU resources and implement FlashSMP in heterogeneous computing environments.
-
-3.Incorporates a preprocessing step to eliminate data dependencies, enabling efficient memory access patterns.
-
-By carefully arranging the related data to be grouped together to be accessed together, we can take advantage of the spatial locality inherent in modern memory hierarchies. This approach can lead to significant performance gains by minimizing the latency associated with memory access, benefiting both sequential and parallel implementations of the algorithm.
+2.Utilizes atomicMIN operations instead of atomicCAS, reducing wasted work under high contention for Reducing contention and wasted work during atomic operations to achieve efficient synchronization.
 
 
 
-As a result, FlashSMP Adapts to different workloads and Ensuring the algorithm consistently performs well across different scenarios.
+3.Seamlessly integrating CPU and GPU resources and implement FlashSMP in heterogeneous computing environments.By carefully arranging the related data to be grouped together to be accessed together, we can take advantage of the spatial locality inherent in modern memory hierarchies. This approach can lead to significant performance gains by minimizing the latency associated with memory access, benefiting both sequential and parallel implementations of the algorithm.
+
+
+
+4.As a result, FlashSMP Adapts to different workloads and Ensuring the algorithm consistently performs well across different scenarios.
 
 
 
 ## Contribution
 
-### AI
-
-The main contributions of this paper are:
-
-1. **Algorithm Design**: Introduction of FlashSMP, which utilizes atomicMIN operations and integrates CPU-GPU execution.
-2. **Mathematical Proof**: Rigorous proof demonstrating the superiority of atomicMIN over atomicCAS in high-contention scenarios.
-3. **Performance Evaluation**: Comprehensive benchmarks showing FlashSMP's superior performance across various scenarios.
-4. **Preprocessing Technique**: Development of a preprocessing step to enhance memory access efficiency.
+Our experiments show that FlashSMP has achieved 2.0x to  10.0x speedups over the-state-of-the-art.
 
 
 
-## Evaluation
+Our contributions are summarized as follows.
 
-1.Synthesized Data-Hard Instance
-
-2.Synthesized Data-Easy Instance
-
-3.Real Data+Synthesized Data-Mixed Instance
+1. **Preprocessing Technique**: Development of a preprocessing step to enhance memory access efficiency.
+2. **Algorithm Design and Implementation**:Putting all the above research efforts together, we construct
+   a framework named FlashSMP for the parallel computation of
+   SMP and its implementation in a hetereogenous environment of CPU and GPU.
+3. **Mathematical Proof and Experimental Benchmarks**: Rigorous mathematical proof demonstrating the superiority of atomicMIN over atomicCAS in high-contention scenarios and experimental benmarks to show CPU has lower latency than GPU
+4. **Performance Evaluation**: Comprehensive benchmarks showing FlashSMP's superior performance across various scenarios to illustrate the workload adaptation of FlashSMP. 
 
 
 
