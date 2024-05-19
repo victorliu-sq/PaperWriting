@@ -198,7 +198,55 @@ Section 5 reviews related work, including existing serial and parallel algorithm
 
 ## SMP
 
-### SMP
+The Stable Marriage Problem (SMP) involves finding a stable matching between two sets of participants, typically referred to as men and women. Each participant has a preference list ranking the members of the opposite set.
+
+The objective of SMP is to find a stable matching, where no two participants prefer each other over their current partners. In other words, a matching is stable if there are no two individuals who would rather be with each other than with their current partners.
+
+Consider three men (M1, M2, M3) and three women (W1, W2, W3) with the following preference lists:
+
+- Men:
+  - M1: W1, W2, W3
+  - M2: W2, W1, W3
+  - M3: W3, W1, W2
+- Women:
+  - W1: M2, M1, M3
+  - W2: M1, M2, M3
+  - W3: M1, M3, M2
+
+#### Stable Matching Example:
+
+A matching is considered stable if there are no two participants who prefer each other over their current partners.
+
+**Stable Matching**:
+
+- M1 is matched with W1.
+- M2 is matched with W2.
+- M3 is matched with W3.
+
+To check if this matching is stable:
+
+- M1 prefers W1, and W1 is his top choice. W1 prefers M2 over M1, but W1 is already matched with M2, whom she prefers.
+- M2 prefers W2, and W2 is his top choice. W2 prefers M1 over M2, but W2 is already matched with M1, whom she prefers.
+- M3 prefers W3, and W3 is his top choice. W3 prefers M1 over M3, but W3 is already matched with M3.
+
+Since no two participants prefer each other over their current partners, this matching is stable.
+
+#### Unstable Matching Example:
+
+Now, consider a different matching:
+
+- M1 is matched with W2.
+- M2 is matched with W1.
+- M3 is matched with W3.
+
+To check if this matching is unstable:
+
+- M1 is matched with W2, but M1 prefers W1 over W2. W1 is matched with M2 but prefers M1 over M2.
+- M2 is matched with W1, but W1 prefers M1 over M2, and M1 prefers W1 over W2.
+
+Since M1 and W1 prefer each other over their current partners, this matching is unstable.
+
+
 
 
 
