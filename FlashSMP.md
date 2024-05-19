@@ -198,55 +198,33 @@ Section 5 reviews related work, including existing serial and parallel algorithm
 
 ## SMP
 
-The Stable Marriage Problem (SMP) involves finding a stable matching between two sets of participants, typically referred to as men and women. Each participant has a preference list ranking the members of the opposite set.
+The Stable Marriage Problem (SMP) involves finding a stable matching between two sets of participants, typically referred to as men and women. Each participant has a preference list ranking the members of the opposite set. The objective of SMP is to find a stable matching, where no two participants prefer each other over their current partners. In other words, a matching is stable if there are no two individuals who would rather be with each other than with their current partners.
 
-The objective of SMP is to find a stable matching, where no two participants prefer each other over their current partners. In other words, a matching is stable if there are no two individuals who would rather be with each other than with their current partners.
+A stable matching is defined as one where there are no blocking pairs. A blocking pair is a pair of participants who would both prefer each other over their current partners. If such a pair exists, the matching is considered unstable because these two participants would have an incentive to deviate from their assigned partners and pair up instead.
 
 Consider three men (M1, M2, M3) and three women (W1, W2, W3) with the following preference lists:
 
-- Men:
-  - M1: W1, W2, W3
-  - M2: W2, W1, W3
-  - M3: W3, W1, W2
-- Women:
-  - W1: M2, M1, M3
-  - W2: M1, M2, M3
-  - W3: M1, M3, M2
+Men:
 
-#### Stable Matching Example:
+- M1: W1, W2, W3
+- M2: W2, W1, W3
+- M3: W2, W3, W1
 
-A matching is considered stable if there are no two participants who prefer each other over their current partners.
+Women:
 
-**Stable Matching**:
+- W1: M1, M2, M3
+- W2: M2, M1, M3
+- W3: M1, M3, M2
 
-- M1 is matched with W1.
-- M2 is matched with W2.
-- M3 is matched with W3.
+To illustrate a stable matching, consider the following example:
 
-To check if this matching is stable:
+M1 is matched with W1, M2 is matched with W2, and M3 is matched with W3. To check if this matching is stable, we need to ensure there are no blocking pairs. M1 prefers W1, and W1 is his top choice. W1 also prefers M1, her top choice. M2 prefers W2, and W2 is his top choice. Although W2 prefers M1 over M2, she is already matched with M1, her second choice. M3 prefers W3, and W3 is his top choice. Although W3 prefers M1 over M3, she is already matched with M3. Since no two participants prefer each other over their current partners, there are no blocking pairs, and this matching is stable.
 
-- M1 prefers W1, and W1 is his top choice. W1 prefers M2 over M1, but W1 is already matched with M2, whom she prefers.
-- M2 prefers W2, and W2 is his top choice. W2 prefers M1 over M2, but W2 is already matched with M1, whom she prefers.
-- M3 prefers W3, and W3 is his top choice. W3 prefers M1 over M3, but W3 is already matched with M3.
+Now, consider a different matching to illustrate instability:
 
-Since no two participants prefer each other over their current partners, this matching is stable.\
+Suppose M1 is matched with W2, M2 is matched with W1, and M3 is matched with W3. To check if this matching is unstable, we look for blocking pairs. M1 is matched with W2, but he prefers W1 over W2. W1, who is matched with M2, prefers M1 over M2. Thus, M1 and W1 form a blocking pair because they both prefer each other over their current partners. Therefore, this matching is unstable due to the presence of a blocking pair.
 
-
-
-#### Unstable Matching Example:
-
-Now, consider a different matching:
-
-- M1 is matched with W2.
-- M2 is matched with W1.
-- M3 is matched with W3.
-
-To check if this matching is unstable:
-
-- M1 is matched with W2, but M1 prefers W1 over W2. W1 is matched with M2 but prefers M1 over M2.
-- M2 is matched with W1, but W1 prefers M1 over M2, and M1 prefers W1 over W2.
-
-Since M1 and W1 prefer each other over their current partners, this matching is unstable.
+In conclusion, a matching in the context of SMP is stable if and only if there are no blocking pairs. The Gale-Shapley algorithm ensures that a stable matching is always found, thus addressing the issue of instability in matchings by systematically eliminating blocking pairs through its proposal and acceptance phases. This guarantees that the final matching is stable, demonstrating the robustness and efficiency of the algorithm in solving the Stable Marriage Problem.
 
 
 
