@@ -140,17 +140,13 @@ Lastly, different workloads can exhibit distinct properties, which significantly
 
 In order to overcome these challenges, we present FlashSMP, an innovative algorithm that addresses these issues as follows:
 
-By closely analyzing the Gale-Shapley (GS) algorithm, we have uncovered a one-to-one correspondence between the recipient index and the rank of the proposer in the preference list of women. We incorporate a preprocessing step to eliminate data dependencies, thereby enabling efficient memory access patterns and reducing latency.
+By closely analyzing the Gale-Shapley (GS) algorithm, We have uncovered a one-to-one correspondence between the recipient index and the rank of the proposer in the recipient's preference list. We incorporate a preprocessing step to eliminate data dependencies, allowing related data to be accessed together. This enables efficient memory access patterns and reduces latency.
 
-By carefully arranging related data to be accessed together, we take advantage of the spatial locality inherent in modern memory hierarchies. This method significantly enhances performance by minimizing memory access latency, benefiting both sequential and parallel implementations.
+To reduce wasted work under high memory contention, FlashSMP utilizes atomicMIN operations instead of atomicCAS. This approach asymptotically decreases the number of atomic operations and enhances synchronization efficiency.
 
+Additionally, our algorithm seamlessly integrates CPU and GPU resources, implementing FlashSMP in heterogeneous computing environments. This integration allows us to leverage the high bandwidth of the GPU to make parallel proposals when the number of active threads is large, and switch to the CPU to utilize its low latency for fast proposals when there is only a single active thread.
 
-
-Then FlashSMP utilizes atomicMIN operations instead of atomicCAS, reducing wasted work under high contention. This approach minimizes contention and improves synchronization efficiency during atomic operations.
-
-In addition, our algorithm seamlessly integrates CPU and GPU resources, implementing FlashSMP in heterogeneous computing environments. By doing so, when the number of active threads is large, we can utilize the high bandwidth of GPU to make proposals in parallel while utilizing the low latency of CPU to make proposal fast. 
-
-Finally, our evaluations showcase that FlashSMP adapts to different workloads, ensuring the algorithm consistently performs well across diverse scenarios.
+Finally, our evaluation results demonstrate that FlashSMP adapts effectively to different workloads, ensuring consistent and optimal performance across diverse scenarios.
 
 
 
