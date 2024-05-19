@@ -152,18 +152,25 @@ Finally, our evaluation results demonstrate that FlashSMP adapts effectively to 
 
 ## Contribution
 
-Our experiments show that FlashSMP has achieved 2.0x to  10.0x speedups over the-state-of-the-art.
+Specifically, we make the following contributions:
+
+1.We developed a new data structure, PRNodes, to enhance data locality. By incorporating a preprocessing step to initialize these PRNodes, we ensure that all necessary rank information is immediately accessible within the same PRNode during proposals. This significantly reduces the need for global memory access and enhances real-time performance.
 
 
 
-Our contributions are summarized as follows.
+2.We provide a Rigorous mathematical proof demonstrating the superiority of atomicMIN over atomicCAS in high-contention scenarios.
 
-1. **Preprocessing Technique**: Development of a preprocessing step to enhance memory access efficiency.
-2. **Algorithm Design and Implementation**:Putting all the above research efforts together, we construct
-   a framework named FlashSMP for the parallel computation of
-   SMP and its implementation in a hetereogenous environment of CPU and GPU.
-3. **Mathematical Proof and Experimental Benchmarks**: Rigorous mathematical proof demonstrating the superiority of atomicMIN over atomicCAS in high-contention scenarios and experimental benmarks to show CPU has lower latency than GPU
-4. **Performance Evaluation**: Comprehensive benchmarks showing FlashSMP's superior performance across various scenarios to illustrate the workload adaptation of FlashSMP. 
+
+
+3.Our experimental benchmarks highlight the complementary strengths of CPUs and GPUs. The CPU excels in low-latency operations, while the GPU offers high bandwidth, allowing us to leverage both for optimal performance.
+
+
+
+4.Combining these research efforts, we introduce a novel framework named FlashSMP for the parallel computation of SMP. . FlashSMP utilizes atomicMIN to resolve undefined behaviors effectively and is implemented in a heterogeneous environment of CPU and GPU.
+
+
+
+5.Our experimental evaluations comprehensively demonstrate FlashSMP's exceptional efficiency that FlashSMP outperforms the state-of-the-art parallel algorithms by from 2.4x to 10x across various workloads, underscoring its capacity of workloads adaptation
 
 
 
