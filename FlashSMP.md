@@ -44,37 +44,37 @@ Efficient algorithms for Stable Marriage Problems (SMP) are critical as problem 
 
 
 
-Despite its importance, research on parallel SMP algorithms has been limited due to the inherent complexities of this task. To our knowledge, the only parallel algorithm that outperforms the sequential Gale-Shapley (GS) algorithm is the parallel McVitie-Wilson algorithm. While this algorithm has set a benchmark by running faster than sequential solutions, its performance on GPUs is hindered by high contention for shared resources and high-latency memory operations, making it even less efficient than its CPU implementation. This highlights the pressing need for a more efficient algorithm that fully exploits the high bandwidth of modern computing architectures, particularly GPUs.
+Despite its importance, research on parallel SMP algorithms has been limited due to the inherent complexities of this task. To our knowledge, the only parallel algorithm that outperforms the sequential Gale-Shapley (GS) algorithm is the parallel McVitie-Wilson algorithm. While this algorithm has set a benchmark by running faster than sequential solutions, its performance on GPUs is hindered by high contention for shared resources and high-latency memory operations, making it even less efficient than its CPU implementation. 
+
+This highlights the possibility of developing a more efficient algorithm that fully exploits the high bandwidth of modern computing architectures, particularly GPUs.
 
 
 
-## Definition of Challenges
+## Challenges
 
-Developing an efficient parallel SMP algorithm presents 4 non-trivial challenges for us to address.
 
-The workload, namely SMP instances, consists of preference lists for each individual where each man ranks women from highest to lowest preference, and each woman ranks men similarly.
+
+In order to develop a more efficient parallel algorithm to SMP that fully exploits the high bandwidth of modern computing architectures, particularly GPUs, we need to address 4 non-trivial challenges:
 
 1
 
-The first challenge in developing efficient SMP algorithms is optimizing memory access patterns to reduce latency and improve cache performance since GS is a memory operation intensive algorithm.
-
-Poor memory access patterns can lead to frequent cache misses, which degrade the overall performance of both sequential and parallel implementations.
-
-By closely analyzing the GS algorithm, we have uncovered that there exists a one-to-one correspondence between the woman index and the rank of man in the preference list of women. 
-
-
-
-
+First, optimizing memory access patterns to reduce latency and improve cache performance is crucial since the Gale-Shapley (GS) algorithm is memory-intensive. Poor memory access patterns can lead to frequent cache misses, degrading both sequential and parallel performance.
 
 
 
 2.
 
-In a parallel algorithm, each unpaired man is represented by a thread to make proposals.
+The workload, namely SMP instances, consists of preference lists for each individual where each man ranks women from highest to lowest preference, and each woman ranks men similarly.
+
+Then, In a parallel algorithm, each unpaired man is represented by a thread to make proposals.
 
 When multiple men propose to the same woman, the threads compete for the same shared memory location, requiring synchronization to ensure the woman accepts the best proposal.
 
-The second challenge is that In extreme cases where all preference lists are identical, all men will compete for the same woman. This scenario requires robust synchronization methods. CAS-based data structures, as Morrison and Afek have pointed out [19], may perform poorly under high contention due to work wasted by CAS failures.
+When all men have identical preference lists, their corresponding threads will compete for the same woman. This scenario requires robust synchronization methods since CAS-based data structures may perform poorly under high contention due to work wasted by CAS failures.
+
+
+
+Second, when multiple men propose to the same woman, the threads representing these men compete for the same shared memory location. This requires robust synchronization methods like atomicCAS. In extreme cases, where all the men propose to women in the exact same order, memory contention can become very high. As a result, the algorithm may perform poorly due to the wasted work from CAS failures.
 
 
 
@@ -84,11 +84,37 @@ The next challenge is that Parallelism can drop significantly when variations ar
 
 
 
+Third, parallelism can drop significantly when there are variations in people's preferences. For instance, if all men propose to half the women in the first round, half will be paired. As women pair off and remain paired, the number of free men and active threads will reduce. Eventually, this leads to a serial problem where only one man is making proposals, negating the benefits of GPU's high bandwidth due to synchronization overhead.
+
+
+
 4.
 
 This challenge is because Parallelizing SMP computation presents significant challenges for developing parallel algorithms due to its workload-dependent nature. 
 
-Another challenge is that Different workloads can exhibit distinct properties, significantly affecting the design and implementation of an effective algorithm. Therefore, developing an efficient parallel SMP algorithm requires careful consideration of these varying workload characteristics. That is resolution of conflicts in instance where preference lists are distinct cannot affect the efficiency of algorithm on , the approach to improve the performance of sertial problem should also take into consideration whether efficiency on workload with distinct preference lists will be influenced.   
+
+
+Another challenge is that Different workloads can exhibit distinct properties, significantly affecting the design and implementation of an effective algorithm. Therefore, developing an efficient parallel SMP algorithm requires careful consideration of these varying workload characteristics. That is resolution of conflicts in instance where preference lists are distinct cannot affect the efficiency of algorithm on , the approach to improve the performance of workload that eventually turns into a serial problem should also take into consideration whether efficiency on workload with distinct preference lists will be lowed.   
+
+
+
+Lastly, the algorithm must universally handle varying workloads. 
+
+In order to develop a more efficient parallel algorithm to SMP that fully exploits the high bandwidth of modern computing architectures, particularly GPUs, we need to address 4 non-trivial challenges:
+
+Techniques to resolve above issues should  high contention should not negatively impact instances that become serial problems early, and methods to accelerate serial problems should not affect instances with high contention. 
+
+This balance is crucial for maintaining efficient performance across diverse scenarios.
+
+
+
+
+
+Lastly, Different workloads can exhibit distinct properties, significantly affecting the design and implementation of an effective algorithm. Therefore, developing an efficient parallel SMP algorithm requires careful consideration of these varying workload characteristics such that technique to resolve above issues should not negatively impact instances in other scenarios but maintaining efficient performance across diverse scenarios.
+
+
+
+
 
 
 
@@ -96,7 +122,7 @@ Another challenge is that Different workloads can exhibit distinct properties, s
 
 In order to overcome these challenges, we present FlashSMP,an innovative algorithm that:
 
-1.Incorporates a preprocessing step to eliminate data dependencies, enabling efficient memory access patterns.
+1.By closely analyzing the GS algorithm, we have uncovered that there exists a one-to-one correspondence between the woman index and the rank of man in the preference list of women. Thus we Incorporates a preprocessing step to eliminate data dependencies, enabling efficient memory access patterns.
 
 
 
@@ -108,7 +134,7 @@ In order to overcome these challenges, we present FlashSMP,an innovative algorit
 
 
 
-4.As a result, FlashSMP Adapts to different workloads and Ensuring the algorithm consistently performs well across different scenarios.
+4.As a result, FlashSMP Adapts to different workloads and Ensuring the algorithm consistently performs well across different scenarios. 
 
 
 
