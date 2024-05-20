@@ -322,7 +322,11 @@ The Rank Matrices for the women will be as follows:
 
 The GS algorithm is memory-intensive because it involves frequent and repeated accesses to the preference lists and the Rank Matrix. Specifically, each proposal involves minimal computation but requires a man to access the Rank Matrix to determine his rank in the preference list of the woman he is proposing to, thereby making memory access the primary bottleneck. 
 
-Despite the Rank Matrix’s efficiency, optimizing memory access remains challenging due to non-sequential access patterns. The Rank Matrix is accessed in a non-linear order because the index of the woman to propose to and the man's rank in her preference list are determined dynamically at runtime.
+Despite the Rank Matrix’s efficiency, optimizing memory access remains challenging due to non-sequential access patterns. 
+
+Because fast memory is expensive, a modern memory hierarchy is structured into levels—each smaller, faster, and more expensive per byte than the next lower level, which is farther from the processor. Modern architectures also employs a strategy known as locality, where consecutive data stored in memory locations are loaded in batches into the cache. This occurs in two forms: temporal locality and spatial locality. When a processor references some data, it first looks it up in the cache. If not found, the data must be fetched from a lower level of the hierarchy and placed in the cache before proceeding.To improve efficiency, data is moved in blocks, exploiting the spatial locality \cite{architecture6th}.
+
+The Rank Matrix is accessed in a non-linear order because the index of the woman to propose to and the man's rank in her preference list are determined dynamically at runtime.
 
 For instance, if M1 proposes to W1 first, he will access 𝑅𝑊1𝑀1*R**W*1*M*1 to check his rank, which is 1. If W1 rejects M1 and he then proposes to W2, he will access 𝑅𝑊2𝑀1*R**W*2*M*1, where his rank is 2. This dynamic decision-making process causes unpredictable memory accesses.
 
@@ -368,6 +372,8 @@ one potential strategy to manage contention and synchronization issues is to lim
 
 Implementing the parallel Gale-Shapley (GS) algorithm on a GPU presents significant challenges due to the unique architecture and execution model of GPUs. GPUs excel at handling highly parallel, data-parallel tasks with regular memory access patterns, providing high bandwidth for large-scale computations. This high bandwidth allows many threads to access memory simultaneously, which is advantageous for many parallel algorithms. However, the GS algorithm involves irregular and dynamic access patterns due to its iterative proposal and acceptance processes, leading to high contention when many threads attempt to update and access shared data structures concurrently.
 
+
+
 Each thread on a GPU would need to frequently perform atomic operations, such as `atomicCAS`, to prevent data races. These atomic operations can become bottlenecks under high contention, causing significant wasted work and reducing overall efficiency. The frequent need for atomic operations leads to threads repeatedly attempting and failing to perform updates, creating delays and reducing the effective parallelism of the algorithm.
 
 
@@ -390,21 +396,27 @@ Therefore, the inherent nature of the GS algorithm, with its need for dynamic an
 
 # Section4-FlashSMP
 
+FlashSMP is a parallel framework designed to enhance the performance of algorithms on modern heterogeneous computing systems by addressing common challenges such as memory access patterns and contention. The framework leverages a combination of innovative data structures, atomic operations, and a hybrid CPU-GPU execution model to achieve significant improvements in efficiency and scalability. The core ideas behind FlashSMP include the use of PRNodes to optimize memory access, atomicMin in CUDA for contention resolution, and a hybrid approach to harness the strengths of both GPU and CPU.
+
+
+
 ## Cohabitation-PRNode
 
 As discussed in Section 2, solving the SMP traditionally relies on two key data structures: preference lists and rank matrices. Preference lists arrange each man's proposals from the most to the least preferred woman. To evaluate a proposal, a woman then looks up the rank matrix to determine the proposer's relative ranking from her perspective. The limitations and inefficiencies of this approach do not become apparent until the algorithm and data structures are implemented on real hardware. 
 
-Because fast memory is expensive, a modern memory hierarchy is structured into levels—each smaller, faster, and more expensive per byte than the next lower level, which is farther from the processor. Modern architectures also employs a strategy known as locality, where consecutive data stored in memory locations are loaded in batches into the cache. This occurs in two forms: temporal locality and spatial locality. When a processor references some data, it first looks it up in the cache. If not found, the data must be fetched from a lower level of the hierarchy and placed in the cache before proceeding.To improve efficiency, data is moved in blocks, exploiting the spatial locality \cite{architecture6th}.
+Even if  the irregular access patterns of the Rank Matrix can significantly impact overall performance due to frequent cache misses, the preference lists of men are accessed sequentially because each man makes proposals from his highest preference to his lowest.
 
-While the preference list's order suggests an opportunity to exploit spatial locality for men making proposals from most preferred woman to the least preferred, however, accessing the rank matrix introduces inefficiencies. Specifically, finding a man’s rank within a woman’s rank matrix requires random access patterns, hindering efficient data movements.
+FlashSMP introduces PRNodes, a specialized data structure designed to enhance memory access patterns by closely coupling related data elements from the preference lists and rank matrices used in the Gale-Shapley (GS) algorithm. PRNodes encapsulate entries from a proposer’s preference list along with the corresponding rank entry from the recipient’s rank matrix, facilitating efficient access during both the proposal and acceptance phases of the algorithm.
 
-In Figure 3, we illustrate an example where man $m_1$ attempts to propose to women in order of his preference list. However, the memory location of his rank in the proposed woman's preference list is randomly located. When the man proposes to the next woman and refers to the corresponding location in the rank matrix, this location does not exist in the cache, resulting in a cache miss and necessitating a read from the furthest level of memory, which is very expensive.
-
-Thus, when implemented on hardware, accessing the rank matrix by the proposed woman often results in data being loaded into a lower level of memory. Due to the layout of the rank matrix, there is minimal spatial locality to exploit, making it time-consuming to read from memory the rank of a man corresponding to the preference list of the proposed woman.
+By storing these entries next to each other, PRNodes optimize memory access patterns, thereby improving efficiency. When a proposer accesses their next preference, the corresponding rank entry is fetched simultaneously or with minimal additional memory accesses. This spatial locality ensures that related data is loaded together, reducing cache misses and improving memory access efficiency. PRNodes address this problem by organizing data in a way that aligns better with memory access patterns, reducing the frequency and impact of memory jumps. This organization ensures that when a proposer accesses their PRNode, they can retrieve both the woman to propose to and the relevant rank information in a single, efficient memory operation.
 
 
 
 ## Conflict Resolution-atomicMin
+
+
+
+
 
 The Deferred Acceptance (DA) algorithm naturally lends itself to parallelization, as multiple proposers (men) can make proposals simultaneously. For example, by assigning each thread to simulate a man making proposals when implemented on an actual multithreading hardware, all men will initially propose to their preferred women. However, for the DA algorithm to make progress, it is crucial for threads to communicate with each other. Considering the preference lists given in Figure\ref{perferences}, men m1, m3, m5, and m6 will be paired with their proposed women directly whereas m2 and m7, as well as m4 and m8, will communicate to resolve conflicts if they are proposing to the same woman simultaneously.
 
@@ -420,7 +432,7 @@ GPU can accelerate performance over CPU due to its massively parallel architectu
 
 
 
-# Section4-Experiment
+# Section5-Experiment
 
 if preference lists divide the members on the opposite side into groups and rank groups in the same way while randomize the people inside each group, which we call the mixed instance, then the number of proposing men will not dramatically decrease to a single man to make peoposal
 
