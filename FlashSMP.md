@@ -340,6 +340,8 @@ Furthermore, it has been proven the number of proposals for an SMP instance is O
 
 In contrast, the preference lists of men are accessed sequentially because each man makes proposals from his highest preference to his lowest. However, the irregular access patterns of the Rank Matrix can significantly impact overall performance due to frequent cache misses.
 
+
+
 ## Synchronization in Shared Memory Contention
 
 
