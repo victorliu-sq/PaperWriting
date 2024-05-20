@@ -454,6 +454,36 @@ GPU can accelerate performance over CPU due to its massively parallel architectu
 
 
 
+FlashSMP employs an efficient strategy to switch between GPU and CPU modes to optimize the performance of the Gale-Shapley (GS) algorithm. The key idea behind this switch is to detect when there is only one proposer left free, indicating that only one thread remains active. This scenario signals the transition from the massively parallel GPU execution to the more suitable sequential execution on the CPU.
+
+To determine when to switch from GPU to CPU mode, FlashSMP checks the pairing status of the recipients (women). Each recipient's partner rank is initialized to 𝑛+1*n*+1, where 𝑛*n* is the size of the preference list. A rank value smaller than 𝑛+1*n*+1 indicates that the recipient is paired. Throughout the execution, each woman's partner rank is updated with the rank of her partner if paired. The algorithm reads the partner rank of each woman to determine if only one woman remains unpaired. If exactly one woman's partner rank is 𝑛+1*n*+1, it indicates that only one proposer remains free.
+
+To find the free man, the algorithm performs additional computations. First, it reads the partner ranks of all women to ensure only one woman is unpaired. Next, it uses the preference lists of the men to identify the paired men for each woman. This step involves reading the indices of the paired men from the preference lists. The algorithm calculates the total sum of indices of all men, which is 1+2+…+𝑛=𝑛(𝑛+1)21+2+…+*n*=2*n*(*n*+1). By subtracting the indices of the paired men from this total sum, the algorithm identifies the index of the free man.
+
+To illustrate, consider the following preference lists of men:
+
+- M1: W1, W2, W3
+- M2: W2, W1, W3
+- M3: W2, W3, W1
+
+Assume the following partner ranks for the women:
+
+- W1: 33 (paired with M3)
+- W2: 𝑛+1*n*+1 (unpaired)
+- W3: 11 (paired with M1)
+
+In this example, the partner rank of W2 is 𝑛+1*n*+1, indicating that W2 is unpaired. We need to determine which man is free. First, read the partner ranks of all women: W1 is 3, W2 is 𝑛+1*n*+1 (unpaired), and W3 is 1. Confirm that only one woman is unpaired by checking that only one rank equals 𝑛+1*n*+1. Identify the indices of the paired men from the partner ranks of the women: W1 is paired with M3, so M3 is paired; W2 is unpaired; W3 is paired with M1, so M1 is paired. Calculate the total sum of indices of all men, which is 1+2+3=3(3+1)2=61+2+3=23(3+1)=6. Subtract the indices of the paired men from the total sum: Paired men indices are 11 (M1) + 33 (M3) = 44. The free man index is 6−4=26−4=2. Therefore, the free man is M2, whose index is 2.
+
+Once the free man is identified and it is confirmed that only one proposer remains active, FlashSMP transitions the computation from the GPU to the CPU. The CPU handles the remaining sequential steps efficiently, ensuring optimal performance for the final part of the algorithm. This transition leverages the CPU's strengths in handling tasks with limited parallelism and more complex control flow, thus maintaining the overall efficiency of the GS algorithm execution.
+
+
+
+
+
+
+
+
+
 
 
 # Section5-Experiment
