@@ -344,11 +344,27 @@ In contrast, the preference lists of men are accessed sequentially because each 
 
 ## Synchronization in Shared Memory Contention
 
+When parallelizing the GS algorithm, the challenges of synchronization and wasted work become even more pronounced due to the algorithm's inherent properties.
+
+In the parallel GS algorithm, multiple threads simultaneously propose matches and check conditions for acceptance or rejection. This requires frequent updates to shared data structures, such as lists of proposals and acceptance statuses. Synchronizing these updates without causing significant wasted work is particularly challenging:
+
+The retries and wasted work from `atomicCAS` operations can significantly slow down the overall algorithm, offsetting the benefits of parallelization.
+
+As the number of threads increases, the likelihood of contention and wasted work also increases. Optimizing `atomicCAS` for a small number of threads may not scale well to larger numbers, exacerbating the problem in highly parallel systems.
+
+To mitigate the wasted work caused by `atomicCAS` under high memory contention, The parallel GS algorithm presents unique challenges that make these methods less effective:
+
+Backoff strategies involve making threads wait for a random or increasing amount of time before retrying the `atomicCAS` operation. This reduces the likelihood of repeated contention at the same memory location. The parallel GS algorithm requires rapid and frequent updates to shared data structures. Introducing delays with backoff strategies can significantly slow down the overall progress of the algorithm, leading to inefficiencies and longer convergence times.
+
+Partitioning involves dividing the data and workload into smaller, independent segments that can be processed in parallel with minimal interaction between threads. The GS algorithm involves global comparisons and updates (e.g., matching proposals and rejections across the entire dataset). Partitioning the problem space can lead to incorrect matches and instability, as the algorithm's correctness depends on considering all possible matches globally.
+
+one potential strategy to manage contention and synchronization issues is to limit the number of working threads. While this approach can reduce contention. One of the key goals of parallelizing the GS algorithm is to achieve scalability—being able to handle larger datasets and more complex matching problems efficiently as computational resources increase. As the size of the dataset increases, the workload for the GS algorithm grows. With a limited number of threads, the algorithm's ability to scale and handle larger datasets efficiently is compromised, leading to longer processing times and reduced performance.
 
 
 
 
-## Diminished Parallelism Due to Preference Disparities
+
+## Architectures
 
 
 
@@ -478,6 +494,5 @@ Salary
 
 
 # Drafts
-
 
 
