@@ -268,7 +268,7 @@ The Gale-Shapley algorithm ensures that such a stable matching is always found, 
 
 ## Optimizing Memory Access Patterns
 
-The Gale-Shapley (GS) algorithm is inherently memory-intensive due to its frequent access to preference lists and the need for efficient retrieval of rank information. In particular, the acceptance phase requires determining the rank of each man in the preference list of the proposed woman. To achieve this efficiently, we introduce the concept of the Rank Matrix, a precomputed data structure that allows for O(1) time complexity in retrieving these ranks. Constructing the Rank Matrix involves preprocessing, which runs in O(n^2) time, where n is the number of participants. The Rank Matrix is designed such that each entry 𝑅[𝑖][𝑗]*R*[*i*][*j*] represents the rank of man 𝑀𝑖*M**i* in woman 𝑊𝑗*W**j*'s preference list. By precomputing this matrix, the algorithm can quickly access the rank information, thereby optimizing memory access patterns and reducing latency.
+According to section 2, the acceptance phase of GS algorithm requires determining the rank of each man in the preference list of the proposed woman. An efficient approach is to utilize a precomputed data structure, called Rank Matrix, that allows for O(1) time complexity in retrieving these ranks. 
 
 To illustrate how the Rank Matrix works, consider the following preference lists:
 
@@ -284,7 +284,7 @@ Women:
 - W2: M2, M1, M3
 - W3: M1, M3, M2
 
-From these preference lists, we construct the Rank Matrices for each woman. Each entry 𝑅[𝑖][𝑗]*R*[*i*][*j*] in the matrix represents the rank of man 𝑀𝑖*M**i* in woman 𝑊𝑗*W**j*'s preference list. Here's how the Rank Matrices look for this example:
+From these preference lists, we construct the Rank Matrices for each woman. Each entry R_WM in the matrix represents the rank of man M in woman W's preference list. Here's how the Rank Matrices look for this example:
 
 For 𝑊1*W*1's preference list:
 
@@ -304,6 +304,8 @@ For 𝑊3*W*3's preference list:
 - M3 is ranked 2 (second choice)
 - M2 is ranked 3 (third choice)
 
+Constructing the Rank Matrix involves preprocessing each woman's preference list. We scan the preference list of each woman from rank 0 (highest) to rank 𝑛−1*n*−1 (lowest). For example, in 𝑊2*W*2's preference list, if the entries are M2, M1, and M3 for ranks 1, 2, and 3, respectively, the Rank Matrix would be initialized as 𝑅𝑊2𝑀2=1*R**W*2*M*2=1, 𝑅𝑊2𝑀1=2*R**W*2*M*1=2, and 𝑅𝑊2𝑀3=3*R**W*2*M*3=3.
+
 The Rank Matrices for the women will be as follows:
 
 𝑅𝑊1*R**W*1
@@ -318,17 +320,25 @@ The Rank Matrices for the women will be as follows:
 
 𝑀1𝑀2𝑀3𝑊3132*W*3*M*11*M*23*M*32
 
-By precomputing these Rank Matrices, the algorithm can quickly access the rank information during the acceptance phase. This reduces the complexity of rank retrieval to O(1) time, thereby optimizing memory access patterns and reducing latency. The Rank Matrix helps mitigate the challenge posed by the high frequency and irregular pattern of memory accesses in the GS algorithm, significantly improving overall performance.
+The GS algorithm is memory-intensive because it involves frequent and repeated accesses to the preference lists and the Rank Matrix. Specifically, each proposal involves minimal computation but requires a man to access the Rank Matrix to determine his rank in the preference list of the woman he is proposing to, thereby making memory access the primary bottleneck. 
 
-The GS algorithm's memory-intensive nature is characterized by the need to repeatedly read from both the preference lists and the Rank Matrix throughout its execution. Each iteration of proposals and acceptances involves multiple memory accesses for each participant, resulting in a high frequency of memory operations. Every time a man proposes and a woman evaluates her proposals, multiple reads from the preference lists and the Rank Matrix occur. This high frequency of access intensifies the memory access demands, making it crucial to optimize how these accesses are handled.
+Despite the Rank Matrix’s efficiency, optimizing memory access remains challenging due to non-sequential access patterns. The Rank Matrix is accessed in a non-linear order because the index of the woman to propose to and the man's rank in her preference list are determined dynamically at runtime.
 
-Optimizing memory access in the GS algorithm is challenging primarily due to the non-sequential access patterns of the Rank Matrix. The Rank Matrix is accessed in a non-sequential order because the index of the woman to propose to and the rank of the man in the preference list of the proposed woman are unknown until runtime. This leads to scattered memory access patterns. Each proposal requires a man to access the Rank Matrix to determine his rank in the preference list of the woman he is proposing to. Since these accesses are based on dynamic decisions made during the algorithm's execution, they occur in an unpredictable order, causing jumps in memory access. In contrast, the preference lists of men are accessed sequentially because each man makes proposals from his highest preference to his lowest. However, the irregular access patterns of the Rank Matrix can significantly impact overall performance due to frequent cache misses.
+For instance, if M1 proposes to W1 first, he will access 𝑅𝑊1𝑀1*R**W*1*M*1 to check his rank, which is 1. If W1 rejects M1 and he then proposes to W2, he will access 𝑅𝑊2𝑀1*R**W*2*M*1, where his rank is 2. This dynamic decision-making process causes unpredictable memory accesses.
 
-In summary, the GS algorithm's memory-intensive nature presents a significant challenge. The high frequency of access demands careful optimization of memory operations, while the non-sequential access patterns of the Rank Matrix add complexity to achieving efficient memory access. The introduction of the Rank Matrix is essential for reducing the time complexity of rank retrieval and enhancing overall memory access efficiency, making it feasible to leverage the high bandwidth of modern parallel computing architectures effectively.
-
-
+These accesses are not sequential and result in memory jumps, disrupting efficient caching and prefetching mechanisms. Consequently, these scattered and irregular memory accesses challenge the optimization of the GS algorithm's performance.
 
 
+
+### Uesless Content
+
+Clearly, a sequential algorithm that initializes rank matrix runs in O(n^2) time, where n is the number of participants. The Rank Matrix is designed such that each entry 𝑅[𝑖][𝑗]*R*[*i*][*j*] represents the rank of man 𝑀𝑖*M**i* in woman 𝑊𝑗*W**j*'s preference list.
+
+Thanks to Rank matrix, reduces the complexity of rank retrieval to O(1) time. As GS algorithm is described before, for each iteration, preference list and rank matrix will be access in a constant times, O(1), thus resulting in time O(1) for each iteration. 
+
+Furthermore, it has been proven the number of proposals for an SMP instance is O(n^2). And each proposal takes O(1) time, thus the total execution time of GS algorithm takes O(n^2) to precompute rank matrix and O(n^2) to make proposals.
+
+In contrast, the preference lists of men are accessed sequentially because each man makes proposals from his highest preference to his lowest. However, the irregular access patterns of the Rank Matrix can significantly impact overall performance due to frequent cache misses.
 
 ## Synchronization in Shared Memory Contention
 
@@ -368,7 +378,7 @@ A straightforward solution is to use barrier synchronization. In parallel comput
 
 
 
-## GPU and CPU
+## Embrace Complementary Strengths - GPU and CPU
 
 GPU can accelerate performance over CPU due to its massively parallel architecture and high bandwidth memory. \cite{nestedGPU}
 
