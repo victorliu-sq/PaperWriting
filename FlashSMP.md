@@ -398,6 +398,20 @@ Therefore, the inherent nature of the GS algorithm, with its need for dynamic an
 
 FlashSMP is a parallel framework designed to enhance the performance of algorithms on modern heterogeneous computing systems by addressing common challenges such as memory access patterns and contention. The framework leverages a combination of innovative data structures, atomic operations, and a hybrid CPU-GPU execution model to achieve significant improvements in efficiency and scalability. The core ideas behind FlashSMP include the use of PRNodes to optimize memory access, atomicMin in CUDA for contention resolution, and a hybrid approach to harness the strengths of both GPU and CPU.
 
+The framework operates in three main stages:
+
+
+
+Initialization of PRNodes on GPU1: FlashSMP begins by initializing PRNodes on the first GPU (GPU1). These nodes contain the necessary data structures and information to perform the SMP computations.
+
+
+
+Execution of MIN Locality Unified CUDA Kernel on GPU1: FlashSMP then launches the MIN Locality Unified CUDA Kernel on GPU1. This kernel processes the PRNodes in parallel, leveraging the GPU's computational power to handle the locality constraints and perform initial matching operations efficiently.
+
+
+
+Main Procedure: The main procedure involves the use of both the second GPU (GPU2) and the CPU to finalize the matching process. Specifically, GPU2 is used to continuously check whether only one free man is left by launching the `CheckLessThanNUnified` kernel, which processes each woman in parallel and updates the ranks. When it is determined that only one free man remains, the algorithm transitions to the CPU. The CPU then handles the final stage of the matching process, utilizing its low latency to speed up the completion of the remaining tasks without the need for synchronization, ensuring efficient and rapid convergence to a stable matching.
+
 
 
 ## Cohabitation-PRNode
