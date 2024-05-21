@@ -516,7 +516,21 @@ Once the free man is identified and it is confirmed that only one proposer remai
 
 ### Descrition of Algorithm
 
+The main procedure of this algorithm involves the use of both GPU and CPU to efficiently handle the Stable Marriage Problem (SMP) with a hybrid approach.
 
+First, the algorithm initializes by launching the kernel `CheckLessThanNUnified` on the GPU. This kernel processes each woman in parallel. For each woman, it fetches the current husband's rank and stores it in a split rank array. If the woman's husband rank is equal to the number of men (`n`), indicating that she has not been proposed to by any man, an atomic operation increments a counter for unproposed women. If the husband’s rank is not equal to `n`, the index of the free man is updated using an atomic subtraction based on the woman’s preference list.
+
+After launching the `CheckLessThanNUnified` kernel, the algorithm copies the temporary results (`temp_result_host`) from the device to the host. If the result indicates that there is at least one free man (`temp_result_host == 1`), the algorithm proceeds to copy the index of the free man from the device to the host and then transitions to the CPU to handle the remaining tasks.
+
+In the `HybridRelayTailingCPU` procedure, the algorithm begins by identifying the free man and initializing the rank index. It retrieves the corresponding node information and sets the woman's index and the man's rank accordingly. The algorithm then enters a while loop where the free man continues to propose to the next woman on his list.
+
+Within the loop, the current proposal rank is incremented, and the rank of the woman's current match (husband) is checked. If the woman's current match has a better (lower) rank than the proposing man, the algorithm updates the node information for the next proposal and continues to the next iteration of the loop.
+
+If the proposing man’s rank is better, the woman’s current match is updated to the proposing man’s rank. If the woman was originally unmatched (her rank was equal to `n`), the algorithm terminates as a successful match has been found.
+
+If the woman had a previous match but prefers the proposing man, the algorithm updates the current man’s ID to the previous match, sets the rank index for this new man, and continues the while loop. The algorithm retrieves the node information for the next woman on the new man's preference list and updates the indices accordingly, iterating until all matches are stable.
+
+This hybrid approach ensures that initial parallel processing on the GPU efficiently handles the bulk of proposals, while any remaining complex decisions are managed on the CPU, allowing for a balanced workload and efficient computation.
 
 
 
