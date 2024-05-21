@@ -426,6 +426,8 @@ By storing these entries next to each other, PRNodes optimize memory access patt
 
 
 
+
+
 ### Descrition of Algorithm
 
 The parallel algorithm for initializing PRNodes is designed to optimize memory access patterns for the Gale-Shapley algorithm. This algorithm processes preference lists for men and women, organizing the data into PRNodes to ensure efficient memory access during execution. The algorithm leverages parallel processing to quickly handle large datasets.
