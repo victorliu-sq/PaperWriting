@@ -412,6 +412,20 @@ By storing these entries next to each other, PRNodes optimize memory access patt
 
 
 
+### Descrition of Algorithm
+
+The parallel algorithm for initializing PRNodes is designed to optimize memory access patterns for the Gale-Shapley algorithm. This algorithm processes preference lists for men and women, organizing the data into PRNodes to ensure efficient memory access during execution. The algorithm leverages parallel processing to quickly handle large datasets.
+
+Each processing unit is assigned a unique ID (`tid`), determining its specific portion of the workload. If the unit ID is within the bounds of the total number of elements (`n * n`), the unit proceeds as follows:
+
+The unit calculates the index of the man (`m_idx`) and the rank of the woman (`w_rank`) based on its ID. Using the man's preference list (`pref_list_m`), it determines the corresponding woman index (`w_idx`). This index is stored in the device node vector at the position corresponding to the man's index and the woman's rank.
+
+Next, the unit calculates the index of the woman (`w_idx`) and the rank of the man (`m_rank`) based on its ID. Using the woman's preference list (`pref_list_w`), it determines the corresponding man index (`m_idx`). This index is stored in the device node vector at the position corresponding to the woman's index and the man's rank.
+
+By organizing the data in this manner, the PRNodes encapsulate the necessary entries from the preference lists, ensuring that related data is closely coupled. This approach optimizes memory access patterns, improving the efficiency of the Gale-Shapley algorithm during execution. The parallel nature of the algorithm allows for rapid initialization of the PRNodes, leveraging the computational power of parallel processors to handle large datasets efficiently.
+
+
+
 ## Conflict Resolution-atomicMin
 
 The Deferred Acceptance (DA) algorithm naturally lends itself to parallelization, as multiple proposers (men) can make proposals simultaneously. For example, by assigning each thread to simulate a man making proposals when implemented on an actual multithreading hardware, all men will initially propose to their preferred women. However, for the DA algorithm to make progress, it is crucial for threads to communicate with each other. Considering the preference lists given in Figure\ref{perferences}, men m1, m3, m5, and m6 will be paired with their proposed women directly whereas m2 and m7, as well as m4 and m8, will communicate to resolve conflicts if they are proposing to the same woman simultaneously.
@@ -448,9 +462,15 @@ By using atomicMin instead of atomicCAS, we achieve a significant reduction in t
 
 
 
+### Descrition of Algorithm
+
+
+
 ## Embrace Complementary Strengths - GPU and CPU
 
 GPU can accelerate performance over CPU due to its massively parallel architecture and high bandwidth memory. \cite{nestedGPU}
+
+While atomicMin in GPU is effective at handling contention by ensuring minimal retries and efficient updates, it remains an expensive operation due to the high overhead associated with atomic transactions. This overhead becomes particularly pronounced when the workload reduces to only one active thread. In such scenarios, the advantages of parallel execution diminish, and the costs associated with atomic operations can outweigh their benefits, leading to inefficiencies.
 
 
 
@@ -478,9 +498,7 @@ Once the free man is identified and it is confirmed that only one proposer remai
 
 
 
-
-
-
+### Descrition of Algorithm
 
 
 
@@ -576,5 +594,4 @@ Salary
 
 
 # Drafts
-
 
