@@ -274,55 +274,17 @@ The Gale-Shapley algorithm ensures that such a stable matching is always found, 
 
 According to section 2, the acceptance phase of GS algorithm requires determining the rank of each man in the preference list of the proposed woman. An efficient approach is to utilize a precomputed data structure, called Rank Matrix, that allows for O(1) time complexity in retrieving these ranks. 
 
-To illustrate how the Rank Matrix works, consider the following preference lists:
+To illustrate how the Rank Matrix works, consider the preference lists and corresponding rank matrices in Figure1:
 
-Men:
 
-- M1: W1, W2, W3
-- M2: W2, W1, W3
-- M3: W2, W3, W1
 
-Women:
+Constructing the Rank Matrix involves preprocessing each woman's preference list.
 
-- W1: M1, M2, M3
-- W2: M2, M1, M3
-- W3: M1, M3, M2
+The rank matrix for men should indicate the rank each man assigns to each woman and We scan the preference list of each woman from rank 1(highest) to rank 3(lowest)   For example, M1's row in the matrix has (M1, W1) as rank 2 because W1 is his second preference, (M1, W2) as rank 1 because W2 is his first preference, and (M1, W3) as rank 3 because W3 is his third preference. You can determine other entries in the rank matrix from the corresponding preference lists using the same method.
 
-From these preference lists, we construct the Rank Matrices for each woman. Each entry R_WM in the matrix represents the rank of man M in woman W's preference list. Here's how the Rank Matrices look for this example:
+Similarly, for women, W1's row in the matrix has (W1, M1) as rank 3 because M1 is her third preference, (W1, M2) as rank 2 because M2 is her second preference, and (W1, M3) as rank 1 because M3 is her first preference. The same method can be used to determine the other entries in the women's rank matrix from their preference lists.
 
-For 𝑊1*W*1's preference list:
 
-- M1 is ranked 1 (first choice)
-- M2 is ranked 2 (second choice)
-- M3 is ranked 3 (third choice)
-
-For 𝑊2*W*2's preference list:
-
-- M2 is ranked 1 (first choice)
-- M1 is ranked 2 (second choice)
-- M3 is ranked 3 (third choice)
-
-For 𝑊3*W*3's preference list:
-
-- M1 is ranked 1 (first choice)
-- M3 is ranked 2 (second choice)
-- M2 is ranked 3 (third choice)
-
-Constructing the Rank Matrix involves preprocessing each woman's preference list. We scan the preference list of each woman from rank 0 (highest) to rank 𝑛−1*n*−1 (lowest). For example, in 𝑊2*W*2's preference list, if the entries are M2, M1, and M3 for ranks 1, 2, and 3, respectively, the Rank Matrix would be initialized as 𝑅𝑊2𝑀2=1*R**W*2*M*2=1, 𝑅𝑊2𝑀1=2*R**W*2*M*1=2, and 𝑅𝑊2𝑀3=3*R**W*2*M*3=3.
-
-The Rank Matrices for the women will be as follows:
-
-𝑅𝑊1*R**W*1
-
-𝑀1𝑀2𝑀3𝑊1123*W*1*M*11*M*22*M*33
-
-𝑅𝑊2*R**W*2
-
-𝑀1𝑀2𝑀3𝑊2213*W*2*M*12*M*21*M*33
-
-𝑅𝑊3*R**W*3
-
-𝑀1𝑀2𝑀3𝑊3132*W*3*M*11*M*23*M*32
 
 The GS algorithm is memory-intensive because it involves frequent and repeated accesses to the preference lists and the Rank Matrix. Specifically, each proposal involves minimal computation but requires a man to access the Rank Matrix to determine his rank in the preference list of the woman he is proposing to, thereby making memory access the primary bottleneck. 
 
