@@ -300,7 +300,7 @@ For instance, if M1 starts by proposing to W2, he will refer to RankMatrixWoman(
 
 The access patterns of M1, M2, and M3 are shown in Figure 2.
 
-When the number of participants (n) is very large, the non-sequential nature of these accesses causes significant memory jumps, even though the same man accesses rank matrix entries within the same column. This disrupts efficient caching and prefetching mechanisms. For example, in a scenario with thousands of participants, M1 may first propose to W200, then to W340, and finally to W178, resulting in accesses to RankMatrixWoman(W200, M1), RankMatrixWoman(W340, M1), and RankMatrixWoman(W178, M1). These accesses are scattered and unpredictable. Consequently, column-wise storage becomes inefficient as it fails to take advantage of spatial locality, leading to poor memory usage and slower access times due to the random access pattern.
+When the number of participants (n) is very large, the non-sequential nature of these accesses causes significant memory jumps, even though the same man accesses rank matrix entries within the same column. This disrupts efficient caching and prefetching mechanisms. For example, in a scenario with tens of thousands of participants, M1 may first propose to W200, then to W31020, and finally to W1780, resulting in accesses to RankMatrixWoman(W200, M1), RankMatrixWoman(W31020, M1), and RankMatrixWoman(W1780, M1). These accesses are scattered and unpredictable. Consequently, column-wise storage becomes inefficient as it fails to take advantage of spatial locality, leading to poor memory usage and slower access times due to the random access pattern.
 
 
 
