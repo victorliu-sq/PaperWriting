@@ -202,6 +202,8 @@ The Stable Marriage Problem (SMP) involves finding a stable matching between two
 
 A stable matching is defined as one where there are no blocking pairs. A blocking pair is a pair of participants who would both prefer each other over their current partners. If such a pair exists, the matching is considered unstable because these two participants would have an incentive to deviate from their assigned partners and pair up instead.
 
+![FlashSMP-Background-3](/Users/jiaxinliu/Desktop/FlashSMPEvaluation/Figures/FlashSMP-Background-4.jpg)
+
 Consider three men (M1, M2, M3) and three women (W1, W2, W3) with the following preference lists:
 
 Men:
