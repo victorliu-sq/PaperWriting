@@ -286,15 +286,7 @@ This results in a stable matching identical to the man-optimal stable marriage p
 
 
 
-# Section3-Challenges
-
-## Existing Methods
-
-The parallel versions of both the Gale-Shapley and McVitie-Wilson algorithms partition the set of men among multiple threads, each running a local version of the algorithm. Threads make proposals on behalf of men using atomic compare-and-swap (CAS) operations to update the suitor status of women safely. In the parallel Gale-Shapley algorithm, rejected men are added to local queues and processed in subsequent rounds, with optional synchronization to redistribute unmarried men among threads for load balancing.
-
-In contrast, the parallel McVitie-Wilson algorithm adds rejected men to local stacks, allowing threads to continue making proposals immediately until all men are matched, thus avoiding the need for periodic synchronization
-
-
+# Section3-Challenges in parallelzing GS on GPU
 
 ## Optimizing Memory Access Patterns
 
@@ -330,6 +322,12 @@ When the number of participants (n) is very large, the non-sequential nature of 
 
 
 
+
+
+
+
+
+
 ### Uesless Content
 
 Clearly, a sequential algorithm that initializes rank matrix runs in O(n^2) time, where n is the number of participants. The Rank Matrix is designed such that each entry 𝑅[𝑖][𝑗]*R*[*i*][*j*] represents the rank of man 𝑀𝑖*M**i* in woman 𝑊𝑗*W**j*'s preference list.
@@ -344,25 +342,61 @@ In contrast, the preference lists of men are accessed sequentially because each 
 
 ## Synchronization in Shared Memory Contention
 
-When parallelizing the GS algorithm, the challenges of synchronization and wasted work become even more pronounced due to the algorithm's inherent properties.
+In parallelizing the Gale-Shapley (GS) algorithm, certain common synchronization methods are not suitable due to their inherent shortcomings. Here, we discuss three such methods: Locks, Barrier Synchronization, and Atomic Compare-And-Swap (AtomicCAS).
 
-In the parallel GS algorithm, multiple threads simultaneously propose matches and check conditions for acceptance or rejection. This requires frequent updates to shared data structures, such as lists of proposals and acceptance statuses. Synchronizing these updates without causing significant wasted work is particularly challenging:
+### Lock
+
+First, locks can significantly slow down the algorithm because of the overhead associated with acquiring and releasing them. In a highly concurrent environment, this overhead can become a bottleneck. The GS algorithm requires frequent and fine-grained updates to the partner status of participants. Since locks are coarse-grained, they are inefficient for such frequent updates and can cause excessive waiting times for threads. Therefore, locks are too heavy-weight and inefficient for the frequent and fine-grained synchronization required in the GS algorithm.The performance overhead make locks unsuitable for this parallelization.
+
+
+
+### Barrier Synchronization
+
+Second, barrier synchronization requires all threads to reach a certain point before any can proceed, introducing high latency and reducing parallel efficiency. In a heterogeneous workload, some threads may finish their tasks sooner than others and will have to wait at the barrier, leading to idle time and poor resource utilization. Furthermore, the dynamic nature of the GS algorithm, where threads continuously propose and adjust matches, does not fit well with the static checkpoints of barrier synchronization. As a result, barrier synchronization is too rigid and introduces significant delays, especially in the dynamic and continuous operation environment of the GS algorithm. The synchronization points force threads to wait unnecessarily, negating the benefits of parallelization.
+
+
+
+### AtomicCAS
+
+Third, atomic compare-and-swap (AtomicCAS) operations can become a contention point when multiple threads try to update the same variable simultaneously, leading to performance degradation. While AtomicCAS is effective for single-variable updates, the GS algorithm involves complex operations that often require multiple updates. Ensuring consistency across these operations with AtomicCAS can be challenging and inefficient. Additionally, when AtomicCAS fails, it requires retrying the operation, which can lead to significant performance overhead in high-contention scenarios. Therefore, while AtomicCAS is useful for simple atomic operations, it is not well-suited for the more complex and frequent updates required in the GS algorithm. The high contention and retry overheads negate the benefits of parallel execution.
 
 The retries and wasted work from `atomicCAS` operations can significantly slow down the overall algorithm, offsetting the benefits of parallelization.
-
-As the number of threads increases, the likelihood of contention and wasted work also increases. Optimizing `atomicCAS` for a small number of threads may not scale well to larger numbers, exacerbating the problem in highly parallel systems.
-
-To mitigate the wasted work caused by `atomicCAS` under high memory contention, The parallel GS algorithm presents unique challenges that make these methods less effective:
-
-Backoff strategies involve making threads wait for a random or increasing amount of time before retrying the `atomicCAS` operation. This reduces the likelihood of repeated contention at the same memory location. The parallel GS algorithm requires rapid and frequent updates to shared data structures. Introducing delays with backoff strategies can significantly slow down the overall progress of the algorithm, leading to inefficiencies and longer convergence times.
-
-Partitioning involves dividing the data and workload into smaller, independent segments that can be processed in parallel with minimal interaction between threads. The GS algorithm involves global comparisons and updates (e.g., matching proposals and rejections across the entire dataset). Partitioning the problem space can lead to incorrect matches and instability, as the algorithm's correctness depends on considering all possible matches globally.
-
-one potential strategy to manage contention and synchronization issues is to limit the number of working threads. While this approach can reduce contention. One of the key goals of parallelizing the GS algorithm is to achieve scalability—being able to handle larger datasets and more complex matching problems efficiently as computational resources increase. As the size of the dataset increases, the workload for the GS algorithm grows. With a limited number of threads, the algorithm's ability to scale and handle larger datasets efficiently is compromised, leading to longer processing times and reduced performance.
 
 
 
 ## GPU
+
+Implementing the parallel Gale-Shapley (GS) algorithm on a GPU presents significant challenges, largely due to the unique architecture and operational characteristics of GPUs. 
+
+These challenges about memory access and synchronization exacerbate the issues inherent in parallelizing the GS algorithm, making efficient implementation difficult.
+
+GPUs excel at handling highly parallel, data-parallel tasks with regular memory access patterns, providing high bandwidth for large-scale computations. This high bandwidth allows many threads to access memory simultaneously, which is advantageous for many parallel algorithms.
+
+However, GPUs typically have higher latency than CPUs when it comes to certain operations, particularly those involving memory access and synchronization.
+
+First, the memory access problem becomes more pronounced on a GPU. Unlike CPUs, which have multiple levels of memory hierarchy (e.g., L1, L2, and L3 caches), GPUs typically have fewer levels of memory hierarchy. This limitation results in higher latency when accessing global memory. Since the GS algorithm involves frequent reads and writes to preference lists and rank matrices during proposals, the reduced memory hierarchy of GPUs can lead to significant delays. Each memory access incurs higher latency, slowing down the overall performance and negating some of the parallel execution benefits.
+
+Second, the synchronization challenge is magnified on GPUs. GPUs are designed with a high number of parallel processing units, which require synchronization to ensure correct execution of parallel tasks. This high bandwidth and large number of parallel units lead to increased contention when multiple threads attempt to access shared resources simultaneously. In the context of the GS algorithm, where many threads may need to update the partner status of participants concurrently, this contention can result in considerable wasted work. The overhead associated with managing synchronization in such a highly parallel environment can significantly diminish the efficiency gains expected from parallelization.\
+
+
+
+
+
+### Unused Content
+
+GPU can exacerate the issues that we mention above: 
+
+(1)Memory Access problem will become pronounced, GPU only has less levels of memory hierarcheis
+
+(2)Synchronization:High Bandwidth => More parallel Units => High Contention => more wasted work
+
+Additionally, GPUs typically have higher latency than CPUs when it comes to certain operations, particularly those involving memory access and synchronization
+
+
+
+Issues with existing parallel methods (Why bad behavior) 
+
+
 
 Implementing the parallel Gale-Shapley (GS) algorithm on a GPU presents significant challenges due to the unique architecture and execution model of GPUs. GPUs excel at handling highly parallel, data-parallel tasks with regular memory access patterns, providing high bandwidth for large-scale computations. This high bandwidth allows many threads to access memory simultaneously, which is advantageous for many parallel algorithms. However, the GS algorithm involves irregular and dynamic access patterns due to its iterative proposal and acceptance processes, leading to high contention when many threads attempt to update and access shared data structures concurrently.
 
@@ -385,6 +419,14 @@ Additionally, GPUs typically have higher latency than CPUs when it comes to cert
 
 
 Therefore, the inherent nature of the GS algorithm, with its need for dynamic and often unequal work distribution, makes it particularly challenging to implement efficiently on a GPU.
+
+
+
+## Existing Methods
+
+The parallel versions of both the Gale-Shapley and McVitie-Wilson algorithms partition the set of men among multiple threads, each running a local version of the algorithm. Threads make proposals on behalf of men using atomic compare-and-swap (CAS) operations to update the suitor status of women safely. In the parallel Gale-Shapley algorithm, rejected men are added to local queues and processed in subsequent rounds, with optional synchronization to redistribute unmarried men among threads for load balancing.
+
+In contrast, the parallel McVitie-Wilson algorithm adds rejected men to local stacks, allowing threads to continue making proposals immediately until all men are matched, thus avoiding the need for periodic synchronization.
 
 
 
