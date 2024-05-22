@@ -288,9 +288,36 @@ This results in a stable matching identical to the man-optimal stable marriage p
 
 # Section3-Challenges
 
+## Existing Methods
+
+The parallel version of GS algorithm and MW algorithm have been presented in \cite{nationalLab}
+
+The parallel pattern is illustrated in Figure Parallel
+
+This parallel approach leverages multiple threads to perform proposals concurrently, enhancing efficiency while maintaining the stability and correctness of the matching process through careful synchronization using atomic operations.
 
 
 
+
+
+The idea of pallelization of GS and MW is to first split the set of men M into |M| / p sized partitions, where p is the number of threads.
+
+Then execute either a modified gale-shapley algorithm or a modified mcvitie-wilson algorithm on these partitions in parallel,
+sharing the current partner rank of all women between the threads.
+
+Current partner rank of all women are initialized as n+1 at first to indicate they have not been married yet.
+
+
+
+Both parallel Gale-Shapley and parallel McVitie-Wilson algorithms will let threads make proposals on behalf of men simultaneously. To prevent data racing, \cite[nationalLab] uses atomic compare and swap on the value of partner rank of proposed woman. The advantage of atomicCAS is that it not only provides efficient fine-grained locks, but also an atomic compare and swap fails return the old value to let thread know whether operation suceeds or not. if another thread has already changed it from the value of rejected, letting the thread fetch the new value for suitor(a) and retry the operation. if the operation succeeds, by checking whether the returned old value = n + 1, we can know whether some man has been paired with that woman.
+
+
+
+The key difference between the parallel Gale-Shapley and parallel McVitie-Wilson algorithms is in how they handle proposals.
+
+Each thread of  parallel GS will maintain a queue to store remaining free men, in addition to the initliazed men, all rejected men will also be added to the queue and wait for proposals later.
+
+In contrast , threads of parallel Mcvitie-Wilson algorithm do not need to maintain a queue, intead, the thread will continue on the rejected man to make proposals until propose to  woman that has not been paired yet.
 
 
 
