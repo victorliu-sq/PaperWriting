@@ -268,7 +268,31 @@ The Gale-Shapley algorithm ensures that such a stable matching is always found, 
 
 
 
+## Mcvitie-Wilson
+
+The algorithm proposed by McVitie and Wilson[10] is based on the Gale-Shapley algorithm, together with the observation that the order in which the suitors propose does not change the set of matched vertice.
+
+The key difference between the Gale-Shapley and McVitie-Wilson algorithms is in how they handle proposals.The Gale-Shapley algorithm selects a free man from the queue and makes proposals on his behalf until he is matched.In contrast, the McVitie-Wilson algorithm also selects a free man from the queue. If he proposes to a woman who is already paired, the rejected man then makes proposals. This process continues until a man proposes to an unpaired woman, ensuring no man is left unmatched.
+
+Consider the preference lists in Figure 1. The execution of the Mcvitie-Wilson algorithm proceeds as follows:
+
+Initially, M1 proposes to W2. W2 tentatively accepts M1's proposal, forming the initial pair (M1, W2). Since no man has been rejected yet, the algorithm proceeds to the next free man, M2.
+
+M2 then proposes to W2. W2 prefers M2 over M1, so she accepts M2's proposal and rejects M1. The new pairing is (M2, W2). Now free again, M1 proposes to W1. W1 tentatively accepts M1, resulting in the pairs (M1, W1) and (M2, W2). The algorithm then moves on to the next free man, M3.
+
+M3 proposes to W2, but W2 prefers M2, so she rejects M3. M3 then proposes to W1. W1 prefers M3 over M1, so she accepts M3's proposal and rejects M1. The pairs are now (M3, W1) and (M2, W2). M1, now free, proposes to W3, who tentatively accepts. The final pairs are (M1, W3), (M3, W1), and (M2, W2).
+
+This results in a stable matching identical to the man-optimal stable marriage produced by the Gale-Shapley algorithm.
+
+
+
 # Section3-Challenges
+
+
+
+
+
+
 
 ## Optimizing Memory Access Patterns
 
@@ -336,8 +360,6 @@ one potential strategy to manage contention and synchronization issues is to lim
 
 
 
-
-
 ## GPU
 
 Implementing the parallel Gale-Shapley (GS) algorithm on a GPU presents significant challenges due to the unique architecture and execution model of GPUs. GPUs excel at handling highly parallel, data-parallel tasks with regular memory access patterns, providing high bandwidth for large-scale computations. This high bandwidth allows many threads to access memory simultaneously, which is advantageous for many parallel algorithms. However, the GS algorithm involves irregular and dynamic access patterns due to its iterative proposal and acceptance processes, leading to high contention when many threads attempt to update and access shared data structures concurrently.
@@ -368,7 +390,9 @@ Therefore, the inherent nature of the GS algorithm, with its need for dynamic an
 
 FlashSMP is a parallel framework designed to enhance the performance of algorithms on modern heterogeneous computing systems by addressing common challenges such as memory access patterns and contention. The framework leverages a combination of innovative data structures, atomic operations, and a hybrid CPU-GPU execution model to achieve significant improvements in efficiency and scalability. The core ideas behind FlashSMP include the use of PRNodes to optimize memory access, atomicMin in CUDA for contention resolution, and a hybrid approach to harness the strengths of both GPU and CPU.
 
-The framework operates in three main stages:
+![FlashSMP-Overview-2](/Users/jiaxinliu/Desktop/FlashSMPEvaluation/Figures/FlashSMP-Overview-2.jpg)
+
+As show in Figure-5, FlashSMP operates in three main stages:
 
 
 
