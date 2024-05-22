@@ -204,7 +204,7 @@ A stable matching is defined as one where there are no blocking pairs. A blockin
 
 
 
-![FlashSMP-Background-4](/Users/jiaxinliu/Desktop/FlashSMPEvaluation/Figures/FlashSMP-Background-4.jpg)
+![FlashSMP-PrefList-5](/Users/jiaxinliu/Desktop/FlashSMPEvaluation/Figures/FlashSMP-PrefList-5.jpg)
 
 Consider three men (M1, M2, M3) and three women (W1, W2, W3) with the following preference lists in Figure1:
 
@@ -274,9 +274,9 @@ The Gale-Shapley algorithm ensures that such a stable matching is always found, 
 
 According to section 2, the acceptance phase of GS algorithm requires determining the rank of each man in the preference list of the proposed woman. An efficient approach is to utilize a precomputed data structure, called Rank Matrix, that allows for O(1) time complexity in retrieving these ranks. 
 
-To illustrate how the Rank Matrix works, consider the preference lists and corresponding rank matrices in Figure1:
+To illustrate how the Rank Matrix works, consider rank matrices in Figure1, which are built upon prefereneces lists in Figure2:
 
-
+![FlashSMP-RankMatrix-6](/Users/jiaxinliu/Desktop/FlashSMPEvaluation/Figures/FlashSMP-RankMatrix-6.jpg)
 
 Constructing the Rank Matrix involves preprocessing each woman's preference list.
 
@@ -292,11 +292,15 @@ Despite the Rank Matrix’s efficiency, optimizing memory access remains challen
 
 Because fast memory is expensive, a modern memory hierarchy is structured into levels—each smaller, faster, and more expensive per byte than the next lower level, which is farther from the processor. Modern architectures also employs a strategy known as locality, where consecutive data stored in memory locations are loaded in batches into the cache. This occurs in two forms: temporal locality and spatial locality. When a processor references some data, it first looks it up in the cache. If not found, the data must be fetched from a lower level of the hierarchy and placed in the cache before proceeding.To improve efficiency, data is moved in blocks, exploiting the spatial locality \cite{architecture6th}.
 
+
+
 The Rank Matrix is accessed in a non-linear order because the index of the woman to propose to and the man's rank in her preference list are determined dynamically at runtime.
 
-For instance, if M1 proposes to W1 first, he will access 𝑅𝑊1𝑀1*R**W*1*M*1 to check his rank, which is 1. If W1 rejects M1 and he then proposes to W2, he will access 𝑅𝑊2𝑀1*R**W*2*M*1, where his rank is 2. This dynamic decision-making process causes unpredictable memory accesses.
+For instance, if M1 starts by proposing to W2, he will refer to RankMatrixWoman(W2, M1) to determine his rank, which is 1. Following his rejection by W2, M1 will then approach W1 and look up RankMatrixWoman(W1, M1) to find his rank, which is 3. Upon being turned down by W1, M1 will move on to W3 and consult RankMatrixWoman(W3, M1), where his rank is recorded as 2.
 
-These accesses are not sequential and result in memory jumps, disrupting efficient caching and prefetching mechanisms. Consequently, these scattered and irregular memory accesses challenge the optimization of the GS algorithm's performance.
+The access patterns of M1, M2, and M3 are shown in Figure 2.
+
+When the number of participants (n) is very large, the non-sequential nature of these accesses causes significant memory jumps, even though the same man accesses rank matrix entries within the same column. This disrupts efficient caching and prefetching mechanisms. For example, in a scenario with thousands of participants, M1 may first propose to W200, then to W340, and finally to W178, resulting in accesses to RankMatrixWoman(W200, M1), RankMatrixWoman(W340, M1), and RankMatrixWoman(W178, M1). These accesses are scattered and unpredictable. Consequently, column-wise storage becomes inefficient as it fails to take advantage of spatial locality, leading to poor memory usage and slower access times due to the random access pattern.
 
 
 
