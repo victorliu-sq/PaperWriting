@@ -390,21 +390,15 @@ Besides, the overhead associated with global synchronization  to ensure consiste
 
 ### Existing Methods
 
-To our knowledge, the parallel versions of both the Gale-Shapley (GS) and McVitie-Wilson (MW) algorithms are the only parallel algorithms that run faster than the sequential GS when implemented on CPUs. The speedup achieved is about 10 times with 72 threads. However, while parallel GS cannot be implemented on GPUs, the parallel MW algorithm implemented on GPUs runs slower than its CPU counterpart.
+To our knowledge, the parallel versions of both the Gale-Shapley (GS) and McVitie-Wilson (MW) algorithms are the only parallel algorithms that run faster than the sequential GS when implemented on CPUs. The speedup achieved is about 10 times with 72 threads. 
 
-The parallel versions of both the Gale-Shapley and McVitie-Wilson algorithms partition the set of men among multiple threads, each running a local version of the algorithm. Threads make proposals on behalf of men using atomic compare-and-swap (CAS) operations to update the suitor status of women safely. In the parallel Gale-Shapley algorithm, rejected men are added to local queues and processed in subsequent rounds, with optional synchronization to redistribute unmarried men among threads for load balancing.
+However, both of parallel GS and parallel MW algorithm fail to acheive speedup when implemented on GPU compared to their CPU counterparts.
 
-In contrast, the parallel McVitie-Wilson algorithm adds rejected men to local stacks, allowing threads to continue making proposals immediately until all men are matched, thus avoiding the need for periodic synchronization.
-
-These algorithms involve accessing a rank matrix in an irregular pattern, as the sequence of proposals and rejections varies dynamically. GPUs are optimized for regular, contiguous memory access patterns to maximize memory throughput. Irregular memory accesses lead to poor memory performance on GPUs because they cannot fully leverage their high-bandwidth memory architecture in such scenarios. CPUs, on the other hand, are better at handling irregular memory access patterns due to their more flexible memory hierarchy and caching mechanisms.
-
-The parallel Gale-Shapley (GS) algorithm requires global synchronization across multiple threads to ensure the correct redistribution of unmarried men among threads for load balancing. GPUs are not well-suited for global synchronization because it involves significant overhead and latency, disrupting the parallel execution flow and leading to performance degradation. This need for frequent and coordinated synchronization makes GPUs less efficient for implementing the parallel GS algorithm.
+First of all, the two problems mentioned above will be exacerated when implmented on GPU.  CPUs are better at handling irregular memory access patterns due to their more flexible memory hierarchy and caching mechanisms. GPUs, on the other hand,  are optimized for regular, contiguous memory access patterns to maximize memory throughput. Irregular memory accesses lead to poor memory performance on GPUs because they cannot fully leverage their high-bandwidth memory architecture in such scenarios.
 
 Both parallel GS and McVitie-Wilson (MW) algorithms utilize atomic compare-and-swap (CAS) operations to safely update the suitor status of women during the proposal process. GPUs, with their large number of parallel units, experience high contention when multiple threads attempt to perform atomic operations simultaneously. This contention significantly slows down the execution, as threads often need to retry operations multiple times due to conflicts, undermining the potential speedup from parallel execution.
 
-
-
-
+In addition, the need for frequent and coordinated synchronization makes GPUs less efficient for implementing the parallel GS algorithm. The parallel Gale-Shapley (GS) algorithm requires global synchronization across multiple threads to ensure the correct redistribution of unmarried men among threads for load balancing. GPUs are not well-suited for global synchronization because it involves significant overhead and latency, disrupting the parallel execution flow and leading to performance degradation. 
 
 ### Unused Content
 
@@ -449,6 +443,12 @@ Therefore, the inherent nature of the GS algorithm, with its need for dynamic an
 The parallel versions of both the Gale-Shapley and McVitie-Wilson algorithms partition the set of men among multiple threads, each running a local version of the algorithm. 
 
 Threads make proposals on behalf of men using atomic compare-and-swap (CAS) operations to update the suitor status of women safely. In the parallel Gale-Shapley algorithm, rejected men are added to local queues and processed in subsequent rounds, with optional synchronization to redistribute unmarried men among threads for load balancing.
+
+In contrast, the parallel McVitie-Wilson algorithm adds rejected men to local stacks, allowing threads to continue making proposals immediately until all men are matched, thus avoiding the need for periodic synchronization.
+
+
+
+The parallel versions of both the Gale-Shapley and McVitie-Wilson algorithms partition the set of men among multiple threads, each running a local version of the algorithm. Threads make proposals on behalf of men using atomic compare-and-swap (CAS) operations to update the suitor status of women safely. In the parallel Gale-Shapley algorithm, rejected men are added to local queues and processed in subsequent rounds, with optional synchronization to redistribute unmarried men among threads for load balancing.
 
 In contrast, the parallel McVitie-Wilson algorithm adds rejected men to local stacks, allowing threads to continue making proposals immediately until all men are matched, thus avoiding the need for periodic synchronization.
 
@@ -564,13 +564,19 @@ The loop continues until a proposal is accepted or all women on the man's list h
 
 GPU can accelerate performance over CPU due to its massively parallel architecture and high bandwidth memory. \cite{nestedGPU}
 
+
+
 While atomicMin in GPU is effective at handling contention by ensuring minimal retries and efficient updates, it remains an expensive operation due to the high overhead associated with atomic transactions. This overhead becomes particularly pronounced when the workload reduces to only one active thread. In such scenarios, the advantages of parallel execution diminish, and the costs associated with atomic operations can outweigh their benefits, leading to inefficiencies.
 
 
 
 FlashSMP employs an efficient strategy to switch between GPU and CPU modes to optimize the performance of the Gale-Shapley (GS) algorithm. The key idea behind this switch is to detect when there is only one proposer left free, indicating that only one thread remains active. This scenario signals the transition from the massively parallel GPU execution to the more suitable sequential execution on the CPU.
 
+
+
 To determine when to switch from GPU to CPU mode, FlashSMP checks the pairing status of the recipients (women). Each recipient's partner rank is initialized to 𝑛+1*n*+1, where 𝑛*n* is the size of the preference list. A rank value smaller than 𝑛+1*n*+1 indicates that the recipient is paired. Throughout the execution, each woman's partner rank is updated with the rank of her partner if paired. The algorithm reads the partner rank of each woman to determine if only one woman remains unpaired. If exactly one woman's partner rank is 𝑛+1*n*+1, it indicates that only one proposer remains free.
+
+
 
 To find the free man, the algorithm performs additional computations. First, it reads the partner ranks of all women to ensure only one woman is unpaired. Next, it uses the preference lists of the men to identify the paired men for each woman. This step involves reading the indices of the paired men from the preference lists. The algorithm calculates the total sum of indices of all men, which is 1+2+…+𝑛=𝑛(𝑛+1)21+2+…+*n*=2*n*(*n*+1). By subtracting the indices of the paired men from this total sum, the algorithm identifies the index of the free man.
 
