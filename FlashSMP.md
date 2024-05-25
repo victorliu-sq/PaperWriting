@@ -502,59 +502,40 @@ This organization ensures that when a proposer accesses their PRNode, they can r
 
 ### Descrition of Algorithm
 
-The input of preprocessing algorithm is preference lists for men and women, both of which can be regarded as n by n matrices. 
-
-The output of preprocessing algorithm is a n by n PRNode matrix.
-
-Each PRNode on entry (m , r)  corresponds to the woman index that man r proposes to on r th rank, and the rank of m on the preference list of woman w.
+The preprocessing algorithm begins with the input of preference lists for men and women, both represented as n by n matrices. The goal is to transform this input into an output of an n by n PRNode matrix.
 
 
 
-The algorithm for initializing PRNodes (a node that combines data elements from Preference list and Rank Matrix) is designed to optimize memory access patterns for the Gale-Shapley algorithm. 
-
-This algorithm processes preference lists for men and women, organizing the data into PRNodes to ensure efficient memory access during execution.
+Each PRNode combines information from both the men's and women's preference lists. Specifically, a PRNode includes the woman that a particular man would propose to at a given rank and the rank of that man on the woman’s preference list.
 
 
 
-Each processing unit is assigned a pair of row and column, which we can use to initialize PRNodes.
-
-First of all, row m and column r corresponds to the preference lists of men on entry (m, r).
-
-Given those information, the parallel unit can use the man's preference list (`pref_list_m`), it determines the corresponding woman index (`w`). 
-
-Then we can initialize rank matrix on entry (m, w) with value r.
-
-Besides, row m and column r also corresponds to the preference lists of women on entry (w, r), which returns woman m.
-
-Then we can initialize rank matrix on entry (w, m) with value r.
+The preprocessing consists of two phases: initializing the rank matrices and then initializing the PRNodes.
 
 
 
-After initialization of Rank Matrix, we can initialize PRNodes.
+```latex
+\section*{Phase 1: Initializing the Rank Matrices}
 
-Each processing unit is assigned a pair of row and column, which we can use to initialize PRNodes.
+In this phase, the algorithm initializes the rank matrices using parallel processing to ensure efficiency. Each processing unit handles a specific element in the preference lists for men and women.
 
-In this step, row m and column m corresponds to man m and woman w.
+For the men's rank matrix, the algorithm iterates over each man \(m\) and each rank \(r\) in parallel. It retrieves the woman \(w\) from the men's preference list at position \((m, r)\) and assigns the rank \(r\) to the men's rank matrix at position \((m, w)\). This indicates that woman \(w\) is the \(r\)-th preference of man \(m\). The women's rank matrix is generated in a similar way. By leveraging parallel processing, the algorithm ensures that both men's and women's preferences are accurately represented in the rank matrices.
 
-Then we can get r_w and r_m, which correspond to w on the preference list of m and m on the preference list of w.
+\section*{Phase 2: Initializing the PRNodes}
 
-After that, we can initialize PRNode on entry m, r_w with value (w, r_m), which is a PRNode.
+Once the rank matrices are initialized, the algorithm proceeds to the second phase: initializing the PRNodes. This phase further leverages the information established in the first phase to create a more efficient data structure.
 
-By organizing the data in this manner, the PRNodes encapsulate the necessary entries from the preference lists and rank matrices, ensuring that related data is closely coupled.
+For each man \(m\) and each rank \(r_w\), the algorithm retrieves the woman \(w\) corresponding to rank \(r_w\) in man \(m\)'s preference list. It then retrieves \(r_m\), which is the rank of man \(m\) in woman \(w\)'s preference list from the women's rank matrix. The PRNode matrix at position \((m, r_w)\) is then assigned the pair \((w, r_m)\). This encapsulation of data ensures that when the Gale-Shapley algorithm runs, each access to a PRNode provides both the woman to whom a proposal should be made and her ranking of the proposer in a single operation.
 
+By organizing the data in this manner, the PRNodes effectively encapsulate the necessary entries from the preference lists and rank matrices, ensuring that related data is closely coupled and can be accessed efficiently. The use of parallel processing in both phases allows the algorithm to handle large datasets quickly and efficiently, optimizing memory access patterns and reducing the frequency and impact of memory jumps.
 
-
-This algorithm requires to process O(n ^ 2) entries for each phase.
-
-For each phase, all entries to process are independent of each other.
-
-Theoretically,  as long as we can provide enough processors, it can be solved in constant time.
-
-Using the large number of SIMD threads provided by GPU, the algorithm can quickly handle large datasets and initiliaze PRNodes
+```
 
 
 
+**Conclusion**
 
+This two-phase preprocessing algorithm processes 𝑂(𝑛2)*O*(*n*2) entries in each phase. The independence of each entry during processing allows for significant parallelization. Theoretically, with a sufficient number of processors, the entire preprocessing can be accomplished in constant time. By utilizing the large number of SIMD threads provided by a GPU, the algorithm can efficiently handle large datasets, quickly initializing the PRNodes and optimizing the overall execution of the Gale-Shapley algorithm.
 
 
 
@@ -600,15 +581,13 @@ The parallel nature of the algorithm allows for rapid initialization of the PRNo
 
 ## Conflict Resolution-atomicMin
 
-The GS algorithm naturally lends itself to parallelization, as multiple proposers (men) can make proposals simultaneously. For example, by assigning each thread to simulate a man making proposals when implemented on an actual multithreading hardware, all men will initially propose to their preferred women. However, for the DA algorithm to make progress, it is crucial for threads to communicate with each other. Considering the preference lists given in Figure\ref{perferences}, men m1, m3, m5, and m6 will be paired with their proposed women directly whereas m2 and m7, as well as m4 and m8, will communicate to resolve conflicts if they are proposing to the same woman simultaneously.
+The GS algorithm naturally lends itself to parallelization, as multiple proposers (men) can make proposals simultaneously. For example, by assigning each thread to simulate a man making proposals when implemented on an actual multithreading hardware, all men will initially propose to their preferred women. However, for the GS algorithm to make progress, it is crucial for threads to communicate with each other. Considering the preference lists given in Figure\ref{perferences}, men m1, m3, m5, and m6 will be paired with their proposed women directly whereas m2 and m7, as well as m4 and m8, will communicate to resolve conflicts if they are proposing to the same woman simultaneously.
 
 
 
 Handling the optimal proposer in the Gale-Shapley (GS) algorithm involves finding the minimal value among possible proposals, which corresponds to the highest priority match according to the rank matrix. This minimization process is critical for determining the optimal matches and ensuring the algorithm converges to a stable state efficiently.
 
 
-
-A straightforward solution is to use barrier synchronization. In parallel computing, a barrier is a method that forces threads or processes to wait until all participating threads reach a certain point in the code to ensure synchronized behavior. However, this approach can lead to high communication traffic due to all threads repeatedly accessing a global variable to check their status, diminishing scalability. An alternative method, as utilized in \cite{lerring2017parallel}, involves the use of an atomic instruction known as compare-and-swap (CAS) for synchronization in multithreading. CAS works by taking two values: a new value to be written to a memory location and a comparison value to ensure the operation's validity. It reads the old value from the memory, compares it with the provided comparison value, and, if they match, writes the new value to the memory location—all in a single atomic operation. The old value is returned, indicating whether the substitution was successful based on whether the return value matches the comparison value. Nevertheless, CAS can lead to inefficiencies in high-contention scenarios, such as when multiple threads (simulating men proposing to the same woman) compete to update a shared resource. In such cases, only one thread succeeds, while the others must retry, leading to wasted efforts due to CAS failures and significant overhead from frequent synchronization among many processors.
 
 In parallel computing, atomic operations are essential for managing shared memory access without data races. The atomicCAS (Compare-And-Swap) operation is an atomic instruction used to compare a memory location's current value with a given expected value and, if they match, replace it with a new value. This operation is performed atomically, ensuring that no other thread can interfere during the comparison and swap process. In CUDA, atomicCAS guarantees correctness by allowing only one thread to successfully update the memory location at a time.
 
@@ -651,6 +630,10 @@ The switch operation is performed as follows: If the woman prefers the proposing
 The loop continues until a proposal is accepted or all women on the man's list have been proposed to. The use of atomic operations ensures consistency and correctness across multiple threads operating in parallel. This parallel processing approach significantly speeds up the computation by leveraging the power of CUDA-enabled GPUs, allowing many proposals and updates to occur simultaneously.
 
 
+
+### Unused
+
+A straightforward solution is to use barrier synchronization. In parallel computing, a barrier is a method that forces threads or processes to wait until all participating threads reach a certain point in the code to ensure synchronized behavior. However, this approach can lead to high communication traffic due to all threads repeatedly accessing a global variable to check their status, diminishing scalability. An alternative method, as utilized in \cite{lerring2017parallel}, involves the use of an atomic instruction known as compare-and-swap (CAS) for synchronization in multithreading. CAS works by taking two values: a new value to be written to a memory location and a comparison value to ensure the operation's validity. It reads the old value from the memory, compares it with the provided comparison value, and, if they match, writes the new value to the memory location—all in a single atomic operation. The old value is returned, indicating whether the substitution was successful based on whether the return value matches the comparison value. Nevertheless, CAS can lead to inefficiencies in high-contention scenarios, such as when multiple threads (simulating men proposing to the same woman) compete to update a shared resource. In such cases, only one thread succeeds, while the others must retry, leading to wasted efforts due to CAS failures and significant overhead from frequent synchronization among many processors.
 
 
 
