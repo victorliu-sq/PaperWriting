@@ -400,6 +400,8 @@ Both parallel GS and McVitie-Wilson (MW) algorithms utilize atomic compare-and-s
 
 In addition, the need for frequent and coordinated synchronization makes GPUs less efficient for implementing the parallel GS algorithm. The parallel Gale-Shapley (GS) algorithm requires global synchronization across multiple threads to ensure the correct redistribution of unmarried men among threads for load balancing. GPUs are not well-suited for global synchronization because it involves significant overhead and latency, disrupting the parallel execution flow and leading to performance degradation. 
 
+
+
 ### Unused Content
 
 GPU can exacerate the issues that we mention above: 
@@ -456,6 +458,8 @@ In contrast, the parallel McVitie-Wilson algorithm adds rejected men to local st
 
 # Section4-FlashSMP
 
+## Overview
+
 FlashSMP is a parallel framework designed to enhance the performance of algorithms on modern heterogeneous computing systems by addressing common challenges such as memory access patterns and contention. The framework leverages a combination of innovative data structures, atomic operations, and a hybrid CPU-GPU execution model to achieve significant improvements in efficiency and scalability. The core ideas behind FlashSMP include the use of PRNodes to optimize memory access, atomicMin in CUDA for contention resolution, and a hybrid approach to harness the strengths of both GPU and CPU.
 
 ![FlashSMP-Overview-2](/Users/jiaxinliu/Desktop/FlashSMPEvaluation/Figures/FlashSMP-Overview-2.jpg)
@@ -464,49 +468,127 @@ As show in Figure-5, FlashSMP operates in three main stages:
 
 
 
-Initialization of PRNodes on GPU1: FlashSMP begins by initializing PRNodes on the first GPU (GPU1). These nodes contain the necessary data structures and information to perform the SMP computations.
+Initialization of PRNodes on GPU1: FlashSMP begins by initializing PRNodes on the first GPU (GPU1). These nodes contain the  information to perform the SMP computations in a regular access pattern.
 
 
 
-Execution of MIN Locality Unified CUDA Kernel on GPU1: FlashSMP then launches the MIN Locality Unified CUDA Kernel on GPU1. This kernel processes the PRNodes in parallel, leveraging the GPU's computational power to handle the locality constraints and perform initial matching operations efficiently.
+Main Procedure of thread1: 
+
+After initialization, thread1 starts execution of MIN Locality Unified CUDA Kernel on GPU1: FlashSMP then launches the MIN Locality Unified CUDA Kernel on GPU1. This kernel processes the PRNodes in parallel, leveraging the GPU's computational power to handle the locality constraints and perform initial matching operations efficiently.
 
 
 
-Main Procedure: The main procedure involves the use of both the second GPU (GPU2) and the CPU to finalize the matching process. Specifically, GPU2 is used to continuously check whether only one free man is left by launching the `CheckLessThanNUnified` kernel, which processes each woman in parallel and updates the ranks. When it is determined that only one free man remains, the algorithm transitions to the CPU. The CPU then handles the final stage of the matching process, utilizing its low latency to speed up the completion of the remaining tasks without the need for synchronization, ensuring efficient and rapid convergence to a stable matching.
+Main Procedure of thread2: 
+
+The main procedure of thread2 involves the use of both the second GPU (GPU2) and the CPU to finalize the matching process. At the beginning, GPU2 is used to continuously check whether only one free man is left by launching the `CheckLessThanNUnified` kernel, which processes each woman in parallel and updates the ranks. When it is determined that only one free man remains, the algorithm transitions to the CPU. The CPU then handles the final stage of the matching process, utilizing its low latency to speed up the completion of the remaining tasks without the need for synchronization, ensuring a rapid convergence to a stable matching.
 
 
 
 ## Cohabitation-PRNode
 
-As discussed in Section 2, solving the SMP traditionally relies on two key data structures: preference lists and rank matrices. Preference lists arrange each man's proposals from the most to the least preferred woman. To evaluate a proposal, a woman then looks up the rank matrix to determine the proposer's relative ranking from her perspective. The limitations and inefficiencies of this approach do not become apparent until the algorithm and data structures are implemented on real hardware. 
+As discussed in Section 2, solving the SMP traditionally relies on two key data structures: preference lists and rank matrices.
 
-Even if  the irregular access patterns of the Rank Matrix can significantly impact overall performance due to frequent cache misses, the preference lists of men are accessed sequentially because each man makes proposals from his highest preference to his lowest.
+For each proposal from a man to a woman, 2 kinds of data are required from preference lists of men and rank matrix of women. When man m tries to make a proposal, man m should know which woman (w) to make proposal. In order to get that information, man m should provide his highest unproposed rank r, and get w from preference lists with index m and r.  
 
-FlashSMP introduces PRNodes, a specialized data structure designed to enhance memory access patterns by closely coupling related data elements from the preference lists and rank matrices used in the Gale-Shapley (GS) algorithm. PRNodes encapsulate entries from a proposer’s preference list along with the corresponding rank entry from the recipient’s rank matrix, facilitating efficient access during both the proposal and acceptance phases of the algorithm.
+To evaluate a proposal to decide whether or not to accept it, woman w then looks up the rank matrix with m and w to determine the proposer's relative ranking from her perspective, which leads to inefficiencies due to irregular access patterns. 
 
-By storing these entries next to each other, PRNodes optimize memory access patterns, thereby improving efficiency. When a proposer accesses their next preference, the corresponding rank entry is fetched simultaneously or with minimal additional memory accesses. This spatial locality ensures that related data is loaded together, reducing cache misses and improving memory access efficiency. PRNodes address this problem by organizing data in a way that aligns better with memory access patterns, reducing the frequency and impact of memory jumps. This organization ensures that when a proposer accesses their PRNode, they can retrieve both the woman to propose to and the relevant rank information in a single, efficient memory operation.
+In order to resolve that issue, FlashSMP introduces PRNodes, a specialized data structure designed to enhance memory access patterns by closely coupling related data elements from the preference lists and rank matrices. 
+
+PRNode is a struct that encapsulates an entry consists of data elements both m, which comes from a proposer’s preference list, and the corresponding rank entry from the recipient’s rank matrix, facilitating efficient access during both the proposal and acceptance phases of the algorithm.
+
+This organization ensures that when a proposer accesses their PRNode, they can retrieve both the woman to propose to and the relevant rank information in a single memory operation， thereby reducing the frequency of accessing data and impact of memory jumps. 
 
 
+
+When a proposer accesses their next preference, the corresponding rank entry is fetched simultaneously or with minimal additional memory accesses. 
+
+By storing these entries next to each other, PRNodes optimize memory access patterns, thereby improving efficiency.
+
+This spatial locality ensures that related data is loaded together, reducing cache misses and improving memory access efficiency. 
+
+PRNodes address this problem by organizing data in a way that aligns better with memory access patterns, reducing the frequency and impact of memory jumps. 
 
 
 
 ### Descrition of Algorithm
 
-The parallel algorithm for initializing PRNodes is designed to optimize memory access patterns for the Gale-Shapley algorithm. This algorithm processes preference lists for men and women, organizing the data into PRNodes to ensure efficient memory access during execution. The algorithm leverages parallel processing to quickly handle large datasets.
+The input of preprocessing algorithm is preference lists for men and women, both of which can be regarded as n by n matrices. 
 
-Each processing unit is assigned a unique ID (`tid`), determining its specific portion of the workload. If the unit ID is within the bounds of the total number of elements (`n * n`), the unit proceeds as follows:
+The output of preprocessing algorithm is a n by n PRNode matrix.
 
-The unit calculates the index of the man (`m_idx`) and the rank of the woman (`w_rank`) based on its ID. Using the man's preference list (`pref_list_m`), it determines the corresponding woman index (`w_idx`). This index is stored in the device node vector at the position corresponding to the man's index and the woman's rank.
+Each PRNode on entry (m , r)  corresponds to the woman index that man r proposes to on r th rank, and the rank of m on the preference list of woman w.
 
-Next, the unit calculates the index of the woman (`w_idx`) and the rank of the man (`m_rank`) based on its ID. Using the woman's preference list (`pref_list_w`), it determines the corresponding man index (`m_idx`). This index is stored in the device node vector at the position corresponding to the woman's index and the man's rank.
 
-By organizing the data in this manner, the PRNodes encapsulate the necessary entries from the preference lists, ensuring that related data is closely coupled. This approach optimizes memory access patterns, improving the efficiency of the Gale-Shapley algorithm during execution. The parallel nature of the algorithm allows for rapid initialization of the PRNodes, leveraging the computational power of parallel processors to handle large datasets efficiently.
+
+The parallel algorithm for initializing PRNodes (a node that combines data elements from Preference list and Rank Matrix) is designed to optimize memory access patterns for the Gale-Shapley algorithm. This algorithm processes preference lists for men and women, organizing the data into PRNodes to ensure efficient memory access during execution. The algorithm leverages parallel processing to quickly handle large datasets.
+
+Each processing unit is assigned a pair of row and column, which we can use to initialize PRNodes.
+
+First of all, row m and column r corresponds to the preference lists of men on entry (m, r).
+
+Given those information, the parallel unit can use the man's preference list (`pref_list_m`), it determines the corresponding woman index (`w`). 
+
+Then we can initialize rank matrix on entry (m, w) with value r.
+
+Besides, row m and column r also corresponds to the preference lists of women on entry (w, r), which returns woman m.
+
+Then we can initialize rank matrix on entry (w, m) with value r.
+
+
+
+After initialization of Rank Matrix, we can initialize PRNodes.
+
+Each processing unit is assigned a pair of row and column, which we can use to initialize PRNodes.
+
+In this step, row m and column m corresponds to man m and woman w.
+
+Then we can get r_w and r_m, which correspond to w on the preference list of m and m on the preference list of w.
+
+After that, we can initialize PRNode on entry m, r_w with value (w, r_m), which is a PRNode.
+
+
+
+This index is stored in the device node vector at the position corresponding to the man's index and the woman's rank.
+
+Next, row m and column r corresponds to the PRNode on entry (w, r).
+
+Then, we can know the w's preference list on rank r is m.
+
+Based on that information, the unit calculates the index of the woman (`w_idx`) and the rank of the man (`m_rank`) based on its ID.
+
+Using the woman's preference list (`pref_list_w`), it determines the corresponding man index (`m_idx`). 
+
+In that way, we can set the member m_rank on PRNode entry m, r to w
+
+This index is stored in the device node vector at the position corresponding to the woman's index and the man's rank.
+
+
+
+By organizing the data in this manner, the PRNodes encapsulate the necessary entries from the preference lists, ensuring that related data is closely coupled. 
+
+This approach optimizes memory access patterns, improving the efficiency of both the sequential Gale-Shapley algorithm or its parallel verion during execution. The parallel nature of the algorithm allows for rapid initialization of the PRNodes, leveraging the computational power of parallel processors to handle large datasets efficiently.
+
+
+
+### Unused
+
+Even if  the irregular access patterns of the Rank Matrix can significantly impact overall performance due to frequent cache misses, the preference lists of men are accessed sequentially because each man makes proposals from his highest preference to his lowest.
+
+
+
+When a proposer accesses their next preference, the corresponding rank entry is fetched simultaneously or with minimal additional memory accesses. 
+
+By storing these entries next to each other, PRNodes optimize memory access patterns, thereby improving efficiency.
+
+This spatial locality ensures that related data is loaded together, reducing cache misses and improving memory access efficiency. 
+
+PRNodes address this problem by organizing data in a way that aligns better with memory access patterns, reducing the frequency and impact of memory jumps. 
 
 
 
 ## Conflict Resolution-atomicMin
 
-The Deferred Acceptance (DA) algorithm naturally lends itself to parallelization, as multiple proposers (men) can make proposals simultaneously. For example, by assigning each thread to simulate a man making proposals when implemented on an actual multithreading hardware, all men will initially propose to their preferred women. However, for the DA algorithm to make progress, it is crucial for threads to communicate with each other. Considering the preference lists given in Figure\ref{perferences}, men m1, m3, m5, and m6 will be paired with their proposed women directly whereas m2 and m7, as well as m4 and m8, will communicate to resolve conflicts if they are proposing to the same woman simultaneously.
+The GS algorithm naturally lends itself to parallelization, as multiple proposers (men) can make proposals simultaneously. For example, by assigning each thread to simulate a man making proposals when implemented on an actual multithreading hardware, all men will initially propose to their preferred women. However, for the DA algorithm to make progress, it is crucial for threads to communicate with each other. Considering the preference lists given in Figure\ref{perferences}, men m1, m3, m5, and m6 will be paired with their proposed women directly whereas m2 and m7, as well as m4 and m8, will communicate to resolve conflicts if they are proposing to the same woman simultaneously.
 
 
 
