@@ -603,25 +603,21 @@ The parallel nature of the algorithm allows for rapid initialization of the PRNo
 
 ## Conflict Resolution-atomicMin
 
-Handling the optimal proposer in the Gale-Shapley (GS) algorithm involves finding the minimal value among possible proposals for the proposed woman, corresponding to the proposal from the proposing man with highest priority. This minimization process is critical for determining optimal matches and ensuring the algorithm converges to a stable state efficiently.
+Handling the optimal proposer in the Gale-Shapley (GS) algorithm involves finding the minimum value among possible proposals for a woman, corresponding to the highest priority proposal from the proposing man. This minimization process is critical for determining optimal matches and ensuring the algorithm converges efficiently to a stable state.
 
-To address this synchronization problem, the atomicMin operation can be used effectively. AtomicMin is an atomic operation implemented on GPUs similarly to atomicCAS. According to the CUDA documentation, atomicMin reads a (32-bit or 64-bit) word located at a given address in global or shared memory, computes the minimum of this value and a given value, and stores the result back to the memory address in one atomic transaction. The function returns the original value before the update, which allows us to determine whether the atomic operation succeeded.
+To solve this synchronization problem, the `atomicMin` operation can be used effectively. `atomicMin` is an atomic operation implemented on GPUs, similar to `atomicCAS`. According to the CUDA documentation, `atomicMin` reads a 32-bit or 64-bit word located at a given address in global or shared memory, computes the minimum of this value and a given value, and stores the result back to the memory address in a single atomic transaction. The function returns the original value before the update, allowing us to check if the atomic operation succeeded.
 
-AtomicMin can significantly reduce the number of atomic operations compared to atomicCAS. With atomicMin, each value directly attempts to update the shared memory location to the minimum of the current value and the new value. If the original value is larger, the new value will be used to update it. If the original value is smaller, it remains unchanged. This ensures that each thread attempts the operation only once, eliminating the need for repeated retries.
+`atomicMin` significantly reduces the number of atomic operations compared to `atomicCAS`. With `atomicMin`, each value attempts to update the shared memory location to the minimum of the current value and the new value. If the new value is smaller, it replaces the original value; otherwise, the original value remains unchanged. This ensures that each thread performs the operation only once, eliminating the need for repeated retries.
 
-In a scenario with 𝑛*n* values, atomicMin ensures that each value attempts the update operation exactly once, resulting in a total of 𝑂(𝑛)*O*(*n*) atomic operations. 
-
-For a SMP instance with n men and n women, due to the nature of SMP that the woman never gets unpaired once being proposed, a woman can be proposed by at most n men.
-
-Similarly to the way how we determine the total number of atomicCAS, the total number of atomicMin will be O(n^2). 
-
-This approach achieves a significant reduction in the number of atomic operations, leading to improved efficiency and faster convergence in parallel algorithms such as the Gale-Shapley algorithm. This optimization is particularly beneficial in a parallel computing environment, where efficient memory access and reduced contention are critical for achieving high performance.
+In a scenario with 𝑛*n* values, `atomicMin` ensures that each value attempts the update operation exactly once, resulting in a total of 𝑂(𝑛)*O*(*n*) atomic operations. For a Stable Marriage Problem (SMP) instance with 𝑛*n* men and 𝑛*n* women, a woman can be proposed to by at most 𝑛*n* men. Thus, the total number of `atomicMin` operations will be 𝑂(𝑛2)*O*(*n*2), similar to the total number of `atomicCAS` operations, which is asymptotically smaller than the 𝑂(𝑛3)*O*(*n*3) operations required by `atomicCAS`.
 
 
 
 ### Descrition of Algorithm
 
-This algorithm operates within a CUDA kernel to execute a parallel version of the McVitie-Wilson algorithm for the Stable Marriage Problem (SMP). Each thread in the kernel corresponds to a unique man (processor), identified by a thread ID computed using block and thread indices.
+Using atomicMin, we can implement parallel version of the McVitie-Wilson algorithm in a way that can handle the contention gracefully 
+
+Each thread in the kernel corresponds to a unique man (processor), identified by a thread ID computed using block and thread indices.
 
 Initially, the thread checks if its ID is within the bounds of the number of men and women. If so, it proceeds to initialize variables such as the current man's ID, the rank of the current proposal, and the indices for preference and rank lists.
 
