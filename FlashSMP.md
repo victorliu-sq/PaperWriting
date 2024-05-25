@@ -520,7 +520,11 @@ Each PRNode on entry (m , r)  corresponds to the woman index that man r proposes
 
 
 
-The parallel algorithm for initializing PRNodes (a node that combines data elements from Preference list and Rank Matrix) is designed to optimize memory access patterns for the Gale-Shapley algorithm. This algorithm processes preference lists for men and women, organizing the data into PRNodes to ensure efficient memory access during execution. The algorithm leverages parallel processing to quickly handle large datasets.
+The algorithm for initializing PRNodes (a node that combines data elements from Preference list and Rank Matrix) is designed to optimize memory access patterns for the Gale-Shapley algorithm. 
+
+This algorithm processes preference lists for men and women, organizing the data into PRNodes to ensure efficient memory access during execution.
+
+
 
 Each processing unit is assigned a pair of row and column, which we can use to initialize PRNodes.
 
@@ -548,25 +552,13 @@ After that, we can initialize PRNode on entry m, r_w with value (w, r_m), which 
 
 
 
-This index is stored in the device node vector at the position corresponding to the man's index and the woman's rank.
+The algorithm leverages parallel processing to quickly handle large datasets.
 
-Next, row m and column r corresponds to the PRNode on entry (w, r).
-
-Then, we can know the w's preference list on rank r is m.
-
-Based on that information, the unit calculates the index of the woman (`w_idx`) and the rank of the man (`m_rank`) based on its ID.
-
-Using the woman's preference list (`pref_list_w`), it determines the corresponding man index (`m_idx`). 
-
-In that way, we can set the member m_rank on PRNode entry m, r to w
-
-This index is stored in the device node vector at the position corresponding to the woman's index and the man's rank.
-
-
-
-By organizing the data in this manner, the PRNodes encapsulate the necessary entries from the preference lists, ensuring that related data is closely coupled. 
+By organizing the data in this manner, the PRNodes encapsulate the necessary entries from the preference lists and rank matrices, ensuring that related data is closely coupled.
 
 This approach optimizes memory access patterns, improving the efficiency of both the sequential Gale-Shapley algorithm or its parallel verion during execution. The parallel nature of the algorithm allows for rapid initialization of the PRNodes, leveraging the computational power of parallel processors to handle large datasets efficiently.
+
+
 
 
 
@@ -583,6 +575,22 @@ By storing these entries next to each other, PRNodes optimize memory access patt
 This spatial locality ensures that related data is loaded together, reducing cache misses and improving memory access efficiency. 
 
 PRNodes address this problem by organizing data in a way that aligns better with memory access patterns, reducing the frequency and impact of memory jumps. 
+
+
+
+This index is stored in the device node vector at the position corresponding to the man's index and the woman's rank.
+
+Next, row m and column r corresponds to the PRNode on entry (w, r).
+
+Then, we can know the w's preference list on rank r is m.
+
+Based on that information, the unit calculates the index of the woman (`w_idx`) and the rank of the man (`m_rank`) based on its ID.
+
+Using the woman's preference list (`pref_list_w`), it determines the corresponding man index (`m_idx`). 
+
+In that way, we can set the member m_rank on PRNode entry m, r to w
+
+This index is stored in the device node vector at the position corresponding to the woman's index and the man's rank.
 
 
 
