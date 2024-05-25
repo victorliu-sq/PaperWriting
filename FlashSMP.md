@@ -486,27 +486,17 @@ The main procedure of thread2 involves the use of both the second GPU (GPU2) and
 
 ## Cohabitation-PRNode
 
-As discussed in Section 2, solving the SMP traditionally relies on two key data structures: preference lists and rank matrices.
+As discussed in Section 2, solving the Stable Marriage Problem (SMP) traditionally relies on two key data structures: preference lists and rank matrices.
 
-For each proposal from a man to a woman, 2 kinds of data are required from preference lists of men and rank matrix of women. When man m tries to make a proposal, man m should know which woman (w) to make proposal. In order to get that information, man m should provide his highest unproposed rank r, and get w from preference lists with index m and r.  
+For each proposal from a man to a woman, two types of data are required from the men's preference lists and the women's rank matrices. When a man, m, decides to propose, he needs to determine which woman, w, to propose to. To get this information, m provides his highest unproposed rank, r, and retrieves w from his preference list at index r.
 
-To evaluate a proposal to decide whether or not to accept it, woman w then looks up the rank matrix with m and w to determine the proposer's relative ranking from her perspective, which leads to inefficiencies due to irregular access patterns. 
+To evaluate the proposal and decide whether or not to accept it, woman w then looks up her rank matrix to determine m's relative ranking from her perspective. This process often leads to inefficiencies due to irregular access patterns.
 
-In order to resolve that issue, FlashSMP introduces PRNodes, a specialized data structure designed to enhance memory access patterns by closely coupling related data elements from the preference lists and rank matrices. 
+To address this issue, FlashSMP introduces PRNodes, a specialized data structure designed to enhance memory access patterns by closely coupling related data elements from the preference lists and rank matrices.
 
-PRNode is a struct that encapsulates an entry consists of data elements both m, which comes from a proposer’s preference list, and the corresponding rank entry from the recipient’s rank matrix, facilitating efficient access during both the proposal and acceptance phases of the algorithm.
+A PRNode is a struct that encapsulates both the data element from a man's preference list and the corresponding rank entry from the woman's rank matrix, facilitating efficient access during both the proposal and acceptance phases of the algorithm.
 
-This organization ensures that when a proposer accesses their PRNode, they can retrieve both the woman to propose to and the relevant rank information in a single memory operation， thereby reducing the frequency of accessing data and impact of memory jumps. 
-
-
-
-When a proposer accesses their next preference, the corresponding rank entry is fetched simultaneously or with minimal additional memory accesses. 
-
-By storing these entries next to each other, PRNodes optimize memory access patterns, thereby improving efficiency.
-
-This spatial locality ensures that related data is loaded together, reducing cache misses and improving memory access efficiency. 
-
-PRNodes address this problem by organizing data in a way that aligns better with memory access patterns, reducing the frequency and impact of memory jumps. 
+This organization ensures that when a proposer accesses their PRNode, they can retrieve both the woman to propose to and the relevant rank information in a single memory operation, thereby reducing the frequency of data access and enhancing memory access efficiency.
 
 
 
@@ -550,13 +540,19 @@ Then we can get r_w and r_m, which correspond to w on the preference list of m a
 
 After that, we can initialize PRNode on entry m, r_w with value (w, r_m), which is a PRNode.
 
-
-
-The algorithm leverages parallel processing to quickly handle large datasets.
-
 By organizing the data in this manner, the PRNodes encapsulate the necessary entries from the preference lists and rank matrices, ensuring that related data is closely coupled.
 
-This approach optimizes memory access patterns, improving the efficiency of both the sequential Gale-Shapley algorithm or its parallel verion during execution. The parallel nature of the algorithm allows for rapid initialization of the PRNodes, leveraging the computational power of parallel processors to handle large datasets efficiently.
+
+
+This algorithm requires to process O(n ^ 2) entries for each phase.
+
+For each phase, all entries to process are independent of each other.
+
+Theoretically,  as long as we can provide enough processors, it can be solved in constant time.
+
+Using the large number of SIMD threads provided by GPU, the algorithm can quickly handle large datasets and initiliaze PRNodes
+
+
 
 
 
@@ -591,6 +587,14 @@ Using the woman's preference list (`pref_list_w`), it determines the correspondi
 In that way, we can set the member m_rank on PRNode entry m, r to w
 
 This index is stored in the device node vector at the position corresponding to the woman's index and the man's rank.
+
+
+
+This approach optimizes memory access patterns, improving the efficiency of both the sequential Gale-Shapley algorithm or its parallel verion during execution. 
+
+
+
+The parallel nature of the algorithm allows for rapid initialization of the PRNodes, leveraging the computational power of parallel processors to handle large datasets efficiently.
 
 
 
