@@ -356,9 +356,31 @@ Second, barrier synchronization requires all threads to reach a certain point be
 
 ### AtomicCAS
 
-Third, atomic compare-and-swap (AtomicCAS) operations can become a contention point when multiple threads try to update the same variable simultaneously, leading to performance degradation. While AtomicCAS is effective for single-variable updates, the GS algorithm involves complex operations that often require multiple updates. Ensuring consistency across these operations with AtomicCAS can be challenging and inefficient. Additionally, when AtomicCAS fails, it requires retrying the operation, which can lead to significant performance overhead in high-contention scenarios. Therefore, while AtomicCAS is useful for simple atomic operations, it is not well-suited for the more complex and frequent updates required in the GS algorithm. The high contention and retry overheads negate the benefits of parallel execution.
+The GS algorithm naturally lends itself to parallelization, as multiple proposers (men) can make proposals simultaneously. For example, by assigning each thread to simulate a man making proposals when implemented on an actual multithreading hardware, all men will initially propose to their preferred women. However, for the GS algorithm to make progress, it is crucial for threads to communicate with each other. Considering the preference lists given in Figure\ref{perferences}, men m1, m3, m5, and m6 will be paired with their proposed women directly whereas m2 and m7, as well as m4 and m8, will communicate to resolve conflicts if they are proposing to the same woman simultaneously.
+
+In parallel computing, atomic operations are essential for managing shared memory access without data races. The atomicCAS (Compare-And-Swap) operation is an atomic instruction used to compare a memory location's current value with a given expected value and, if they match, replace it with a new value. This operation is performed atomically, ensuring that no other thread can interfere during the comparison and swap process. In CUDA, atomicCAS guarantees correctness by allowing only one thread to successfully update the memory location at a time.
+
+atomic compare-and-swap (AtomicCAS) operations can become a contention point when multiple threads try to update the same variable simultaneously, leading to performance degradation. While AtomicCAS is effective for single-variable updates, the GS algorithm involves complex operations that often require multiple updates. Ensuring consistency across these operations with AtomicCAS can be challenging and inefficient. Additionally, when AtomicCAS fails, it requires retrying the operation, which can lead to significant performance overhead in high-contention scenarios. Therefore, while AtomicCAS is useful for simple atomic operations, it is not well-suited for the more complex and frequent updates required in the GS algorithm. The high contention and retry overheads negate the benefits of parallel execution.
 
 The retries and wasted work from `atomicCAS` operations can significantly slow down the overall algorithm, offsetting the benefits of parallelization.
+
+In the worst-case scenario, if the preference list size is 𝑛*n*, and all threads contend to update the same memory location, each thread may need to repeatedly attempt the atomicCAS operation until it succeeds. This can result in 𝑂(𝑛)*O*(*n*) atomicCAS operations per thread, leading to a total of 𝑂(𝑛2)*O*(*n*2) operations for all threads combined.
+
+To analyze the behavior of atomicCAS more closely, consider the scenario where multiple threads attempt to update a shared memory location to the smallest value. Let the values proposed by these threads be 𝑣1,𝑣2,…,𝑣𝑛*v*1,*v*2,…,*v**n*, sorted such that 𝑣1<𝑣2<…<𝑣𝑛*v*1<*v*2<…<*v**n*.
+
+The smallest value 𝑣1*v*1 will execute atomicCAS successfully on its first attempt, as there is no smaller value in the memory yet. The second smallest value 𝑣2*v*2 will execute atomicCAS successfully only after 𝑣1*v*1 has updated the memory location, meaning it might attempt the operation twice—first failing when 𝑣1*v*1 updates the location and then succeeding. Similarly, the 𝑘*k*-th smallest value 𝑣𝑘*v**k* may need up to 𝑘*k* attempts, as it will fail for each smaller value that has already updated the location.
+
+The total number of atomicCAS executions 𝑇(𝑛)*T*(*n*) for 𝑛*n* values is the sum of these attempts:
+
+𝑇(𝑛)=∑𝑘=1𝑛𝑘=1+2+3+…+𝑛=𝑛(𝑛+1)2*T*(*n*)=∑*k*=1*n**k*=1+2+3+…+*n*=2*n*(*n*+1)
+
+Thus the total number of CAS to decide a minimum value among n values will be O(n^2). 
+
+For a SMP instance with n men and n women, due to the nature of SMP that the woman never gets unpaired once being proposed, a woman can be proposed by at most n men.
+
+Thus, the total number of atomicCAS executions in the worst case is 𝑂(𝑛2)*O*(*n*2 * n) = O(n^3).
+
+
 
 
 
@@ -581,35 +603,19 @@ The parallel nature of the algorithm allows for rapid initialization of the PRNo
 
 ## Conflict Resolution-atomicMin
 
-The GS algorithm naturally lends itself to parallelization, as multiple proposers (men) can make proposals simultaneously. For example, by assigning each thread to simulate a man making proposals when implemented on an actual multithreading hardware, all men will initially propose to their preferred women. However, for the GS algorithm to make progress, it is crucial for threads to communicate with each other. Considering the preference lists given in Figure\ref{perferences}, men m1, m3, m5, and m6 will be paired with their proposed women directly whereas m2 and m7, as well as m4 and m8, will communicate to resolve conflicts if they are proposing to the same woman simultaneously.
+Handling the optimal proposer in the Gale-Shapley (GS) algorithm involves finding the minimal value among possible proposals for the proposed woman, corresponding to the proposal from the proposing man with highest priority. This minimization process is critical for determining optimal matches and ensuring the algorithm converges to a stable state efficiently.
 
+To address this synchronization problem, the atomicMin operation can be used effectively. AtomicMin is an atomic operation implemented on GPUs similarly to atomicCAS. According to the CUDA documentation, atomicMin reads a (32-bit or 64-bit) word located at a given address in global or shared memory, computes the minimum of this value and a given value, and stores the result back to the memory address in one atomic transaction. The function returns the original value before the update, which allows us to determine whether the atomic operation succeeded.
 
+AtomicMin can significantly reduce the number of atomic operations compared to atomicCAS. With atomicMin, each value directly attempts to update the shared memory location to the minimum of the current value and the new value. If the original value is larger, the new value will be used to update it. If the original value is smaller, it remains unchanged. This ensures that each thread attempts the operation only once, eliminating the need for repeated retries.
 
-Handling the optimal proposer in the Gale-Shapley (GS) algorithm involves finding the minimal value among possible proposals, which corresponds to the highest priority match according to the rank matrix. This minimization process is critical for determining the optimal matches and ensuring the algorithm converges to a stable state efficiently.
+In a scenario with 𝑛*n* values, atomicMin ensures that each value attempts the update operation exactly once, resulting in a total of 𝑂(𝑛)*O*(*n*) atomic operations. 
 
+For a SMP instance with n men and n women, due to the nature of SMP that the woman never gets unpaired once being proposed, a woman can be proposed by at most n men.
 
+Similarly to the way how we determine the total number of atomicCAS, the total number of atomicMin will be O(n^2). 
 
-In parallel computing, atomic operations are essential for managing shared memory access without data races. The atomicCAS (Compare-And-Swap) operation is an atomic instruction used to compare a memory location's current value with a given expected value and, if they match, replace it with a new value. This operation is performed atomically, ensuring that no other thread can interfere during the comparison and swap process. In CUDA, atomicCAS guarantees correctness by allowing only one thread to successfully update the memory location at a time.
-
-In the worst-case scenario, if the preference list size is 𝑛*n*, and all threads contend to update the same memory location, each thread may need to repeatedly attempt the atomicCAS operation until it succeeds. This can result in 𝑂(𝑛)*O*(*n*) atomicCAS operations per thread, leading to a total of 𝑂(𝑛2)*O*(*n*2) operations for all threads combined.
-
-To analyze the behavior of atomicCAS more closely, consider the scenario where multiple threads attempt to update a shared memory location to the smallest value. Let the values proposed by these threads be 𝑣1,𝑣2,…,𝑣𝑛*v*1,*v*2,…,*v**n*, sorted such that 𝑣1<𝑣2<…<𝑣𝑛*v*1<*v*2<…<*v**n*.
-
-The smallest value 𝑣1*v*1 will execute atomicCAS successfully on its first attempt, as there is no smaller value in the memory yet. The second smallest value 𝑣2*v*2 will execute atomicCAS successfully only after 𝑣1*v*1 has updated the memory location, meaning it might attempt the operation twice—first failing when 𝑣1*v*1 updates the location and then succeeding. Similarly, the 𝑘*k*-th smallest value 𝑣𝑘*v**k* may need up to 𝑘*k* attempts, as it will fail for each smaller value that has already updated the location.
-
-The total number of atomicCAS executions 𝑇(𝑛)*T*(*n*) for 𝑛*n* values is the sum of these attempts:
-
-𝑇(𝑛)=∑𝑘=1𝑛𝑘=1+2+3+…+𝑛=𝑛(𝑛+1)2*T*(*n*)=∑*k*=1*n**k*=1+2+3+…+*n*=2*n*(*n*+1)
-
-Thus, the total number of atomicCAS executions in the worst case is 𝑂(𝑛2)*O*(*n*2).
-
-The atomicMin operation, described in the CUDA documentation, reads the 32-bit or 64-bit word located at a given address in global or shared memory, computes the minimum of this value and a given value, and stores the result back to the memory address in one atomic transaction. The function returns the original value before the update. This means that atomicMin ensures the minimum value is stored efficiently with minimal contention and retries.
-
-AtomicMin can asymptotically reduce the number of atomic operations compared to atomicCAS. With atomicMin, each value directly attempts to update the shared memory location to the minimum of the current value and the new value. Since atomicMin ensures that only the smallest value updates the memory location, each thread attempts the operation only once, eliminating the need for repeated retries and reducing contention significantly.
-
-Given the same scenario with 𝑛*n* values, atomicMin ensures that each value attempts the update operation exactly once. Therefore, the total number of atomic operations using atomicMin is simply 𝑂(𝑛)*O*(*n*).
-
-By using atomicMin instead of atomicCAS, we achieve a significant reduction in the number of atomic operations, leading to improved efficiency and faster convergence in parallel algorithms such as the Gale-Shapley algorithm. This optimization is particularly beneficial in a parallel computing environment, where efficient memory access and reduced contention are critical for achieving high performance.
+This approach achieves a significant reduction in the number of atomic operations, leading to improved efficiency and faster convergence in parallel algorithms such as the Gale-Shapley algorithm. This optimization is particularly beneficial in a parallel computing environment, where efficient memory access and reduced contention are critical for achieving high performance.
 
 
 
