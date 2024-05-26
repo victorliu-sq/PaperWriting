@@ -643,13 +643,7 @@ FlashSMP determines when to switch from GPU to CPU mode by checking the pairing 
 
 To find the free man, the algorithm performs additional computations. First, it reads the partner ranks of all women to ensure only one woman is unpaired. Next, it uses the preference lists of the men to identify the paired men for each woman. This step involves reading the indices of the paired men from the preference lists. The algorithm calculates the total sum of indices of all men, which is 1+2+…+𝑛=𝑛(𝑛+1)21+2+…+*n*=2*n*(*n*+1). By subtracting the indices of the paired men from this total sum, the algorithm identifies the index of the free man.
 
-To illustrate, consider the following preference lists of men:
-
-- M1: W1, W2, W3
-- M2: W2, W1, W3
-- M3: W2, W3, W1
-
-Assume the following match ranks for the women:
+To illustrate, consider the following match ranks for the women:
 
 - W1: 3 (paired with M3)
 - W2: 𝑛+1*n*+1 (unpaired)
@@ -665,21 +659,19 @@ Once the free man is identified and it is confirmed that only one proposer remai
 
 ### Description of Algorithm
 
-The main procedure of this algorithm involves the use of both GPU and CPU to efficiently handle the Stable Marriage Problem (SMP) with a hybrid approach.
+The main procedure of this algorithm involves using both GPU and CPU to efficiently solve the Stable Marriage Problem (SMP) with a hybrid approach.
 
-First, the algorithm initializes by launching the kernel `CheckLessThanNUnified` on the GPU. This kernel processes each woman in parallel. For each woman, it fetches the current husband's rank and stores it in a split rank array. If the woman's husband rank is equal to the number of men (`n`), indicating that she has not been proposed to by any man, an atomic operation increments a counter for unproposed women. If the husband’s rank is not equal to `n`, the index of the free man is updated using an atomic subtraction based on the woman’s preference list.
+In Phase 1, the algorithm starts by launching  a kernel on the GPU. This kernel processes each woman in parallel. For each woman, it fetches the current match rank and stores it in another array. If the woman's match rank is equal to `n+1`, indicating that she is unpaired, an atomic operation decrements a counter for paired women, which is initialized to `n`. 
 
-After launching the `CheckLessThanNUnified` kernel, the algorithm copies the temporary results (`temp_result_host`) from the device to the host. If the result indicates that there is at least one free man (`temp_result_host == 1`), the algorithm proceeds to copy the index of the free man from the device to the host and then transitions to the CPU to handle the remaining tasks.
+Otherwise, the ID of the matched man is substracted from sum of man ID using an atomic subtraction based on the woman’s preference list.
 
-In the `HybridRelayTailingCPU` procedure, the algorithm begins by identifying the free man and initializing the rank index. It retrieves the corresponding node information and sets the woman's index and the man's rank accordingly. The algorithm then enters a while loop where the free man continues to propose to the next woman on his list.
 
-Within the loop, the current proposal rank is incremented, and the rank of the woman's current match (husband) is checked. If the woman's current match has a better (lower) rank than the proposing man, the algorithm updates the node information for the next proposal and continues to the next iteration of the loop.
 
-If the proposing man’s rank is better, the woman’s current match is updated to the proposing man’s rank. If the woman was originally unmatched (her rank was equal to `n`), the algorithm terminates as a successful match has been found.
+After launching the kernel, the number of paired men, which is same as the number of paired women, is copied from the device to the host. If there is exactly one free man, the algorithm proceeds to copy the ID of the free man from the device to the host and then and enters Phase2.
 
-If the woman had a previous match but prefers the proposing man, the algorithm updates the current man’s ID to the previous match, sets the rank index for this new man, and continues the while loop. The algorithm retrieves the node information for the next woman on the new man's preference list and updates the indices accordingly, iterating until all matches are stable.
+In Phase2, the algorithm transitions to the CPU to handle the remaining tasks by a normal sequential Gale-Shapley algorithm by identifying the free man and initializing the proposalRank.
 
-This hybrid approach ensures that initial parallel processing on the GPU efficiently handles the bulk of proposals, while any remaining complex decisions are managed on the CPU, allowing for a balanced workload and efficient computation.
+This hybrid approach ensures that initial parallel processing on the GPU efficiently handles the bulk of proposals, while any remaining complex decisions are managed on the CPU. This balance of workload leads to efficient computation and optimal performance.
 
 
 
