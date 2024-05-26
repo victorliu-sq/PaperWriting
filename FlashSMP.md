@@ -615,21 +615,17 @@ In a scenario with 𝑛*n* values, `atomicMin` ensures that each value attempts 
 
 ### Descrition of Algorithm
 
-Using atomicMin, we can implement parallel version of the McVitie-Wilson algorithm in a way that can handle the contention gracefully 
+Using `atomicMin`, we can implement a parallel version of the McVitie-Wilson algorithm for the Stable Marriage Problem (SMP) that handles contention efficiently, as described in Algorithm 2.
 
-Each thread in the kernel corresponds to a unique man (processor), identified by a thread ID computed using block and thread indices.
+The algorithm operates in parallel, with each processor (thread) corresponding to a unique man. The main data structures used are PRNodes, preference lists for women, and the rank matrix for men. Another crucial data structure is Women's Match Ranks, an array initialized with 𝑛*n* entries set to 𝑛*n*, indicating that all women are unpaired and ready to pair with any proposer. This array stores the rank of the current partner for each woman and will be returned as the result of the SMP instance.
 
-Initially, the thread checks if its ID is within the bounds of the number of men and women. If so, it proceeds to initialize variables such as the current man's ID, the rank of the current proposal, and the indices for preference and rank lists.
+The algorithm proceeds as follows: each processor starts by initializing variables for the man's ID (`manID`), the rank of the current proposal (`r_w`), and a flag (`matched`) to track whether the man has successfully paired. Each man then repeatedly proposes to the next woman on his preference list. The processor retrieves the next woman and the rank of the man from the PRNodes array. When a man proposes to a woman, `atomicMin` attempts to update the woman's current match to the proposing man if his rank is better (lower) than her current match. This atomic operation ensures that only one man's proposal is accepted if multiple proposals are made simultaneously.
 
-The algorithm then enters a loop where each man proposes to the next woman on his preference list. In each iteration, the thread retrieves the current man's next choice of woman and the ranks associated with this proposal from device memory. The man then updates his proposal index to move to the next woman on his list.
+There are three cases for a proposal. If a proposal is accepted by an unpaired woman, the processor sets the `matched` flag to true, indicating that the processor should complete its execution. If the proposal is rejected because the woman's current match has a lower rank, the man moves to the next woman on his list, and the loop continues. If the proposal is accepted but the woman prefers the new proposer over her current match, the processor updates the `manID` to the rejected man (the woman's previous match), using the preference list of that woman, and sets `r_w` to the next rank this rejected man should propose to, based on the woman's rank matrix. The rejected man then continues proposing to the next woman on his preference list.
 
-The key operation here is the atomicMin function, which ensures that a woman accepts the best proposal when multiple men propose to her simultaneously. When a man proposes to a woman, atomicMin attempts to update the woman's current match (husband) to the proposing man if his rank is better (lower) than her current match. This operation is atomic, meaning it is performed without interruption, ensuring that only one man's proposal is accepted if multiple proposals are made at the same time. If the woman's current match is better (lower rank) than the proposing man's, the proposing man is effectively rejected, and the loop continues.
+The loop continues until a proposal is accepted by an unpaired woman. By using `atomicMin`, the algorithm ensures efficient handling of contention, allowing multiple proposals and updates to occur simultaneously. This leads to improved performance and faster convergence.
 
-If the proposal is accepted (i.e., the woman's current match is updated to the proposing man), the loop breaks. However, if the proposal is rejected but the woman prefers the proposing man over her current match, the algorithm needs to switch the man that the current thread represents. This is achieved by updating the thread's man ID to the rejected man (the previous match of the woman), allowing the rejected man to continue proposing.
 
-The switch operation is performed as follows: If the woman prefers the proposing man over her current match, the algorithm updates the man ID to the rejected man. This rejected man now needs to continue proposing to the next woman on his preference list. The proposal index for the new man ID is updated to reflect the next woman he should propose to, based on the rank matrix.
-
-The loop continues until a proposal is accepted or all women on the man's list have been proposed to. The use of atomic operations ensures consistency and correctness across multiple threads operating in parallel. This parallel processing approach significantly speeds up the computation by leveraging the power of CUDA-enabled GPUs, allowing many proposals and updates to occur simultaneously.
 
 
 
