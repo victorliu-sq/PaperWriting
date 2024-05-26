@@ -661,17 +661,13 @@ Once the free man is identified and it is confirmed that only one proposer remai
 
 The main procedure of this algorithm involves using both GPU and CPU to efficiently solve the Stable Marriage Problem (SMP) with a hybrid approach.
 
-In Phase 1, the algorithm starts by launching  a kernel on the GPU. This kernel processes each woman in parallel. For each woman, it fetches the current match rank and stores it in another array. If the woman's match rank is equal to `n+1`, indicating that she is unpaired, an atomic operation decrements a counter for paired women, which is initialized to `n`. 
+In Phase 1, the algorithm begins by initializing the number of unpaired women to 𝑛*n* and the free man ID to the sum of all men's IDs. It then launches a kernel named `CheckMatchStatus` on GPU2. This kernel processes each woman in parallel. For each woman, it fetches the current match rank from GPU1 and stores it in another array on GPU2. If the woman's match rank is equal to `n+1`, indicating that she is unpaired, an atomic operation decrements a counter for unpaired women, which was initialized to 𝑛*n*. Otherwise, the ID of the matched man is subtracted from the free man ID using an atomic subtraction based on the woman’s preference list.
 
-Otherwise, the ID of the matched man is substracted from sum of man ID using an atomic subtraction based on the woman’s preference list.
+After launching the `CheckMatchStatus` kernel, the algorithm copies the number of paired men, which is the same as the number of paired women, from the device to the host. If there is exactly one free man, the algorithm proceeds to copy the ID of the free man from the device to the host and then enters Phase 2. If not, the algorithm reinitializes the number of unpaired women and the free man ID, and launches the `CheckMatchStatus` kernel again to check if only one free man remains.
 
+In Phase 2, the algorithm transitions to the CPU to handle the remaining tasks using a normal sequential Gale-Shapley algorithm. It identifies the free man and initializes the proposal rank.
 
-
-After launching the kernel, the number of paired men, which is same as the number of paired women, is copied from the device to the host. If there is exactly one free man, the algorithm proceeds to copy the ID of the free man from the device to the host and then and enters Phase2.
-
-In Phase2, the algorithm transitions to the CPU to handle the remaining tasks by a normal sequential Gale-Shapley algorithm by identifying the free man and initializing the proposalRank.
-
-This hybrid approach ensures that initial parallel processing on the GPU efficiently handles the bulk of proposals, while any remaining complex decisions are managed on the CPU. This balance of workload leads to efficient computation and optimal performance.
+This hybrid approach ensures that the initial parallel processing on the GPU efficiently handles the bulk of proposals, while any remaining complex decisions are managed on the CPU. This balance of workload leads to efficient computation and optimal performance.
 
 
 
