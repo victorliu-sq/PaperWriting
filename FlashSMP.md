@@ -1,3 +1,7 @@
+You can insert sentences, deleted sentences and reorder sentences and use other words as long as you think it will make it more readable, logical and native
+
+
+
 # Title
 
 FlashSMP:
@@ -32,7 +36,13 @@ Finally, we demonstrate FlashSMP's high scalability through extensive experiment
 
 ## Importance
 
-The Stable Marriage Problem (SMP), introduced by David Gale and Lloyd Shapley in 1962, seeks to find a stable matching between two equally numbered sets of participants with ranked preferences, ensuring no pair of individuals would prefer each other over their assigned partners. Gale and Shapley also introduced the Gale-Shapley (GS) Algorithm, also known as the Deferred Acceptance (DA) algorithm, which guarantees a stable matching for any instance of the SMP.\cite{gale1962college} 
+The Stable Marriage Problem (SMP), introduced by David Gale and Lloyd Shapley in 1962, seeks to find a stable matching between two equally numbered sets of participants with ranked preferences.
+
+In this context, ranked preferences refer to each participant creating a preference list, ordering all members of the opposite set from most to least preferred. A stable matching ensures that no pair of individuals would both prefer each other over their assigned partners. This indicates that, according to their preference lists, no individual has a higher preference for someone other than their assigned partner who would also prefer them in return.
+
+Gale and Shapley also introduced the Gale-Shapley (GS) Algorithm, also known as the Deferred Acceptance (DA) algorithm, which guarantees a stable matching for any instance of the SMP. The GS algorithm operates as follows: each man proposes to his most preferred woman, each woman then considers all her proposals and tentatively accepts the one she prefers most, rejecting the others. Rejected men then propose to their next preferred woman, and this process repeats until all men and women are matched.\cite{gale1962college} 
+
+
 
 The SMP has been a cornerstone in combinatorial optimization with applications spanning matching markets, resource allocation, and more. Its fundamental role in real-world applications such as matching doctors to hospitals, students to schools, and organ donors to patients underscores its significance. The profound impact of SMP on these fields was recognized when Dr. Alvin Roth and Dr. Lloyd Shapley received the Nobel Prize in Economics in 2012.
 
