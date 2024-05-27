@@ -40,6 +40,22 @@ The Stable Marriage Problem (SMP), introduced by David Gale and Lloyd Shapley in
 
 
 
+The SMP has been a cornerstone in combinatorial optimization with applications spanning matching markets\cite{aziz2024cutoff}, resource allocation\cite{xu2011egalitarian, maggs2015algorithmic, wang2016dynamic, muhamad2024energy, pandeeswari2024resource, zhang2017stable, datta2024esma, alruwaili2024optimizing, yellampalliclient}, roommate problem\cite{khalili2024roommate}, and more. Its fundamental role in real-world applications such as matching doctors to hospitals\cite{nrmp2023results}, students to schools\cite{abdulkadirouglu2005new, sun2024stable}, and organ donors to patients\cite{roth2004kidney}, and patients to cancer treatment center\cite{seidi2024stable, huang2024application} underscores its significance. The profound impact of SMP on these fields was recognized when Dr. Alvin Roth and Dr. Lloyd Shapley received the Nobel Prize in Economics in 2012.
+
+
+
+The Stable Marriage Problem (SMP) has been a cornerstone in combinatorial optimization with a wide range of applications. In healthcare, SMP ensures that organ donors are matched to patients, patients to cancer treatment centers, and elderly to healthcare facilities, optimizing critical resource distribution and enhancing patient care.
+
+The educational sector benefits from SMP by assigning students to schools and allocating rooms in dormitories, thereby enhancing student satisfaction and meeting institutional requirements.
+
+SMP facilitates mutually beneficial employment relationships by matching  job seekers to employers in the labor market. For instance, the National Resident Matching Program (NRMP) serves more than 50,000 medical students annually seeking their ideal hospital placements.
+
+Additionally, in the field of modern technology, SMP has been widely applied in resource allocation and task offloading schemes for computer networks and Internet of Things (IoT) devices, as well as in switch scheduling, leading to more efficient network performance and resource utilization. 
+
+The profound impact of SMP across these diverse fields was recognized when Dr. Alvin Roth and Dr. Lloyd Shapley received the Nobel Prize in Economics in 2012.
+
+
+
 The SMP has been a cornerstone in combinatorial optimization with applications spanning matching markets, resource allocation, and more. Its fundamental role in real-world applications such as matching doctors to hospitals, students to schools, and organ donors to patients underscores its significance. The profound impact of SMP on these fields was recognized when Dr. Alvin Roth and Dr. Lloyd Shapley received the Nobel Prize in Economics in 2012.
 
 
@@ -50,9 +66,11 @@ labor market,
 
 
 
+resource assignment in computer networks
+
 task offloading scheme in IoT devices (cellular devices) to fog nodes only
 
-\cite{xu2011egalitarian, maggs2015algorithmic, wang2016dynamic, muhamad2024energy, pandeeswari2024resource, zhang2017stable, datta2024esma}
+\cite{xu2011egalitarian, maggs2015algorithmic, wang2016dynamic, muhamad2024energy, pandeeswari2024resource, zhang2017stable, datta2024esma, yellampalliclient}
 
 
 
@@ -80,7 +98,15 @@ students2school
 
 
 
-organ donors to patients\cite{roth2004kidney}
+organ donors to patients
+
+\cite{roth2004kidney}
+
+
+
+patients2cancerTreatmentCenter / elderly to healthcare facilities
+
+\cite{seidi2024stable, huang2024application}
 
 
 
@@ -88,11 +114,19 @@ organ donors to patients\cite{roth2004kidney}
 
 ## Shortcoming of previous work
 
-Efficient algorithms for Stable Marriage Problems (SMP) are critical as problem sizes grow and computational resources evolve. Technological advancements in the twentieth century led to regular increases in processor clock speeds, naturally accelerating the GS algorithm. However, since the early 21st century, we have seen an end to these "free rides" as Moore's Law approaches its limits \cite{10.5555/2385452}. With the rise of advanced parallel architectures like multicore processors and GPUs, exploiting the parallelism of SMP algorithms has become both inevitable and necessary.
+Efficient algorithms for Stable Marriage Problems (SMP) are critical as problem sizes grow and computational resources evolve. 
 
 
 
-Following this recognition, the need for an efficient algorithm to solve SMP has become increasingly paramount due to the growing volume of participants and the dynamic nature of environments where frequent recalculations are required. 
+With the rise of advanced parallel architectures like multicore processors and GPUs, exploiting the parallelism of SMP algorithms has become both inevitable and necessary.
+
+
+
+Following this recognition, Efficient algorithms for SMP have become increasingly critical due to the growing volume of participants\cite{nrmp2023results}, centralized resource and allocation\cite{ashlagi2021kidney},and the dynamic nature of environments where frequent recalculations are required \cite{maggs2015algorithmic, }. 
+
+
+
+The map unit assignment must be recomputed every 10 to 30 seconds, as network performance and client demand change on short time scales. Network links can become congested or fail in seconds, changing the preference order of map units. Server capacities can vary at a similar granularity as demand rises and falls.
 
 
 
@@ -102,9 +136,9 @@ For instance, the New York City High School Match process already involved over 
 
 
 
+Despite its importance, research on parallel SMP algorithms has been limited due to the inherent complexities of this task.
 
-
-Despite its importance, research on parallel SMP algorithms has been limited due to the inherent complexities of this task
+The classic GS algorithm is slow.
 
 that GS algorithm is computing- and data-intensive and ithas time and memory complexity quadratic in the number of participants.
 
