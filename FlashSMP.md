@@ -8,6 +8,8 @@ FlashSMP:
 
 A stable marriage needs to cohabitate, resolve conflicts, and embrace complementary strengths
 
+A Stable Marriage Needs to have a Shared Residence with Low Contention and to Complement to Each Other
+
 
 
 # Abstract
@@ -32,6 +34,16 @@ Finally, we demonstrate FlashSMP's high scalability through extensive experiment
 
 
 
+## Revision
+
+The Stable Marriage Problem (SMP) is a combinatorial optimization problem to establish a stable pairing between two groups, traditionally referred to as "men" and "women", aiming to create pairings that are mutually stable, ensuring that no pair of individuals in the resulting arrangement would prefer each other over their assigned partners. The SMP computation has been widely used in various applications to achieve best resource allocation, matching, and utilization. The basic SMP computations rely on the classical Gale-Shapley algorithm, a sequential process that constructs stable pairings iteratively. This algorithm is highly time-consuming and data intensive, becoming unacceptably slow even for a moderate number of participants in the problem. While efforts have been made over the years to parallelize the Gale-Shapley algorithm, these attempts have been hindered by three major bottlenecks: (1) frequent and expensive data movement, (2) high synchronization overhead, and (3) irregular and workload-dependent parallelisms.
+
+ 
+
+To resolve three above mentioned bottlenecks, in this paper, we introduce Balanced-SMP, a highly efficient parallel SMP algorithm and its implementation in a hybrid environment of GPU and CPU. Balanced-SMP’s high performance stems from three key development efforts. First, we effectively exploit the data accessing locality with an effective data structure to maximize the “shared residence” space. Second,  Balanced-SMP employs an advanced hardware atomic operation provided by CUDA to reduce performance degradation caused by memory contention.  Thirdly, Balanced-SMP is implemented in a hybrid environment of both GPU and CPU. It leverages the high bandwidth of the GPU for massive parallel operations and the low latency of CPU for highly sequential execution flows. By complementing the strengths of both CPU and GPU,  our approach achieves optimal performance across a wide range of workloads. We demonstrate Balanced-SMP’s high scalability through extensive experiments using both synthetic and real-world datasets, consistently delivering exceptional performance for increasingly large problem sizes. Our evaluation results show that Balanced-SMP significantly outperforms all existing parallel algorithms, achieving speedups of up to 28.3x across various workloads.
+
+
+
 # Introduction
 
 ## Importance
@@ -40,17 +52,13 @@ The Stable Marriage Problem (SMP), introduced by David Gale and Lloyd Shapley in
 
 
 
-The SMP has been a cornerstone in combinatorial optimization with applications spanning matching markets\cite{aziz2024cutoff}, resource allocation\cite{xu2011egalitarian, maggs2015algorithmic, wang2016dynamic, muhamad2024energy, pandeeswari2024resource, zhang2017stable, datta2024esma, alruwaili2024optimizing, yellampalliclient}, roommate problem\cite{khalili2024roommate}, and more. Its fundamental role in real-world applications such as matching doctors to hospitals\cite{nrmp2023results}, students to schools\cite{abdulkadirouglu2005new, sun2024stable}, and organ donors to patients\cite{roth2004kidney}, and patients to cancer treatment center\cite{seidi2024stable, huang2024application} underscores its significance. The profound impact of SMP on these fields was recognized when Dr. Alvin Roth and Dr. Lloyd Shapley received the Nobel Prize in Economics in 2012.
+The Stable Marriage Problem (SMP) has been a cornerstone in combinatorial optimization with a wide range of applications. In healthcare, SMP ensures that organ donors are matched to patients \cite{roth2004kidney}, patients to cancer treatment centers, \cite{seidi2024stable} and elderly to healthcare facilities \cite{huang2024application}, optimizing critical resource distribution and enhancing patient care.
 
+The educational sector benefits from SMP by assigning students to schools \cite{abdulkadirouglu2005new, sun2024stable} and allocating rooms \cite{khalili2024roommate} in dormitories, thereby enhancing student satisfaction and meeting institutional requirements.
 
+SMP facilitates mutually beneficial employment relationships by matching  job seekers to employers in the labor market. For instance, the National Resident Matching Program (NRMP) serves more than 50,000 medical students annually seeking their ideal hospital placements \cite{nrmp2023results}.
 
-The Stable Marriage Problem (SMP) has been a cornerstone in combinatorial optimization with a wide range of applications. In healthcare, SMP ensures that organ donors are matched to patients, patients to cancer treatment centers, and elderly to healthcare facilities, optimizing critical resource distribution and enhancing patient care.
-
-The educational sector benefits from SMP by assigning students to schools and allocating rooms in dormitories, thereby enhancing student satisfaction and meeting institutional requirements.
-
-SMP facilitates mutually beneficial employment relationships by matching  job seekers to employers in the labor market. For instance, the National Resident Matching Program (NRMP) serves more than 50,000 medical students annually seeking their ideal hospital placements.
-
-Additionally, in the field of modern technology, SMP has been widely applied in resource allocation and task offloading schemes for computer networks and Internet of Things (IoT) devices, as well as in switch scheduling, leading to more efficient network performance and resource utilization. 
+Additionally, in the field of modern technology, SMP has been widely applied in cloud resource allocation \cite{xu2011egalitarian} and task offloading schemes for computer networks and Internet of Things (IoT) devices \cite{maggs2015algorithmic, wang2016dynamic, muhamad2024energy, pandeeswari2024resource, datta2024esma, alruwaili2024optimizing, yellampalliclient}, as well as in switch scheduling \cite{zhang2017stable}, leading to more efficient network performance and resource utilization. 
 
 The profound impact of SMP across these diverse fields was recognized when Dr. Alvin Roth and Dr. Lloyd Shapley received the Nobel Prize in Economics in 2012.
 
@@ -104,11 +112,15 @@ organ donors to patients
 
 
 
-patients2cancerTreatmentCenter / elderly to healthcare facilities
+patients2cancerTreatmentCenter
 
-\cite{seidi2024stable, huang2024application}
+\cite{seidi2024stable}
 
 
+
+elderly to healthcare facilities
+
+\cite{huang2024application}
 
 
 
@@ -118,19 +130,31 @@ Efficient algorithms for Stable Marriage Problems (SMP) are critical as problem 
 
 
 
-With the rise of advanced parallel architectures like multicore processors and GPUs, exploiting the parallelism of SMP algorithms has become both inevitable and necessary.
+The recognition of the importance of SMP has exposed the limitations of the classical GS algorithm.  Despite its foundational role, the GS algorithm is both computing- and data-intensive, with time and memory complexities that grow quadratically with the number of participants. This makes it impractical for real-time or large-scale scenarios \cite{lu2003parallel, wynn2024selection}.  As a result, efficient algorithms for SMP are becoming increasingly critical to handle the growing volume of participants \cite{nrmp2023results}, the need for centralized resource allocation \cite{ashlagi2021kidney}, and the frequent recalculations due to the dynamic nature of environments \cite{maggs2015algorithmic}. 
 
 
 
-Following this recognition, Efficient algorithms for SMP have become increasingly critical due to the growing volume of participants\cite{nrmp2023results}, centralized resource and allocation\cite{ashlagi2021kidney},and the dynamic nature of environments where frequent recalculations are required \cite{maggs2015algorithmic, }. 
+Lots of efforts have been made to solve SMP in a shorter time using parallelism.
 
 
 
-The map unit assignment must be recomputed every 10 to 30 seconds, as network performance and client demand change on short time scales. Network links can become congested or fail in seconds, changing the preference order of map units. Server capacities can vary at a similar granularity as demand rises and falls.
+These methods range from theoretical parallel modeling like CRCW PRAM to newly resing advanced parallel architectures like multicore processors and GPUs. 
 
 
 
-For instance, the New York City High School Match process already involved over 170,000 students as of 2004 \cite{abdulkadirouglu2005new}, while the National Resident Matching Program (NRMP) serves more than 50,000 medical students annually seeking their ideal hospital placements \cite{nrmp2023results}. Furthermore, kidney transplantation programs are becoming increasingly centralized and international, facing dynamic changes with the addition and allocation of kidneys \cite{roth2004kidney}. Moreover, the importance of SMP algorithms extends beyond these traditional realms into cloud computing\cite{wang2016dynamic} \cite{xu2011egalitarian} and network management\cite{maggs2015algorithmic}, where the state of servers and resource allocation requests are constantly changing.  This rise in increasingly high demands in both data processing and computation, along with the fluidity of participants' preferences, underscores the necessity for parallelizing algorithms to ensure stable matches are recalculated efficiently and effectively.
+With the rise of advanced parallel architectures like multicore processors and GPUs, exploiting the parallelism of SMP algorithms has become both inevitable and imperative.
+
+
+
+
+
+
+
+massively parallel processing for TED is not only necessary but imperative. This inevitable shift enables us to effectively address the challenges posed by the ever-increasing volumes of data and the growing need for fast response time in TED computations. Therefore, it is critical to explore a parallel framework that is both efficient and feasible for TED algorithms.
+
+
+
+This rise in increasingly high demands in both data processing and computation, along with the fluidity of participants' preferences, underscores the necessity for parallelizing algorithms to ensure stable matches are recalculated efficiently and effectively.
 
 
 
@@ -140,17 +164,15 @@ Despite its importance, research on parallel SMP algorithms has been limited due
 
 The classic GS algorithm is slow.
 
-that GS algorithm is computing- and data-intensive and ithas time and memory complexity quadratic in the number of participants.
+that GS algorithm is computing- and data-intensive since it requires time and memory complexity quadratic in the number of participants.
 
 
 
-. To our knowledge, the only parallel algorithm that outperforms the sequential Gale-Shapley (GS) algorithm is the parallel McVitie-Wilson algorithm. While this algorithm has set a benchmark by running faster than sequential solutions, its performance on GPUs is hindered by high contention for shared resources and high-latency memory operations, making it even less efficient than its CPU implementation. 
+To our knowledge, the only parallel algorithm that outperforms the sequential Gale-Shapley (GS) algorithm is the parallel McVitie-Wilson algorithm. While this algorithm has set a benchmark by running faster than sequential solutions, its performance on GPUs is hindered by high contention for shared resources and high-latency memory operations, making it even less efficient than its CPU implementation. 
 
 
 
 ## Challenges
-
-
 
 1
 
