@@ -36,15 +36,53 @@ Finally, we demonstrate FlashSMP's high scalability through extensive experiment
 
 ## Importance
 
-The Stable Marriage Problem (SMP), introduced by David Gale and Lloyd Shapley in 1962, seeks to find a stable matching between two equally numbered sets of participants with ranked preferences.
-
-In this context, ranked preferences refer to each participant creating a preference list, ordering all members of the opposite set from most to least preferred. A stable matching ensures that no pair of individuals would both prefer each other over their assigned partners. This indicates that, according to their preference lists, no individual has a higher preference for someone other than their assigned partner who would also prefer them in return.
-
-Gale and Shapley also introduced the Gale-Shapley (GS) Algorithm, also known as the Deferred Acceptance (DA) algorithm, which guarantees a stable matching for any instance of the SMP. The GS algorithm operates as follows: each man proposes to his most preferred woman, each woman then considers all her proposals and tentatively accepts the one she prefers most, rejecting the others. Rejected men then propose to their next preferred woman, and this process repeats until all men and women are matched.\cite{gale1962college} 
+The Stable Marriage Problem (SMP), introduced by David Gale and Lloyd Shapley in 1962, seeks to find a stable matching between two equally numbered sets of participants with ranked preferences. In this context, ranked preferences refer to each participant creating a preference list, ordering all members of the opposite set from most to least preferred. A stable matching ensures that no pair of individuals would both prefer each other over their assigned partners. This indicates that, according to their preference lists, no individual has a higher preference for someone other than their assigned partner who would also prefer them in return. Gale and Shapley also introduced the Gale-Shapley (GS) Algorithm, also known as the Deferred Acceptance (DA) algorithm, which guarantees a stable matching for any instance of the SMP. The GS algorithm operates as follows: each man proposes to his most preferred woman, each woman then considers all her proposals and tentatively accepts the one she prefers most, rejecting the others. Rejected men then propose to their next preferred woman, and this process repeats until all men and women are matched.\cite{gale1962college} 
 
 
 
 The SMP has been a cornerstone in combinatorial optimization with applications spanning matching markets, resource allocation, and more. Its fundamental role in real-world applications such as matching doctors to hospitals, students to schools, and organ donors to patients underscores its significance. The profound impact of SMP on these fields was recognized when Dr. Alvin Roth and Dr. Lloyd Shapley received the Nobel Prize in Economics in 2012.
+
+
+
+labor market, 
+
+\cite{aziz2024cutoff}
+
+
+
+task offloading scheme in IoT devices (cellular devices) to fog nodes only
+
+\cite{xu2011egalitarian, maggs2015algorithmic, wang2016dynamic, muhamad2024energy, pandeeswari2024resource, zhang2017stable, datta2024esma}
+
+
+
+room allocation in dormitories
+
+\cite{khalili2024roommate}
+
+
+
+switch scheduling 
+
+\cite{zhang2017stable}
+
+
+
+Doctor2hospital
+
+\cite{nrmp2023results}
+
+
+
+students2school
+
+\cite{abdulkadirouglu2005new, sun2024stable}
+
+
+
+organ donors to patients\cite{roth2004kidney}
+
+
 
 
 
@@ -54,7 +92,25 @@ Efficient algorithms for Stable Marriage Problems (SMP) are critical as problem 
 
 
 
-Despite its importance, research on parallel SMP algorithms has been limited due to the inherent complexities of this task. To our knowledge, the only parallel algorithm that outperforms the sequential Gale-Shapley (GS) algorithm is the parallel McVitie-Wilson algorithm. While this algorithm has set a benchmark by running faster than sequential solutions, its performance on GPUs is hindered by high contention for shared resources and high-latency memory operations, making it even less efficient than its CPU implementation. 
+Following this recognition, the need for an efficient algorithm to solve SMP has become increasingly paramount due to the growing volume of participants and the dynamic nature of environments where frequent recalculations are required. 
+
+
+
+For instance, the New York City High School Match process already involved over 170,000 students as of 2004 \cite{abdulkadirouglu2005new}, while the National Resident Matching Program (NRMP) serves more than 50,000 medical students annually seeking their ideal hospital placements \cite{nrmp2023results}. Furthermore, kidney transplantation programs are becoming increasingly centralized and international, facing dynamic changes with the addition and allocation of kidneys \cite{roth2004kidney}. Moreover, the importance of SMP algorithms extends beyond these traditional realms into cloud computing\cite{wang2016dynamic} \cite{xu2011egalitarian} and network management\cite{maggs2015algorithmic}, where the state of servers and resource allocation requests are constantly changing.  This rise in increasingly high demands in both data processing and computation, along with the fluidity of participants' preferences, underscores the necessity for parallelizing algorithms to ensure stable matches are recalculated efficiently and effectively.
+
+
+
+
+
+
+
+Despite its importance, research on parallel SMP algorithms has been limited due to the inherent complexities of this task
+
+that GS algorithm is computing- and data-intensive and ithas time and memory complexity quadratic in the number of participants.
+
+
+
+. To our knowledge, the only parallel algorithm that outperforms the sequential Gale-Shapley (GS) algorithm is the parallel McVitie-Wilson algorithm. While this algorithm has set a benchmark by running faster than sequential solutions, its performance on GPUs is hindered by high contention for shared resources and high-latency memory operations, making it even less efficient than its CPU implementation. 
 
 
 
@@ -767,6 +823,18 @@ Work Experience
 (2) Worker Side:
 
 Salary
+
+
+
+# Related Work
+
+Newest Lu
+
+\cite{wynn2024selection}
+
+
+
+
 
 
 
