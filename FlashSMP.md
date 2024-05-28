@@ -268,13 +268,13 @@ Lastly, different workloads can exhibit distinct properties, which significantly
 
 
 
+The recognition of the importance of SMP has exposed the limitations of the classical GS algorithm.  Despite its foundational role, the GS algorithm is both computing- and data-intensive, with time and memory complexities that grow quadratically with the number of participants. This makes it impractical for real-time or large-scale scenarios \cite{lu2003parallel, wynn2024selection}.  As a result, efficient algorithms for SMP are becoming increasingly critical to handle the growing volume of participants \cite{nrmp2023results}, the need for centralized resource allocation \cite{ashlagi2021kidney}, and the frequent recalculations due to the dynamic nature of environments \cite{maggs2015algorithmic}. 
+
+
+
 ## Paragraph3
 
-The most challenging aspect of computing SMP arises from the inherent computational and data-intensive nature of the GS algorithm. 
-
-
-
-Its time and space complexities increase quadratically with the number of participants. As a result, when the input size reaches to a certain threshold, centralized computational resources for processing and storing preferences and matchings become quickly overwhelmed. Thus, parallel processing or hardware acceleration is required and necessary in practice. However, there are several reasons why parallelizing GS algorithm is challenging. First, the GS algorithm involves a series of proposals and rejections that are inherently sequential. Each man proposes to a woman, who then tentatively accepts, or rejects based on her current best offer. This process depends on the outcome of previous steps, making it difficult to execute multiple proposals simultaneously without conflicts.  Second, if multiple men propose to the same woman simultaneously in a parallel environment, it can lead to conflicts. Ensuring that a woman can process and respond to multiple proposals correctly in parallel is non-trivial. Third, many synchronization points are needed to handle updates to the matching state, which can introduce significant overhead, reducing the potential benefits of parallelism. Fourth, the execution of GS algorithm needs to deal with uneven work distribution. The amount of work done by different parts of the algorithm can vary significantly. For example, some participants can resolve their matches quickly, while others might take many iterations. A load balancing effort in parallel processing is another concern for this algorithm. Finally, the GS algorithm frequently accesses and updates shared data structures, such as lists of proposals and current matches. Minimizing data movement by exploiting data accessing locality is another challenge.
+The most challenging aspect of computing SMP arises from the inherent computational and data-intensive nature of the GS algorithm. Its time and space complexities increase quadratically with the number of participants. As a result, when the input size reaches to a certain threshold, centralized computational resources for processing and storing preferences and matchings become quickly overwhelmed. Thus, parallel processing or hardware acceleration is required and necessary in practice. However, there are several reasons why parallelizing GS algorithm is challenging. First, the GS algorithm involves a series of proposals and rejections that are inherently sequential. Each man proposes to a woman, who then tentatively accepts, or rejects based on her current best offer. This process depends on the outcome of previous steps, making it difficult to execute multiple proposals simultaneously without conflicts.  Second, if multiple men propose to the same woman simultaneously in a parallel environment, it can lead to conflicts. Ensuring that a woman can process and respond to multiple proposals correctly in parallel is non-trivial. Third, many synchronization points are needed to handle updates to the matching state, which can introduce significant overhead, reducing the potential benefits of parallelism. Fourth, the execution of GS algorithm needs to deal with uneven work distribution. The amount of work done by different parts of the algorithm can vary significantly. For example, some participants can resolve their matches quickly, while others might take many iterations. A load balancing effort in parallel processing is another concern for this algorithm. Finally, the GS algorithm frequently accesses and updates shared data structures, such as lists of proposals and current matches. Minimizing data movement by exploiting data accessing locality is another challenge.
 
 
 
@@ -282,13 +282,13 @@ Its time and space complexities increase quadratically with the number of partic
 
 In order to overcome these challenges, we present Balanced-SMP, an innovative parallel algorithm that addresses these issues as follows:
 
-We have uncovered a one-to-one correspondence between the recipient index and the rank of the proposer in the recipient's preference list. We incorporate a preprocessing step to eliminate data dependencies, allowing related data to be accessed together, and further introduces a new data structure and sequential algorithm that fully exploits the spatial locality. This enables efficient memory access patterns and reduces latency.
+Firstly, we discovered a crucial relationship between the recipient index and the rank of the proposer in the recipient's preference list. This insight enabled us to implement a preprocessing step that eliminates data dependencies, allowing related data to be accessed together. This preprocessing step laid the foundation for a new data structure and sequential algorithm designed to fully exploit spatial locality, efficiently handle memory access patterns, and reduce latency.
 
-To reduce wasted work under high memory contention, Balanced-SMP utilizes atomicMIN, which is a hardware primitive introduced by CUDA,  and asymptotically decreases the number of atomic operations, enhancing synchronization efficiency.
+Building on this new sequential algorithm, we then parallelized it to take advantage of modern hardware capabilities. By utilizing atomicMIN, a hardware primitive introduced by CUDA, we significantly reduced the number of atomic operations under high memory contention, enhancing synchronization efficiency. The parallelization process involved adapting the sequential algorithm to effectively use atomic operations while minimizing contention, ensuring robust performance in a parallel computing environment.
 
-Additionally, our algorithm seamlessly integrates CPU and GPU resources, implementing Balanced-SMP in heterogeneous computing environments. This integration allows us to leverage the high bandwidth of the GPU to make parallel proposals when the number of active threads is large, and switch to the CPU to utilize its low latency for fast proposals when there is only a single active thread.
+Next, we integrated the parallelized algorithm into a unified framework, creating Balanced-SMP. This involved seamlessly combining CPU and GPU resources to maximize their complementary strengths. The GPU's high bandwidth is leveraged for parallel proposals when there are many active threads, while the CPU's low latency is utilized for fast proposals when there is only a single active thread. This strategic integration ensures the algorithm remains efficient regardless of workload size or distribution, taking full advantage of both CPU and GPU capabilities.
 
-Finally, our evaluation results demonstrate that Balanced-SMP adapts effectively to different workloads, ensuring consistent and optimal performance across diverse scenarios.
+Finally, our evaluation results demonstrate that Balanced-SMP adapts effectively to different workloads, providing consistent and optimal performance across diverse scenarios.
 
 
 
@@ -296,23 +296,19 @@ Finally, our evaluation results demonstrate that Balanced-SMP adapts effectively
 
 Specifically, we make the following contributions:
 
-1.We developed a new sequential algorithm for SMP that expolits data locality using innovative data structure called PRNode. By incorporating a preprocessing step to initialize these PRNodes, we ensure that all necessary rank information is immediately accessible within the same PRNode during proposals. This significantly reduces the need for global memory access and enhances real-time performance.
+1.We developed a new sequential algorithm for SMP that expolits data locality using innovative data structure called PRNode. By incorporating a preprocessing step to initialize these PRNodes, we ensure that all necessary rank information is immediately accessible within the same PRNode during proposals. This significantly enhances the real-time performance of the new sequential algorithm by reducing its reliance on global memory access.
 
 
 
-2.We provide a Rigorous mathematical proof demonstrating the superiority of atomicMIN in high-contention scenarios.
+2.We parallelized the new sequential algorithm to leverage modern hardware capabilities, significantly reducing the number of atomic operations under high memory contention by utilizing atomicMIN, a hardware primitive introduced by CUDA. This adaptation enhances synchronization efficiency and ensures robust performance in high-contention scenarios.
 
 
 
-3.Our experimental benchmarks highlight the complementary strengths of CPUs and GPUs. The CPU excels in low-latency operations, while the GPU offers high bandwidth, allowing us to leverage both for optimal performance.
+3.Building on this, we introduce a novel framework named Balanced-SMP for the parallel computation of SMP. This framework seamlessly integrates CPU and GPU resources to maximize their complementary strengths. The integration of CPU and GPU ensures efficient performance in a heterogeneous environment, regardless of workload distribution.
 
 
 
-4.Combining these research efforts, we introduce a novel framework named Balanced-SMP for the parallel computation of SMP. Balanced-SMP utilizes atomicMIN to resolve undefined behaviors effectively and is implemented in a heterogeneous environment of CPU and GPU.
-
-
-
-5.Our experimental evaluations comprehensively demonstrate FlashSMP's exceptional efficiency that FlashSMP outperforms the state-of-the-art parallel algorithms by from 2.4x to 28.3x  across various workloads, underscoring its capacity of workloads adaptation
+4.Through exhaustive testing in diverse scenarios, we have proven Balanced-SMP's capacity to deliver consistent and optimal performance regardless of the workload. Our extensive experimental evaluations demonstrate that Balanced-SMP consistently outperforms state-of-the-art parallel algorithms by 2.4x to 28.3x across a wide range of workloads. These results highlight the framework's exceptional efficiency and its robust ability to adapt to different types of computational demands.
 
 
 
@@ -320,19 +316,17 @@ Specifically, we make the following contributions:
 
 The remainder of this paper is organized as follows: 
 
-Section 2 provides background information on the Stable Marriage Problem. 
+Section 2 provides background information on the Stable Marriage Problem (SMP) and the Gale-Shapley (GS) algorithm.
 
+Section 3 discusses the development of our new sequential algorithm for SMP, focusing on its use of the PRNode data structure to improve data locality and optimize memory access patterns.
 
+Section 4 details the design and implementation of the parallel framework Balanced-SMP. This section also includes a rigorous mathematical proof demonstrating the superiority of atomicMIN in high-contention scenarios and highlights the complementary strengths of CPUs and GPUs, supported by our experimental benchmarks.
 
-Section 3 details the design and implementation of FlashSMP, including the development of the PRNodes data structure and the preprocessing step to improve data locality and memory access efficiency. This section also discusses the rigorous mathematical proof demonstrating the superiority of atomicMIN over atomicCAS in high-contention scenarios, along with the complementary strengths of CPUs and GPUs, supported by our experimental benchmarks. 
+Section 5 presents our experimental setup and results, offering a comprehensive evaluation of Balanced-SMP's performance and highlighting its efficiency and adaptability across various workloads.
 
+Section 6 reviews related work, including existing serial and parallel algorithms for SMP.
 
-
-Section 4 presents our experimental setup and results, offering a comprehensive evaluation of FlashSMP's performance and highlighting its efficiency and adaptability across various workloads. 
-
-
-
-Section 5 reviews related work, including existing serial and parallel algorithms for SMP. Finally, Section 6 concludes the paper, summarizing our findings and suggesting potential directions for future research.
+Finally, Section 7 concludes the paper, summarizing our findings and suggesting potential directions for future research.
 
 
 
@@ -340,7 +334,7 @@ Section 5 reviews related work, including existing serial and parallel algorithm
 
 ## SMP
 
-The Stable Marriage Problem (SMP) involves finding a stable matching between two sets of participants, typically referred to as men and women. Each participant has a preference list ranking the members of the opposite set. The objective of SMP is to find a stable matching, where no two participants prefer each other over their current partners. In other words, a matching is stable if there are no two individuals who would rather be with each other than with their current partners.
+The Stable Marriage Problem (SMP) involves finding a stable matching between two sets of participants, typically referred to as men and women. Each participant has a preference list ranking all members of the opposite set. The objective of SMP is to find a stable matching, where no two participants prefer each other over their current partners. In other words, a matching is stable if there are no two individuals who would rather be with each other than with their current partners.
 
 A stable matching is defined as one where there are no blocking pairs. A blocking pair is a pair of participants who would both prefer each other over their current partners. If such a pair exists, the matching is considered unstable because these two participants would have an incentive to deviate from their assigned partners and pair up instead.
 
@@ -352,7 +346,11 @@ Consider three men (M1, M2, M3) and three women (W1, W2, W3) with the following 
 
 To illustrate a stable matching, consider the following example:
 
-M1 is matched with W3, M2 is matched with W2, and M3 is matched with W1. To check if this matching is stable, we need to ensure there are no blocking pairs. 
+M1 is matched with W3, M2 is matched with W2, and M3 is matched with W1. 
+
+The corresponding matching have been underscore by the blue staright underlines.
+
+To check if this matching is stable, we need to ensure there are no blocking pairs. 
 
 M1 is matched with W3. M1 prefers W2 over W3; however, W2 is matched with M2 and prefers M2 over M1. Therefore, W2 does not prefer M1 over her current partner. Additionally, M1 prefers W1 over W3, but W1 is matched with M3 and prefers M3 over M1. Thus, W1 does not prefer M1 over her current partner.
 
@@ -362,9 +360,13 @@ M3 is matched with W1. M3 prefers W2 over W1; however, W2 is matched with M2 and
 
 
 
-Now, consider a different matching to illustrate instability:
+To illustrate instability, consider a different matching: M1 is matched with W2, M2 is matched with W1, and M3 is matched with W3.  The corresponding matching have been underscore by the pink staright underlines.
 
-Suppose M1 is matched with W2, M2 is matched with W1, and M3 is matched with W3. 
+In this case, both M2 and W2,  M3 and W1 form a blocking pair because they both prefer each other over their current partners.
+
+The corresponding matching have been underscore by the pink waving underlines.
+
+Therefore, this matching is unstable due to the presence of a blocking pair.
 
 
 
@@ -378,9 +380,9 @@ M3 also prefers W1 over W3. W1, who is matched with M2, prefers M3 over M2. Ther
 
 
 
+M1 is matched with W2, but he prefers W1 over W2. W1, who is matched with M2, prefers M1 over M2. Thus, M1 and W1 form a blocking pair because they both prefer each other over their current partners. 
 
 
-M1 is matched with W2, but he prefers W1 over W2. W1, who is matched with M2, prefers M1 over M2. Thus, M1 and W1 form a blocking pair because they both prefer each other over their current partners. Therefore, this matching is unstable due to the presence of a blocking pair.
 
 In conclusion, a matching in the context of SMP is stable if and only if there are no blocking pairs. The Gale-Shapley algorithm ensures that a stable matching is always found, thus addressing the issue of instability in matchings by systematically eliminating blocking pairs through its proposal and acceptance phases. This guarantees that the final matching is stable, demonstrating the robustness and efficiency of the algorithm in solving the Stable Marriage Problem.
 
@@ -429,8 +431,6 @@ This results in a stable matching identical to the man-optimal stable marriage p
 
 
 # Section3-Challenges in parallelzing GS on GPU
-
-
 
 ## Optimizing Memory Access Patterns
 
