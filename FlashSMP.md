@@ -334,17 +334,24 @@ Finally, Section 7 concludes the paper, summarizing our findings and suggesting 
 
 ## SMP
 
-The Stable Marriage Problem (SMP) involves finding a stable matching between two sets of participants, typically referred to as men and women. Each participant has a preference list ranking all members of the opposite set. The objective of SMP is to find a stable matching, where no two participants prefer each other over their current partners. In other words, a matching is stable if there are no two individuals who would rather be with each other than with their current partners.
+```
+The Stable Marriage Problem (SMP) involves two groups of participants, often referred to as men and women. Each participant has a ranked preference list of all members from the opposite group. In Figure 1, the two groups are \(\{M_1, M_2, M_3\}\) and \(\{W_1, W_2, W_3\}\). Each member in \(\{M_1, M_2, M_3\}\) ranks all members in \(\{W_1, W_2, W_3\}\) in a strict order, and vice versa. For example, \(M_1\) ranks \(W_2\) first, \(W_1\) second, and \(W_3\) third. This means \(M_1\) prefers \(W_2\) the most, \(W_1\) next, and \(W_3\) the least.
 
-A stable matching is defined as one where there are no blocking pairs. A blocking pair is a pair of participants who would both prefer each other over their current partners. If such a pair exists, the matching is considered unstable because these two participants would have an incentive to deviate from their assigned partners and pair up instead.
+```
+
+
+
+```
+Given these two groups, a matching is a one-to-one correspondence from participants in one group to those in the other. A blocking pair in a given matching is a pair of participants from opposite groups who would both prefer each other over their current partners. If such a pair exists, the matching is unstable because these two participants would be motivated to leave their assigned partners and pair up with each other instead. The goal of the SMP is to find a stable matching, where no blocking pairs exist. In other words, a matching is stable if no two participants prefer each other over their current partners.
+```
 
 
 
 ![FlashSMP-PrefList-5](/Users/jiaxinliu/Desktop/FlashSMPEvaluation/Figures/FlashSMP-PrefList-5.jpg)
 
-Consider three men (M1, M2, M3) and three women (W1, W2, W3) with the following preference lists in Figure1:
 
-To illustrate a stable matching, consider the following example:
+
+To illustrate a stable matching, consider the example in Figure 1:
 
 M1 is matched with W3, M2 is matched with W2, and M3 is matched with W1. 
 
@@ -380,35 +387,58 @@ M3 also prefers W1 over W3. W1, who is matched with M2, prefers M3 over M2. Ther
 
 
 
-M1 is matched with W2, but he prefers W1 over W2. W1, who is matched with M2, prefers M1 over M2. Thus, M1 and W1 form a blocking pair because they both prefer each other over their current partners. 
+M1 is matched with W2, but he prefers W1 over W2. W1, who is matched with M2, prefers M1 over M2. Thus, M1 and W1 form a blocking pair because they both prefer each other over their current partners.
 
 
 
-In conclusion, a matching in the context of SMP is stable if and only if there are no blocking pairs. The Gale-Shapley algorithm ensures that a stable matching is always found, thus addressing the issue of instability in matchings by systematically eliminating blocking pairs through its proposal and acceptance phases. This guarantees that the final matching is stable, demonstrating the robustness and efficiency of the algorithm in solving the Stable Marriage Problem.
+```
+To illustrate a stable matching, consider the example in Figure 1: \(M_1\) is matched with \(W_3\), \(M_2\) is matched with \(W_2\), and \(M_3\) is matched with \(W_1\). These matches are indicated by blue straight underlines.
+
+To check if this matching is stable, we need to ensure there are no blocking pairs. \(M_1\) is matched with \(W_3\). Although \(M_1\) prefers \(W_2\) over \(W_3\), \(W_2\) is matched with \(M_2\) and prefers \(M_2\) over \(M_1\). Similarly, \(M_1\) prefers \(W_1\) over \(W_3\), but \(W_1\) is matched with \(M_3\) and prefers \(M_3\) over \(M_1\). Therefore, there are no blocking pairs involving \(M_1\).
+
+\(M_2\) is matched with \(W_2\), his top choice, and \(W_2\) is also matched with \(M_2\), her top choice. There is no issue with this pairing.
+
+\(M_3\) is matched with \(W_1\). Although \(M_3\) prefers \(W_2\) over \(W_1\), \(W_2\) is matched with \(M_2\) and prefers \(M_2\) over \(M_3\). Additionally, \(M_3\) prefers \(W_1\), and \(W_1\) is matched with \(M_3\), her top choice. Therefore, there are no blocking pairs involving \(M_3\).
+
+Consider an example of an unstable matching with blocking pairs in Figure 1: \(M_1\) is matched with \(W_2\), \(M_2\) is matched with \(W_1\), and \(M_3\) is matched with \(W_3\). These matches are indicated by pink straight underlines. In this case, \(M_2\) prefers \(W_2\) over \(W_1\). Similarly, \(W_2\), who is matched with \(M_1\), prefers \(M_2\) over \(M_1\). Additionally, \(M_3\) prefers \(W_1\) over \(W_3\), and \(W_1\), who is matched with \(M_2\), prefers \(M_3\) over \(M_2\). As a result, \(M_2\) and \(W_2\), as well as \(M_3\) and \(W_1\), form blocking pairs because they prefer each other over their current partners. These blocking pairs are marked with pink wavy underlines, indicating that this matching is unstable.
+```
+
+ 
 
 
 
 ## GS
 
-The Gale-Shapley algorithm, also known as the Deferred Acceptance algorithm, is a foundational method for solving the Stable Marriage Problem (SMP). Proposed by David Gale and Lloyd Shapley in 1962, the algorithm guarantees finding a stable matching between two equally sized sets of participants, typically referred to as men and women, each with their own preference lists.
+```
+The Gale-Shapley (GS) algorithm, also known as the Deferred Acceptance algorithm, is a foundational method for solving the Stable Marriage Problem (SMP). Proposed by David Gale and Lloyd Shapley in 1962, the GS algorithm guarantees finding a stable matching between two equally sized sets of participants, typically referred to as men and women, each with their own preference lists.
+```
 
-The algorithm operates in iterative rounds where each unengaged man proposes to the highest-ranked woman on his preference list who has not yet rejected him. Women then consider these proposals and tentatively accept the one they prefer most while rejecting the rest. If a woman receives multiple proposals, she keeps the proposal from the man she prefers the most (even if she was already holding a different proposal) and rejects all others. This process continues until there are no more unengaged men left.
 
-Initially, all participants are free (unmatched). During the proposal phase, each free man proposes to the highest-ranked woman on his list who has not yet rejected him. In the acceptance phase, each woman receiving one or more proposals chooses the man she prefers the most among the proposers and tentatively accepts his proposal, rejecting all other proposals. This proposal and acceptance cycle repeats until there are no more free men.
 
-Consider again the preference lists in Figrue1
+```
+The algorithm operates in iterative rounds consisting of a proposal phase and an acceptance phase. Initially, all participants are free (unmatched). During the proposal phase, each free man proposes to the highest-ranked woman on his preference list who has not yet rejected him. In the acceptance phase, each woman receiving one or more proposals chooses the man she prefers the most among the proposers and tentatively accepts his proposal, rejecting all others. This proposal and acceptance cycle repeats until there are no more free men.
+```
 
-The execution of the Gale-Shapley algorithm proceeds as follows:
 
-Initially, M1 proposes to W2. W2 accepts M1's proposal tentatively, resulting in the tentative match (M1, W2). Next, M2 proposes to W2. W2 prefers M2 over M1, so she accepts M2's proposal and rejects M1. The tentative match is now (M2, W2). Then, M3 proposes to W2. W2 prefers M2 over M3, so she rejects M3. The tentative match remains (M2, W2).
 
-M1, now free, proposes to W1. W1 accepts M1's proposal tentatively, resulting in the tentative match (M1, W1) alongside (M2, W2). Subsequently, M3 proposes to W1. W1 prefers M3 over M1, so she accepts M3's proposal and rejects M1. The tentative matches are now (M3, W1) and (M2, W2).
 
-M1, now free, proposes to W3. W3 accepts M1's proposal tentatively, resulting in the tentative match (M1, W3) alongside (M3, W1) and (M2, W2).
 
-The algorithm terminates with the following stable matching: M1 is matched with W3, M2 is matched with W2, and M3 is matched with W1. This matching is stable as there are no two individuals who prefer each other over their current partners.
+```
+Consider the preference lists in Figure 1 to understand the execution of the Gale-Shapley algorithm:
+At the start, all participants are free. In the first iteration, \(M_1\) proposes to \(W_2\). \(W_2\) tentatively accepts \(M_1\)'s proposal, resulting in the tentative match \((M_1, W_2)\). Next, \(M_2\) proposes to \(W_2\). \(W_2\) prefers \(M_2\) over \(M_1\), so she accepts \(M_2\)'s proposal and rejects \(M_1\). The tentative match is now \((M_2, W_2)\). Then, \(M_3\) proposes to \(W_2\). \(W_2\) prefers \(M_2\) over \(M_3\), so she rejects \(M_3\). The tentative match remains \((M_2, W_2)\).
 
-The Gale-Shapley algorithm ensures that such a stable matching is always found, demonstrating its robustness and efficiency in solving the Stable Marriage Problem. The properties of the Gale-Shapley algorithm include guaranteed stability, male-optimality, and polynomial time complexity (O(n^2)), making it efficient for practical use. The algorithm has widespread applications beyond the traditional SMP, including college admissions, job placements, and organ donation matching, highlighting its importance in various domains requiring stable matchings.
+\(M_1\), now free, proposes to \(W_1\). \(W_1\) tentatively accepts \(M_1\)'s proposal, resulting in the tentative match \((M_1, W_1)\) alongside \((M_2, W_2)\). Subsequently, \(M_3\) proposes to \(W_1\). \(W_1\) prefers \(M_3\) over \(M_1\), so she accepts \(M_3\)'s proposal and rejects \(M_1\). The tentative matches are now \((M_3, W_1)\) and \((M_2, W_2)\).
+
+\(M_1\), now free, proposes to \(W_3\). \(W_3\) tentatively accepts \(M_1\)'s proposal, resulting in the tentative match \((M_1, W_3)\) alongside \((M_3, W_1)\) and \((M_2, W_2)\).
+```
+
+
+
+```
+The algorithm terminates with the following stable matching: \(M_1\) is paired with \(W_3\), \(M_2\) with \(W_2\), and \(M_3\) with \(W_1\). This matching is stable because there are no blocking pairs since no two individuals who prefer each other over their current partners
+
+It's also important to note that the solution provided by the GS algorithm is man-optimal. This means that, in this stable matching, no man has a better possible partner than his current one among all potential stable matchings in the instance of the SMP.
+```
 
 
 
@@ -427,6 +457,18 @@ M2 then proposes to W2. W2 prefers M2 over M1, so she accepts M2's proposal and 
 M3 proposes to W2, but W2 prefers M2, so she rejects M3. M3 then proposes to W1. W1 prefers M3 over M1, so she accepts M3's proposal and rejects M1. The pairs are now (M3, W1) and (M2, W2). M1, now free, proposes to W3, who tentatively accepts. The final pairs are (M1, W3), (M3, W1), and (M2, W2).
 
 This results in a stable matching identical to the man-optimal stable marriage produced by the Gale-Shapley algorithm.
+
+
+
+## Unused
+
+In conclusion, a matching in the context of SMP is stable if and only if there are no blocking pairs. The Gale-Shapley algorithm ensures that a stable matching is always found, thus addressing the issue of instability in matchings by systematically eliminating blocking pairs through its proposal and acceptance phases. This guarantees that the final matching is stable, demonstrating the robustness and efficiency of the algorithm in solving the Stable Marriage Problem.
+
+
+
+The Gale-Shapley algorithm ensures that such a stable matching is always found, demonstrating its robustness and efficiency in solving the Stable Marriage Problem. The properties of the Gale-Shapley algorithm include guaranteed stability, male-optimality, and polynomial time complexity (O(n^2)), making it efficient for practical use. The algorithm has widespread applications beyond the traditional SMP, including college admissions, job placements, and organ donation matching, highlighting its importance in various domains requiring stable matchings.
+
+
 
 
 
