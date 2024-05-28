@@ -342,7 +342,7 @@ The Stable Marriage Problem (SMP) involves two groups of participants, often ref
 
 
 ```
-Given these two groups, a matching is a one-to-one correspondence from participants in one group to those in the other. A blocking pair in a given matching is a pair of participants from opposite groups who would both prefer each other over their current partners. If such a pair exists, the matching is unstable because these two participants would be motivated to leave their assigned partners and pair up with each other instead. The goal of the SMP is to find a stable matching, where no blocking pairs exist. In other words, a matching is stable if no two participants prefer each other over their current partners.
+Given these two groups, a matching is a one-to-one correspondence from participants in one group to those in the other. A blocking pair for a given matching is a pair of participants from opposite groups who would both prefer each other over their current partners. If such a pair exists, the matching is unstable because these two participants would be motivated to leave their assigned partners and pair up with each other instead. The goal of the SMP is to find a stable matching, where no blocking pairs exist. In other words, a matching is stable if no two participants prefer each other over their current partners.
 ```
 
 
@@ -421,22 +421,21 @@ The algorithm operates in iterative rounds consisting of a proposal phase and an
 
 
 
-
-
 ```
 Consider the preference lists in Figure 1 to understand the execution of the Gale-Shapley algorithm:
-At the start, all participants are free. In the first iteration, \(M_1\) proposes to \(W_2\). \(W_2\) tentatively accepts \(M_1\)'s proposal, resulting in the tentative match \((M_1, W_2)\). Next, \(M_2\) proposes to \(W_2\). \(W_2\) prefers \(M_2\) over \(M_1\), so she accepts \(M_2\)'s proposal and rejects \(M_1\). The tentative match is now \((M_2, W_2)\). Then, \(M_3\) proposes to \(W_2\). \(W_2\) prefers \(M_2\) over \(M_3\), so she rejects \(M_3\). The tentative match remains \((M_2, W_2)\).
+At the start, all participants are free. In the first iteration, \(M_1\) proposes to \(W_2\), and \(W_2\) tentatively accepts, resulting in the tentative match \((M_1, W_2)\). Next, \(M_2\) proposes to \(W_2\). Since \(W_2\) prefers \(M_2\) over \(M_1\), she accepts \(M_2\)'s proposal and rejects \(M_1\). The tentative match is now \((M_2, W_2)\). Then, \(M_3\) proposes to \(W_2\), but \(W_2\) prefers \(M_2\) over \(M_3\), so she rejects \(M_3\). The tentative match remains \((M_2, W_2)\).
 
-\(M_1\), now free, proposes to \(W_1\). \(W_1\) tentatively accepts \(M_1\)'s proposal, resulting in the tentative match \((M_1, W_1)\) alongside \((M_2, W_2)\). Subsequently, \(M_3\) proposes to \(W_1\). \(W_1\) prefers \(M_3\) over \(M_1\), so she accepts \(M_3\)'s proposal and rejects \(M_1\). The tentative matches are now \((M_3, W_1)\) and \((M_2, W_2)\).
+Freed again, \(M_1\) proposes to \(W_1\). \(W_1\) tentatively accepts, resulting in the match \((M_1, W_1)\) alongside \((M_2, W_2)\). Subsequently, \(M_3\) proposes to \(W_1\). Since \(W_1\) prefers \(M_3\) over \(M_1\), she accepts \(M_3\)'s proposal and rejects \(M_1\). The tentative matches are now \((M_3, W_1)\) and \((M_2, W_2)\).
 
-\(M_1\), now free, proposes to \(W_3\). \(W_3\) tentatively accepts \(M_1\)'s proposal, resulting in the tentative match \((M_1, W_3)\) alongside \((M_3, W_1)\) and \((M_2, W_2)\).
+Once more free, \(M_1\) proposes to \(W_3\). \(W_3\) tentatively accepts \(M_1\)'s proposal, resulting in the tentative match \((M_1, W_3)\) alongside \((M_3, W_1)\) and \((M_2, W_2)\).
+
+Now every participant has been matched, thus the algorithm terminates with the following stable matching: \(M_1\) is paired with \(W_3\), \(M_2\) with \(W_2\), and \(M_3\) with \(W_1\). 
+For this matching, there are no blocking pairs because no two individuals prefer each other over their current partners, ensuring that the matching is stable.
 ```
 
 
 
 ```
-The algorithm terminates with the following stable matching: \(M_1\) is paired with \(W_3\), \(M_2\) with \(W_2\), and \(M_3\) with \(W_1\). This matching is stable because there are no blocking pairs since no two individuals who prefer each other over their current partners
-
 It's also important to note that the solution provided by the GS algorithm is man-optimal. This means that, in this stable matching, no man has a better possible partner than his current one among all potential stable matchings in the instance of the SMP.
 ```
 
@@ -467,6 +466,42 @@ In conclusion, a matching in the context of SMP is stable if and only if there a
 
 
 The Gale-Shapley algorithm ensures that such a stable matching is always found, demonstrating its robustness and efficiency in solving the Stable Marriage Problem. The properties of the Gale-Shapley algorithm include guaranteed stability, male-optimality, and polynomial time complexity (O(n^2)), making it efficient for practical use. The algorithm has widespread applications beyond the traditional SMP, including college admissions, job placements, and organ donation matching, highlighting its importance in various domains requiring stable matchings.
+
+
+
+
+The GS Algorithm
+
+```
+\begin{algorithm}
+\caption{The Gale-Shapley Algorithm}
+\label{GS}
+\begin{algorithmic}[1]
+% \State \textbf{Input:}
+% \State Set of men $M = \{m_1, m_2, \ldots, m_n\}$
+% \State Set of women $W = \{w_1, w_2, \ldots, w_n\}$V
+% \State \textbf{Initialize:}
+
+\State $Q \gets M$
+
+\While{$Q \neq \emptyset$}
+    \State $m \gets Q.dequeue()$
+    \State $w \gets getMostPreferredUnproposedWoman(m)$
+    \State $m' \gets getPartner(w)$
+    \If{$m' \neq NULL$}
+        \If{$m \succ_{w} m'$}
+            \State $Q.enqueue(m')$
+            \State $setPartner(w, m)$
+        \Else
+            \State $Q.enqueue(m)$
+        \EndIf
+    \Else
+        \State $setPartner(w, m)$
+    \EndIf
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+```
 
 
 
