@@ -128,13 +128,29 @@ elderly to healthcare facilities
 
 Efficient algorithms for Stable Marriage Problems (SMP) are critical as problem sizes grow and computational resources evolve. 
 
-
-
 The recognition of the importance of SMP has exposed the limitations of the classical GS algorithm.  Despite its foundational role, the GS algorithm is both computing- and data-intensive, with time and memory complexities that grow quadratically with the number of participants. This makes it impractical for real-time or large-scale scenarios \cite{lu2003parallel, wynn2024selection}.  As a result, efficient algorithms for SMP are becoming increasingly critical to handle the growing volume of participants \cite{nrmp2023results}, the need for centralized resource allocation \cite{ashlagi2021kidney}, and the frequent recalculations due to the dynamic nature of environments \cite{maggs2015algorithmic}. 
 
 
 
 Lots of efforts have been made to solve SMP in a shorter time using parallelism.
+
+
+
+Many methods have aimed to solve SMP in a shorter time.
+
+
+
+These methods range from   to CPU / GPU paralllization,
+
+Although these methods  
+
+These methods range from sparse-approximation [51, 74] to low-rank approximation [12, 50, 84],
+and their combinations [3, 9, 92]. Although these methods reduce the compute requirements to linear or
+near-linear in sequence length, many of them do not display wall-clock speedup against standard attention
+and have not gained wide adoption. One main reason is that they focus on FLOP reduction (which may not
+correlate with wall-clock speed) and tend to ignore overheads from memory access (IO).
+
+
 
 
 
@@ -146,17 +162,11 @@ With the rise of advanced parallel architectures like multicore processors and G
 
 
 
-
-
-
-
 massively parallel processing for TED is not only necessary but imperative. This inevitable shift enables us to effectively address the challenges posed by the ever-increasing volumes of data and the growing need for fast response time in TED computations. Therefore, it is critical to explore a parallel framework that is both efficient and feasible for TED algorithms.
 
 
 
 This rise in increasingly high demands in both data processing and computation, along with the fluidity of participants' preferences, underscores the necessity for parallelizing algorithms to ensure stable matches are recalculated efficiently and effectively.
-
-
 
 
 
@@ -172,7 +182,7 @@ To our knowledge, the only parallel algorithm that outperforms the sequential Ga
 
 
 
-## Challenges
+## Challenges of Parallization
 
 1
 
@@ -258,17 +268,27 @@ Lastly, different workloads can exhibit distinct properties, which significantly
 
 
 
+## Paragraph3
+
+The most challenging aspect of computing SMP arises from the inherent computational and data-intensive nature of the GS algorithm. 
+
+
+
+Its time and space complexities increase quadratically with the number of participants. As a result, when the input size reaches to a certain threshold, centralized computational resources for processing and storing preferences and matchings become quickly overwhelmed. Thus, parallel processing or hardware acceleration is required and necessary in practice. However, there are several reasons why parallelizing GS algorithm is challenging. First, the GS algorithm involves a series of proposals and rejections that are inherently sequential. Each man proposes to a woman, who then tentatively accepts, or rejects based on her current best offer. This process depends on the outcome of previous steps, making it difficult to execute multiple proposals simultaneously without conflicts.  Second, if multiple men propose to the same woman simultaneously in a parallel environment, it can lead to conflicts. Ensuring that a woman can process and respond to multiple proposals correctly in parallel is non-trivial. Third, many synchronization points are needed to handle updates to the matching state, which can introduce significant overhead, reducing the potential benefits of parallelism. Fourth, the execution of GS algorithm needs to deal with uneven work distribution. The amount of work done by different parts of the algorithm can vary significantly. For example, some participants can resolve their matches quickly, while others might take many iterations. A load balancing effort in parallel processing is another concern for this algorithm. Finally, the GS algorithm frequently accesses and updates shared data structures, such as lists of proposals and current matches. Minimizing data movement by exploiting data accessing locality is another challenge.
+
+
+
 ## Our Work
 
-In order to overcome these challenges, we present FlashSMP, an innovative algorithm that addresses these issues as follows:
+In order to overcome these challenges, we present Balanced-SMP, an innovative parallel algorithm that addresses these issues as follows:
 
-By closely analyzing the Gale-Shapley (GS) algorithm, We have uncovered a one-to-one correspondence between the recipient index and the rank of the proposer in the recipient's preference list. We incorporate a preprocessing step to eliminate data dependencies, allowing related data to be accessed together. This enables efficient memory access patterns and reduces latency.
+We have uncovered a one-to-one correspondence between the recipient index and the rank of the proposer in the recipient's preference list. We incorporate a preprocessing step to eliminate data dependencies, allowing related data to be accessed together, and further introduces a new data structure and sequential algorithm that fully exploits the spatial locality. This enables efficient memory access patterns and reduces latency.
 
-To reduce wasted work under high memory contention, FlashSMP utilizes atomicMIN operations instead of atomicCAS. This approach asymptotically decreases the number of atomic operations and enhances synchronization efficiency.
+To reduce wasted work under high memory contention, Balanced-SMP utilizes atomicMIN, which is a hardware primitive introduced by CUDA,  and asymptotically decreases the number of atomic operations, enhancing synchronization efficiency.
 
-Additionally, our algorithm seamlessly integrates CPU and GPU resources, implementing FlashSMP in heterogeneous computing environments. This integration allows us to leverage the high bandwidth of the GPU to make parallel proposals when the number of active threads is large, and switch to the CPU to utilize its low latency for fast proposals when there is only a single active thread.
+Additionally, our algorithm seamlessly integrates CPU and GPU resources, implementing Balanced-SMP in heterogeneous computing environments. This integration allows us to leverage the high bandwidth of the GPU to make parallel proposals when the number of active threads is large, and switch to the CPU to utilize its low latency for fast proposals when there is only a single active thread.
 
-Finally, our evaluation results demonstrate that FlashSMP adapts effectively to different workloads, ensuring consistent and optimal performance across diverse scenarios.
+Finally, our evaluation results demonstrate that Balanced-SMP adapts effectively to different workloads, ensuring consistent and optimal performance across diverse scenarios.
 
 
 
@@ -276,11 +296,11 @@ Finally, our evaluation results demonstrate that FlashSMP adapts effectively to 
 
 Specifically, we make the following contributions:
 
-1.We developed a new data structure, PRNodes, to enhance data locality. By incorporating a preprocessing step to initialize these PRNodes, we ensure that all necessary rank information is immediately accessible within the same PRNode during proposals. This significantly reduces the need for global memory access and enhances real-time performance.
+1.We developed a new sequential algorithm for SMP that expolits data locality using innovative data structure called PRNode. By incorporating a preprocessing step to initialize these PRNodes, we ensure that all necessary rank information is immediately accessible within the same PRNode during proposals. This significantly reduces the need for global memory access and enhances real-time performance.
 
 
 
-2.We provide a Rigorous mathematical proof demonstrating the superiority of atomicMIN over atomicCAS in high-contention scenarios.
+2.We provide a Rigorous mathematical proof demonstrating the superiority of atomicMIN in high-contention scenarios.
 
 
 
@@ -288,11 +308,11 @@ Specifically, we make the following contributions:
 
 
 
-4.Combining these research efforts, we introduce a novel framework named FlashSMP for the parallel computation of SMP. . FlashSMP utilizes atomicMIN to resolve undefined behaviors effectively and is implemented in a heterogeneous environment of CPU and GPU.
+4.Combining these research efforts, we introduce a novel framework named Balanced-SMP for the parallel computation of SMP. Balanced-SMP utilizes atomicMIN to resolve undefined behaviors effectively and is implemented in a heterogeneous environment of CPU and GPU.
 
 
 
-5.Our experimental evaluations comprehensively demonstrate FlashSMP's exceptional efficiency that FlashSMP outperforms the state-of-the-art parallel algorithms by from 2.4x to 10x across various workloads, underscoring its capacity of workloads adaptation
+5.Our experimental evaluations comprehensively demonstrate FlashSMP's exceptional efficiency that FlashSMP outperforms the state-of-the-art parallel algorithms by from 2.4x to 28.3x  across various workloads, underscoring its capacity of workloads adaptation
 
 
 
