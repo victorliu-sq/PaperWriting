@@ -278,6 +278,18 @@ The most challenging aspect of computing SMP arises from the inherent computatio
 
 
 
+## Shortcoming of Previous Work
+
+Efficient algorithms for Stable Marriage Problems (SMP) are critical as problem sizes grow and computational resources evolve. 
+
+With the rise of advanced parallel architectures like multicore processors and GPUs, exploiting the parallelism of SMP algorithms has become both inevitable and necessary.
+
+
+
+Despite its importance, research on parallel SMP algorithms has been limited due to the inherent complexities of this task. To our knowledge, the only parallel algorithm that outperforms the sequential Gale-Shapley (GS) algorithm is the parallel McVitie-Wilson algorithm. While this algorithm has set a benchmark by running faster than sequential solutions, its performance on GPUs is hindered by high contention for shared resources and high-latency memory operations, making it even less efficient than its CPU implementation.
+
+
+
 ## Our Work
 
 In order to overcome these challenges, we present Balanced-SMP, an innovative parallel algorithm that addresses these issues as follows:
@@ -581,9 +593,9 @@ Once the main loop finishes, the algorithm constructs the final stable matching 
             \State $FreeManQueue$.Push($m$) \CommentNoLine{$m$ remains free}
         \Else
             \State $Current[m] \gets m\_rank$
-            \State $m' \gets WomenPref[w, p\_rank]$
-            \State $FreeManQueue$.Push($m'$) 
-            \StateNoLine \CommentNoLine{Previous partner $m'$ becomes free}
+            \State $p \gets WomenPref[w, p\_rank]$
+            \State $FreeManQueue$.Push($p$) 
+            \StateNoLine \CommentNoLine{Previous partner $p$ becomes free}
         \EndIf
     \EndIf
     \State $Next[m] \gets Next[m] + 1$ % \CommentNoLine{Move to the next woman}
@@ -601,24 +613,6 @@ Once the main loop finishes, the algorithm constructs the final stable matching 
 \end{algorithmic}
 \end{algorithm}
 ```
-
-
-
-## Mcvitie-Wilson
-
-The algorithm proposed by McVitie and Wilson[10] is based on the Gale-Shapley algorithm, together with the observation that the order in which the suitors propose does not change the set of matched vertice.
-
-The key difference between the Gale-Shapley and McVitie-Wilson algorithms is in how they handle proposals.The Gale-Shapley algorithm selects a free man from the queue and makes proposals on his behalf until he is matched.In contrast, the McVitie-Wilson algorithm also selects a free man from the queue. If he proposes to a woman who is already paired, the rejected man then makes proposals. This process continues until a man proposes to an unpaired woman, ensuring no man is left unmatched.
-
-Consider the preference lists in Figure 1. The execution of the Mcvitie-Wilson algorithm proceeds as follows:
-
-Initially, M1 proposes to W2. W2 tentatively accepts M1's proposal, forming the initial pair (M1, W2). Since no man has been rejected yet, the algorithm proceeds to the next free man, M2.
-
-M2 then proposes to W2. W2 prefers M2 over M1, so she accepts M2's proposal and rejects M1. The new pairing is (M2, W2). Now free again, M1 proposes to W1. W1 tentatively accepts M1, resulting in the pairs (M1, W1) and (M2, W2). The algorithm then moves on to the next free man, M3.
-
-M3 proposes to W2, but W2 prefers M2, so she rejects M3. M3 then proposes to W1. W1 prefers M3 over M1, so she accepts M3's proposal and rejects M1. The pairs are now (M3, W1) and (M2, W2). M1, now free, proposes to W3, who tentatively accepts. The final pairs are (M1, W3), (M3, W1), and (M2, W2).
-
-This results in a stable matching identical to the man-optimal stable marriage produced by the Gale-Shapley algorithm.
 
 
 
@@ -668,28 +662,31 @@ The GS Algorithm
 
 
 
-# Section-Challenges in speeding up GS
+**Mcvitie-Wilson**
+
+The algorithm proposed by McVitie and Wilson[10] is based on the Gale-Shapley algorithm, together with the observation that the order in which the suitors propose does not change the set of matched vertice.
+
+The key difference between the Gale-Shapley and McVitie-Wilson algorithms is in how they handle proposals.The Gale-Shapley algorithm selects a free man from the queue and makes proposals on his behalf until he is matched.In contrast, the McVitie-Wilson algorithm also selects a free man from the queue. If he proposes to a woman who is already paired, the rejected man then makes proposals. This process continues until a man proposes to an unpaired woman, ensuring no man is left unmatched.
+
+Consider the preference lists in Figure 1. The execution of the Mcvitie-Wilson algorithm proceeds as follows:
+
+Initially, M1 proposes to W2. W2 tentatively accepts M1's proposal, forming the initial pair (M1, W2). Since no man has been rejected yet, the algorithm proceeds to the next free man, M2.
+
+M2 then proposes to W2. W2 prefers M2 over M1, so she accepts M2's proposal and rejects M1. The new pairing is (M2, W2). Now free again, M1 proposes to W1. W1 tentatively accepts M1, resulting in the pairs (M1, W1) and (M2, W2). The algorithm then moves on to the next free man, M3.
+
+M3 proposes to W2, but W2 prefers M2, so she rejects M3. M3 then proposes to W1. W1 prefers M3 over M1, so she accepts M3's proposal and rejects M1. The pairs are now (M3, W1) and (M2, W2). M1, now free, proposes to W3, who tentatively accepts. The final pairs are (M1, W3), (M3, W1), and (M2, W2).
+
+This results in a stable matching identical to the man-optimal stable marriage produced by the Gale-Shapley algorithm.
+
+
+
+
+
+# Section-The bottlenecks in GS Computation
 
 In this section, we provide an in-depth look at the implementation of the GS algorithm, analyze its memory access patterns, and identify the bottlenecks. Following this analysis, we introduce a data structure called PRNodes and present a new sequential algorithm that enhances performance by optimizing memory access patterns.
 
 
-
-```
-For an easy instance of 10000 participants
-
-50: Total time is 25.400063ms
-50: Time to read RankMatrix is 13.917676ms, taking up 54.793865% 
-50: Time to read the rank of the best unproposed is 1.472542, taking up 5.797395%
-
-For an hard instance of 10000 participants
-50: Total time is 11252.271484ms
-50: Time to read RankMatrix is 4907.931641ms, taking up 43.617252% 
-50: Time to read the rank of the best unproposed is 1257.857178, taking up 11.178696%
-```
-
-
-
-# Section-Challenges in parallelzing GS on GPU
 
 ## Optimizing Memory Access Patterns
 
