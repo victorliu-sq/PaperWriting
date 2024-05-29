@@ -274,25 +274,41 @@ The recognition of the importance of SMP has exposed the limitations of the clas
 
 ## Paragraph3
 
-The most challenging aspect of computing SMP arises from the inherent computational and data-intensive nature of the GS algorithm. Its time and space complexities increase quadratically with the number of participants. As a result, when the input size reaches to a certain threshold, centralized computational resources for processing and storing preferences and matchings become quickly overwhelmed. Thus, parallel processing or hardware acceleration is required and necessary in practice. However, there are several reasons why parallelizing GS algorithm is challenging. First, the GS algorithm involves a series of proposals and rejections that are inherently sequential. Each man proposes to a woman, who then tentatively accepts, or rejects based on her current best offer. This process depends on the outcome of previous steps, making it difficult to execute multiple proposals simultaneously without conflicts.  Second, if multiple men propose to the same woman simultaneously in a parallel environment, it can lead to conflicts. Ensuring that a woman can process and respond to multiple proposals correctly in parallel is non-trivial. Third, many synchronization points are needed to handle updates to the matching state, which can introduce significant overhead, reducing the potential benefits of parallelism. Fourth, the execution of GS algorithm needs to deal with uneven work distribution. The amount of work done by different parts of the algorithm can vary significantly. For example, some participants can resolve their matches quickly, while others might take many iterations. A load balancing effort in parallel processing is another concern for this algorithm. Finally, the GS algorithm frequently accesses and updates shared data structures, such as lists of proposals and current matches. Minimizing data movement by exploiting data accessing locality is another challenge.
+The most challenging aspect of computing SMP arises from the inherent computational and data-intensive nature of the GS algorithm. Its time and space complexities increase quadratically with the number of participants. As a result, when the input size reaches to a certain threshold, centralized computational resources for processing and storing preferences and matchings become quickly overwhelmed. Thus, parallel processing or hardware acceleration is required and necessary in practice. 
+
+
+
+However, there are several reasons why parallelizing GS algorithm is challenging. First, the GS algorithm involves a series of proposals and rejections that are inherently sequential. Each man proposes to a woman, who then tentatively accepts, or rejects based on her current best offer. This process depends on the outcome of previous steps, making it difficult to execute multiple proposals simultaneously without conflicts.  
+
+
+
+Second, if multiple men propose to the same woman simultaneously in a parallel environment, it can lead to conflicts. Ensuring that a woman can process and respond to multiple proposals efficiently in parallel is non-trivial. 
+
+
+
+Third, many synchronization points are needed to handle updates to the matching state, which can introduce significant overhead, reducing the potential benefits of parallelism. 
+
+
+
+Fourth, the execution of GS algorithm needs to deal with uneven work distribution. The amount of work done by different parts of the algorithm can vary significantly. For example, some participants can resolve their matches quickly, while others might take many iterations. A load balancing effort in parallel processing is another concern for this algorithm. 
+
+
+
+Finally, the GS algorithm frequently accesses and updates shared data structures, such as lists of proposals and current matches. Minimizing data movement by exploiting data accessing locality is another challenge.
 
 
 
 ## Shortcoming of Previous Work
 
-Efficient algorithms for Stable Marriage Problems (SMP) are critical as problem sizes grow and computational resources evolve. 
-
-With the rise of advanced parallel architectures like multicore processors and GPUs, exploiting the parallelism of SMP algorithms has become both inevitable and necessary.
+Research on parallel algorithms for the Stable Marriage Problem (SMP) has attempted to address these issues, but has not been very effective because it only partially targets the problems. To our knowledge, the only parallel algorithms that outperform the sequential GS algorithm are the parallel Gale-Shapley algorithm and the parallel McVitie-Wilson algorithm. While these algorithms have set benchmarks by resolving load balancing issues and eliminating many synchronization points, they are primarily implemented on CPUs. Their performance on GPUs is hindered by high contention for shared resources and high-latency memory operations, making them less efficient than their CPU implementations. Moreover, none of these works have addressed the issue of inefficient memory access patterns, leaving room for further acceleration.
 
 
-
-Despite its importance, research on parallel SMP algorithms has been limited due to the inherent complexities of this task. To our knowledge, the only parallel algorithm that outperforms the sequential Gale-Shapley (GS) algorithm is the parallel McVitie-Wilson algorithm. While this algorithm has set a benchmark by running faster than sequential solutions, its performance on GPUs is hindered by high contention for shared resources and high-latency memory operations, making it even less efficient than its CPU implementation.
 
 
 
 ## Our Work
 
-In order to overcome these challenges, we present Balanced-SMP, an innovative parallel algorithm that addresses these issues as follows:
+In this paper, we present Balanced-SMP, an innovative parallel algorithm that addresses these issues as follows:
 
 Firstly, we discovered a crucial relationship between the recipient index and the rank of the proposer in the recipient's preference list. This insight enabled us to implement a preprocessing step that eliminates data dependencies, allowing related data to be accessed together. This preprocessing step laid the foundation for a new data structure and sequential algorithm designed to fully exploit spatial locality, efficiently handle memory access patterns, and reduce latency.
 
@@ -339,6 +355,12 @@ Section 5 presents our experimental setup and results, offering a comprehensive 
 Section 6 reviews related work, including existing serial and parallel algorithms for SMP.
 
 Finally, Section 7 concludes the paper, summarizing our findings and suggesting potential directions for future research.
+
+
+
+## Unused
+
+Most of the existing work is primarily of theoretical interest and typically requires between $O(n^2)$ to $O(n^4)$ processors, rendering real-world implementation impractical.
 
 
 
@@ -684,41 +706,19 @@ This results in a stable matching identical to the man-optimal stable marriage p
 
 # Section-The bottlenecks in GS Computation
 
-In this section, we provide an in-depth look at the implementation of the GS algorithm, analyze its memory access patterns, and identify the bottlenecks. Following this analysis, we introduce a data structure called PRNodes and present a new sequential algorithm that enhances performance by optimizing memory access patterns.
+In this section, we first provide an in-depth look at the implementation of the GS algorithm, analyze its inefficient memory access patterns, and identify the bottlenecks caused by frequent and costly data movements.
 
 
 
-## Optimizing Memory Access Patterns
+## Data Movements
 
-According to section 2, the acceptance phase of GS algorithm requires determining the rank of each man in the preference list of the proposed woman. An efficient approach is to utilize a precomputed data structure, called Rank Matrix, that allows for O(1) time complexity in retrieving these ranks. 
+The GS algorithm is memory-intensive because it requires frequent and repeated accesses to the men's preference lists ($MenPref$), the women's rank matrix ($WomanRank$), and the next array ($Next$). As shown in Algorithm 1, each proposal involves minimal computation but requires a man to access the $Next$ array on line 14 to find the rank of the best woman who has not yet rejected him, and the $WomanRank$ matrix on line 16 to determine his rank in the woman's preference list. This makes memory access the primary bottleneck.
 
-To illustrate how the Rank Matrix works, consider rank matrices in Figure1, which are built upon prefereneces lists in Figure2:
+Figure 2 shows the access patterns of the men's preference lists and the women's rank matrix. The access pattern for the men's preference lists can be optimized by using an additional while-loop to allow the proposer to immediately propose to the next woman instead of being pushed back into the queue on line 18.
 
-![FlashSMP-RankMatrix-6](/Users/jiaxinliu/Desktop/FlashSMPEvaluation/Figures/FlashSMP-RankMatrix-6.jpg)
+However, optimizing memory access patterns of women's rank matrix remains challenging. The $WomanRank$ matrix is accessed in a non-linear order because the IDs of the men proposing and the women being proposed to are dynamically determined. Even with optimized access patterns for the men's preference lists, the randomization of the proposed women's IDs results in non-sequential accesses to the $WomanRank$ matrix. When the number of participants (n) is very large, this non-sequential nature of access causes significant memory jumps, disrupting efficient caching and prefetching mechanisms. These scattered and unpredictable accesses lead to poor memory usage and slower access times.
 
-Constructing the Rank Matrix involves preprocessing each woman's preference list.
-
-The rank matrix for men should indicate the rank each man assigns to each woman and We scan the preference list of each woman from rank 1(highest) to rank 3(lowest)   For example, M1's row in the matrix has (M1, W1) as rank 2 because W1 is his second preference, (M1, W2) as rank 1 because W2 is his first preference, and (M1, W3) as rank 3 because W3 is his third preference. You can determine other entries in the rank matrix from the corresponding preference lists using the same method.
-
-Similarly, for women, W1's row in the matrix has (W1, M1) as rank 3 because M1 is her third preference, (W1, M2) as rank 2 because M2 is her second preference, and (W1, M3) as rank 1 because M3 is her first preference. The same method can be used to determine the other entries in the women's rank matrix from their preference lists.
-
-
-
-The GS algorithm is memory-intensive because it involves frequent and repeated accesses to the preference lists and the Rank Matrix. Specifically, each proposal involves minimal computation but requires a man to access the Rank Matrix to determine his rank in the preference list of the woman he is proposing to, thereby making memory access the primary bottleneck. 
-
-Despite the Rank Matrix’s efficiency, optimizing memory access remains challenging due to non-sequential access patterns. 
-
-Because fast memory is expensive, a modern memory hierarchy is structured into levels—each smaller, faster, and more expensive per byte than the next lower level, which is farther from the processor. Modern architectures also employs a strategy known as locality, where consecutive data stored in memory locations are loaded in batches into the cache. This occurs in two forms: temporal locality and spatial locality. When a processor references some data, it first looks it up in the cache. If not found, the data must be fetched from a lower level of the hierarchy and placed in the cache before proceeding.To improve efficiency, data is moved in blocks, exploiting the spatial locality \cite{architecture6th}.
-
-
-
-The Rank Matrix is accessed in a non-linear order because the index of the woman to propose to and the man's rank in her preference list are determined dynamically at runtime.
-
-For instance, if M1 starts by proposing to W2, he will refer to RankMatrixWoman(W2, M1) to determine his rank, which is 1. Following his rejection by W2, M1 will then approach W1 and look up RankMatrixWoman(W1, M1) to find his rank, which is 3. Upon being turned down by W1, M1 will move on to W3 and consult RankMatrixWoman(W3, M1), where his rank is recorded as 2.
-
-The access patterns of M1, M2, and M3 are shown in Figure 2.
-
-When the number of participants (n) is very large, the non-sequential nature of these accesses causes significant memory jumps, even though the same man accesses rank matrix entries within the same column. This disrupts efficient caching and prefetching mechanisms. For example, in a scenario with tens of thousands of participants, M1 may first propose to W200, then to W31020, and finally to W1780, resulting in accesses to RankMatrixWoman(W200, M1), RankMatrixWoman(W31020, M1), and RankMatrixWoman(W1780, M1). These accesses are scattered and unpredictable. Consequently, column-wise storage becomes inefficient as it fails to take advantage of spatial locality, leading to poor memory usage and slower access times due to the random access pattern.
+To illustrate the importance of optimizing memory access, we tested the GS algorithm across diverse workloads to measure the impact of memory accesses to the $WomanRank$ matrix and the $Next$ array. As shown in Figure 3, the combined time to access the $WomanRank$ matrix to get a man's rank in a woman's preference list and the $Next$ array to get the rank of the next woman to propose to accounts for over 50% of the total execution time in all workloads. (The specific details of these workloads will be explained in Section 6; for now, just note this fact.)
 
 
 
@@ -736,7 +736,39 @@ In contrast, the preference lists of men are accessed sequentially because each 
 
 
 
+According to section 2, the acceptance phase of GS algorithm requires determining the rank of each man in the preference list of the proposed woman. An efficient approach is to utilize a precomputed data structure, called Rank Matrix, that allows for O(1) time complexity in retrieving these ranks. 
+
+To illustrate how the Rank Matrix works, consider rank matrices in Figure1, which are built upon prefereneces lists in Figure2:
+
+Constructing the Rank Matrix involves preprocessing each woman's preference list.
+
+The rank matrix for men should indicate the rank each man assigns to each woman and We scan the preference list of each woman from rank 1(highest) to rank 3(lowest)   For example, M1's row in the matrix has (M1, W1) as rank 2 because W1 is his second preference, (M1, W2) as rank 1 because W2 is his first preference, and (M1, W3) as rank 3 because W3 is his third preference. You can determine other entries in the rank matrix from the corresponding preference lists using the same method.
+
+Similarly, for women, W1's row in the matrix has (W1, M1) as rank 3 because M1 is her third preference, (W1, M2) as rank 2 because M2 is her second preference, and (W1, M3) as rank 1 because M3 is her first preference. The same method can be used to determine the other entries in the women's rank matrix from their preference lists.
+
+
+
+For instance, if M1 starts by proposing to W2, he will refer to RankMatrixWoman(W2, M1) to determine his rank, which is 1. Following his rejection by W2, M1 will then approach W1 and look up RankMatrixWoman(W1, M1) to find his rank, which is 3. Upon being turned down by W1, M1 will move on to W3 and consult RankMatrixWoman(W3, M1), where his rank is recorded as 2.
+
+
+
+
+
+For instance, if M1 starts by proposing to W2, he will refer to RankMatrixWoman(W2, M1) to determine his rank, which is 1. Following his rejection by W2, M1 will then approach W1 and look up RankMatrixWoman(W1, M1) to find his rank, which is 3. Upon being turned down by W1, M1 will move on to W3 and consult RankMatrixWoman(W3, M1), where his rank is recorded as 2.
+
+The access patterns of M1, M2, and M3 are shown in Figure 2.
+
+
+
+For example, in a scenario with tens of thousands of participants, M1 may first propose to W200, then to W31020, and finally to W1780, resulting in accesses to RankMatrixWoman(W200, M1), RankMatrixWoman(W31020, M1), and RankMatrixWoman(W1780, M1).
+
+
+
 ## Synchronization in Shared Memory Contention
+
+In a sense, the GS algorithm lends itself in an obvious way to parallization since, in general, several men may propose simultaneously. 
+
+
 
 In parallelizing the Gale-Shapley (GS) algorithm, certain common synchronization methods are not suitable due to their inherent shortcomings. Here, we discuss three such methods: Locks, Barrier Synchronization, and Atomic Compare-And-Swap (AtomicCAS).
 
@@ -880,7 +912,11 @@ In contrast, the parallel McVitie-Wilson algorithm adds rejected men to local st
 
 ## Overview
 
-FlashSMP is a parallel framework designed to enhance the performance of algorithms on modern heterogeneous computing systems by addressing common challenges such as memory access patterns and contention. The framework leverages a combination of innovative data structures, atomic operations, and a hybrid CPU-GPU execution model to achieve significant improvements in efficiency and scalability. The core ideas behind FlashSMP include the use of PRNodes to optimize memory access, atomicMin in CUDA for contention resolution, and a hybrid approach to harness the strengths of both GPU and CPU.
+FlashSMP is a parallel framework designed to enhance the performance of algorithms on modern heterogeneous computing systems by addressing common challenges such as memory access patterns and contention. 
+
+we introduce a data structure called PRNodes and present a new sequential algorithm that enhances performance by optimizing memory access patterns.
+
+The framework leverages a combination of innovative data structures, atomic operations, and a hybrid CPU-GPU execution model to achieve significant improvements in efficiency and scalability. The core ideas behind FlashSMP include the use of PRNodes to optimize memory access, atomicMin in CUDA for contention resolution, and a hybrid approach to harness the strengths of both GPU and CPU.
 
 ![FlashSMP-Overview-2](/Users/jiaxinliu/Desktop/FlashSMPEvaluation/Figures/FlashSMP-Overview-2.jpg)
 
