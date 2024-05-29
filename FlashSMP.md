@@ -766,11 +766,13 @@ For example, in a scenario with tens of thousands of participants, M1 may first 
 
 ## Synchronization in Shared Memory Contention
 
-In a sense, the GS algorithm lends itself in an obvious way to parallization since, in general, several men may propose simultaneously. 
+The GS algorithm naturally lends itself to parallelization because multiple men can propose simultaneously.
 
+In a multi-core system or GPU, we can assign each thread to represent one man, allowing each man to make his proposal independently. When several men propose to the same woman at the same time, they can read her current partner's rank without synchronization. However, updating the suitor's value must be done in a way that prevents other threads from changing the value simultaneously, to avoid data races if one of the men is indeed a better partner.
 
+Specifically, in Algorithm 1, the operation on line 17 can be executed without synchronization, but the operation on line 21 requires synchronization to ensure that the woman accepts the best proposal.
 
-In parallelizing the Gale-Shapley (GS) algorithm, certain common synchronization methods are not suitable due to their inherent shortcomings. Here, we discuss three such methods: Locks, Barrier Synchronization, and Atomic Compare-And-Swap (AtomicCAS).
+In parallelizing the GS algorithm, certain common synchronization methods are not suitable due to their inherent shortcomings. Here, we discuss three such methods: Locks, Barrier Synchronization, and Atomic Compare-And-Swap (AtomicCAS).
 
 ### Lock
 
@@ -814,7 +816,7 @@ Thus, the total number of atomicCAS executions in the worst case is 𝑂(𝑛2)*
 
 
 
-## GPU
+## Irregular Parallelism
 
 Implementing the parallel Gale-Shapley (GS) algorithm on a GPU presents significant challenges, largely due to the unique architecture and operational characteristics of GPUs. 
 
