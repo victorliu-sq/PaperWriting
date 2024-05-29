@@ -409,6 +409,8 @@ Consider an example of an unstable matching with blocking pairs in Figure 1: \(M
 
 ## GS
 
+### The Generic Procedure
+
 ```
 The Gale-Shapley (GS) algorithm, also known as the Deferred Acceptance algorithm, is a foundational method for solving the Stable Marriage Problem (SMP). Proposed by David Gale and Lloyd Shapley in 1962, the GS algorithm guarantees finding a stable matching between two equally sized sets of participants, typically referred to as men and women, each with their own preference lists.
 ```
@@ -423,14 +425,15 @@ The algorithm operates in iterative rounds consisting of a proposal phase and an
 
 ```
 Consider the preference lists in Figure 1 to understand the execution of the Gale-Shapley algorithm:
-At the start, all participants are free. In the first iteration, \(M_1\) proposes to \(W_2\), and \(W_2\) tentatively accepts, resulting in the tentative match \((M_1, W_2)\). Next, \(M_2\) proposes to \(W_2\). Since \(W_2\) prefers \(M_2\) over \(M_1\), she accepts \(M_2\)'s proposal and rejects \(M_1\). The tentative match is now \((M_2, W_2)\). Then, \(M_3\) proposes to \(W_2\), but \(W_2\) prefers \(M_2\) over \(M_3\), so she rejects \(M_3\). The tentative match remains \((M_2, W_2)\).
 
-Freed again, \(M_1\) proposes to \(W_1\). \(W_1\) tentatively accepts, resulting in the match \((M_1, W_1)\) alongside \((M_2, W_2)\). Subsequently, \(M_3\) proposes to \(W_1\). Since \(W_1\) prefers \(M_3\) over \(M_1\), she accepts \(M_3\)'s proposal and rejects \(M_1\). The tentative matches are now \((M_3, W_1)\) and \((M_2, W_2)\).
+At the start, all participants are free. In the first iteration, \(M_1\) proposes to \(W_2\), the highest-ranked womanon on his list. \(W_2\) tentatively accepts, resulting in the tentative match \((M_1, W_2)\). Next, \(M_2\) proposes to \(W_2\). Since \(W_2\) prefers \(M_2\) over \(M_1\), she accepts \(M_2\)'s proposal and rejects \(M_1\). The tentative match is now \((M_2, W_2)\). Then, \(M_3\) proposes to \(W_2\), but \(W_2\) prefers \(M_2\) over \(M_3\), so she rejects \(M_3\). The tentative match remains \((M_2, W_2)\).
 
-Once more free, \(M_1\) proposes to \(W_3\). \(W_3\) tentatively accepts \(M_1\)'s proposal, resulting in the tentative match \((M_1, W_3)\) alongside \((M_3, W_1)\) and \((M_2, W_2)\).
+Now free again, \(M_1\) proposes to \(W_1\), the next highest-ranked woman who has yet to reject him. \(W_1\) tentatively accepts, resulting in the match \((M_1, W_1)\) alongside \((M_2, W_2)\). Subsequently, \(M_3\) proposes to \(W_1\). Since \(W_1\) prefers \(M_3\) over \(M_1\), she accepts \(M_3\)'s proposal and rejects \(M_1\). The tentative matches are now \((M_3, W_1)\) and \((M_2, W_2)\).
 
-Now every participant has been matched, thus the algorithm terminates with the following stable matching: \(M_1\) is paired with \(W_3\), \(M_2\) with \(W_2\), and \(M_3\) with \(W_1\). 
-For this matching, there are no blocking pairs because no two individuals prefer each other over their current partners, ensuring that the matching is stable.
+Once more free, \(M_1\) proposes to \(W_3\), the next available woman on his list. \(W_3\) tentatively accepts \(M_1\)'s proposal, resulting in the tentative match \((M_1, W_3)\) alongside \((M_3, W_1)\) and \((M_2, W_2)\).
+
+Now every participant has been matched, so the algorithm terminates with the following stable matching: \(M_1\) is paired with \(W_3\), \(M_2\) with \(W_2\), and \(M_3\) with \(W_1\). In this matching, there are no blocking pairs because no two individuals prefer each other over their current partners, ensuring that the matching is stable.
+
 ```
 
 
@@ -438,6 +441,80 @@ For this matching, there are no blocking pairs because no two individuals prefer
 ```
 It's also important to note that the solution provided by the GS algorithm is man-optimal. This means that, in this stable matching, no man has a better possible partner than his current one among all potential stable matchings in the instance of the SMP.
 ```
+
+
+
+### The detailed Implementation
+
+Algorithm Gale-Shapley Algorithm
+
+Input: n x n 2D arrays ManPref and WomanPref // preference lists for 
+
+Output: A stable matching S
+
+for man m = 1 ... n do
+
+​	for rank r = 1 ... n do
+
+​		ManRank[m ,ManPref[m, r]] = r // initialize men's rank matrix
+
+
+
+for woman w = 1 ... n do
+
+​	for rank r = 1 ... n do
+
+​		WomanRank[w ,WomanPref[w, r]] = r / initialize women's rank matrix
+
+
+
+FreeManQueue = [1 ... n] // At first, all men are free
+
+for i = 1 ... n do
+
+​	Next[i] = 1 // The rank of the best unproposed woman for every man is initialized to 1
+
+​	PartnerRank[i] = n + 1 // All woman have not paired, initialize their partner rank to n + 1
+
+
+
+while Not FreeManQueue.Empty() do
+
+​	m = FreeManQueue.Pop()
+
+​	w_rank = Next[m]
+
+​	w = ManPref[m, w_rank]
+
+​	m_rank  = WomanRank[w, m]
+
+​	c_rank = PartnerRank[w_idx]
+
+​	if  c_rank == n+1 do
+
+​		PartnerRank[m] = m_rank
+
+​	else 
+
+​		if c_rank < m_rank do
+
+​			FreeManQueue.push(m)		
+
+​		else
+
+​			Current[m] = m_rank
+
+​			FreeManQueue.push(WomenPref[w, c_rank])
+
+​	Next[m]+=1
+
+
+
+for w = 1 ... n do
+
+​	S[w] = WomenPref[w, PartnerRank[w]]
+
+return S
 
 
 
@@ -505,9 +582,28 @@ The GS Algorithm
 
 
 
+# Section-Challenges in speeding up GS
+
+In this section, we provide an in-depth look at the implementation of the GS algorithm, analyze its memory access patterns, and identify the bottlenecks. Following this analysis, we introduce a data structure called PRNodes and present a new sequential algorithm that enhances performance by optimizing memory access patterns.
 
 
-# Section3-Challenges in parallelzing GS on GPU
+
+```
+For an easy instance of 10000 participants
+
+50: Total time is 25.400063ms
+50: Time to read RankMatrix is 13.917676ms, taking up 54.793865% 
+50: Time to read the rank of the best unproposed is 1.472542, taking up 5.797395%
+
+For an hard instance of 10000 participants
+50: Total time is 11252.271484ms
+50: Time to read RankMatrix is 4907.931641ms, taking up 43.617252% 
+50: Time to read the rank of the best unproposed is 1257.857178, taking up 11.178696%
+```
+
+
+
+# Section-Challenges in parallelzing GS on GPU
 
 ## Optimizing Memory Access Patterns
 
@@ -697,7 +793,7 @@ In contrast, the parallel McVitie-Wilson algorithm adds rejected men to local st
 
 
 
-# Section4-FlashSMP
+# Section-FlashSMP
 
 ## Overview
 
@@ -890,7 +986,7 @@ This hybrid approach ensures that the initial parallel processing on the GPU eff
 
 
 
-# Section5-Experiment
+# Section-Experiment
 
 if preference lists divide the members on the opposite side into groups and rank groups in the same way while randomize the people inside each group, which we call the mixed instance, then the number of proposing men will not dramatically decrease to a single man to make peoposal
 
