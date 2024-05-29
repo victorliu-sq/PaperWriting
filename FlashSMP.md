@@ -526,7 +526,80 @@ The main loop of the algorithm runs until there are no free men left in the queu
 If the woman is free (i.e., her partner rank is \( n+1 \)), she accepts the proposal, and her partner rank is updated to reflect this new match. If she is already matched, the algorithm compares the ranks: if the current partner has a higher preference (lower rank) than the proposing man, the proposing man remains free and is added back to the queue. If the proposing man has a higher preference, the woman accepts his proposal, and her previous partner becomes free and is added back to the queue.
 
 Once the main loop finishes, the algorithm constructs the final stable matching list \( S \) by pairing each woman with her final partner according to the \( \text{PartnerRank} \) list. The initialization of the \( \text{RankMatrix} \) and the proposal process, both having \( O(n^2) \) complexity, ensure that the overall time complexity of the algorithm is \( O(n^2) \).
+```
 
+
+
+```
+\begin{algorithm}
+\caption{Gale-Shapley Algorithm}
+\label{GSAlgo}
+\begin{algorithmic}[1]
+
+\newcommand{\StateNoLine}[1]{\Statex \hspace*{-\algorithmicindent} #1}
+\newcommand{\CommentNoLine}[1]{\hfill \(\triangleright\) #1}
+
+\StateNoLine{\textbf{Input:}  $ManPref$ and $WomanPref$} \CommentNoLine{preference lists}
+\StateNoLine{\textbf{Output:} A stable matching $S$}
+
+\For{$w = 1$ to $n$} \CommentNoLine{initialize rank matrix}
+    \For{$r = 1$ to $n$}
+        \State $m \gets WomanPref[w, r]$
+        \State $WomanRank[w, m] \gets r$ 
+    \EndFor
+\EndFor
+
+\State $FreeManQueue \gets [1, 2, \ldots, n]$ %\CommentNoLine{all men are free}
+\For{$i = 1$ to $n$}
+    \State $Next[i] \gets 1$
+    % \State \CommentNoLine{the rank of next woman to propose is 1}
+    \State $PartnerRank[i] \gets n + 1$ 
+    % \CommentNoLine{all women are unpaired}
+\EndFor
+
+\vspace{1\baselineskip}  % Add vertical space here
+
+\While{not $FreeManQueue$.Empty()} \CommentNoLine{Main Loop}
+    \State $m \gets FreeManQueue$.Pop() 
+    
+    \State $w\_rank \gets Next[m]$
+    \StateNoLine \CommentNoLine{Get the rank of the next woman to propose to}
+    
+    \State $w \gets ManPref[m, w\_rank]$
+    % \StateNoLine \CommentNoLine{Get the actual woman to propose to}
+    
+    \State $m\_rank \gets WomanRank[w, m]$
+    \StateNoLine \CommentNoLine{Get the rank of the man for the woman}
+    
+    \State $p\_rank \gets PartnerRank[w\_idx]$
+    % \StateNoLine \CommentNoLine{Get the rank of the current partner of the woman}
+    
+    \If{$p\_rank == n + 1$}
+        \State $PartnerRank[m] \gets m\_rank$
+    \Else
+        \If{$p\_rank < m\_rank$}
+            \State $FreeManQueue$.Push($m$) \CommentNoLine{$m$ remains free}
+        \Else
+            \State $Current[m] \gets m\_rank$
+            \State $m' \gets WomenPref[w, p\_rank]$
+            \State $FreeManQueue$.Push($m'$) 
+            \StateNoLine \CommentNoLine{Previous partner $m'$ becomes free}
+        \EndIf
+    \EndIf
+    \State $Next[m] \gets Next[m] + 1$ % \CommentNoLine{Move to the next woman}
+\EndWhile
+
+\vspace{1\baselineskip}  % Add vertical space here
+
+\For{$w = 1$ to $n$}
+    \State $S[w] \gets WomenPref[w, PartnerRank[w]]$ 
+    \StateNoLine \CommentNoLine{Create the final matching list}
+\EndFor
+
+\State \Return $S$
+
+\end{algorithmic}
+\end{algorithm}
 ```
 
 
