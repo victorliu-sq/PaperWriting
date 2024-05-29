@@ -776,13 +776,21 @@ In parallelizing the GS algorithm, certain common synchronization methods are no
 
 ### Lock
 
-First, locks can significantly slow down the algorithm because of the overhead associated with acquiring and releasing them. In a highly concurrent environment, this overhead can become a bottleneck. The GS algorithm requires frequent and fine-grained updates to the partner status of participants. Since locks are coarse-grained, they are inefficient for such frequent updates and can cause excessive waiting times for threads. Therefore, locks are too heavy-weight and inefficient for the frequent and fine-grained synchronization required in the GS algorithm.The performance overhead make locks unsuitable for this parallelization.
+One way to mitigate data racing is to lock the threads before updating, one per woman to ensure that each thread gets exclusive access to this critical section. However, locks can significantly slow down the algorithm because of the overhead associated with acquiring and releasing them. In a highly concurrent environment, this overhead can become a bottleneck. The GS algorithm requires frequent and fine-grained updates to the partner status of participants. Since locks are coarse-grained, they are inefficient for such frequent updates and can cause excessive waiting times for threads. Therefore, locks are too heavy-weight and inefficient for the frequent and fine-grained synchronization required in the GS algorithm.The performance overhead make locks unsuitable for this parallelization.
 
 
 
 ### Barrier Synchronization
 
-Second, barrier synchronization requires all threads to reach a certain point before any can proceed, introducing high latency and reducing parallel efficiency. In a heterogeneous workload, some threads may finish their tasks sooner than others and will have to wait at the barrier, leading to idle time and poor resource utilization. Furthermore, the dynamic nature of the GS algorithm, where threads continuously propose and adjust matches, does not fit well with the static checkpoints of barrier synchronization. As a result, barrier synchronization is too rigid and introduces significant delays, especially in the dynamic and continuous operation environment of the GS algorithm. The synchronization points force threads to wait unnecessarily, negating the benefits of parallelization.
+Barrier synchronization is a method where all threads must reach a specific point before any can proceed.
+
+When parallelizing the GS algorithm, one straightforward approach is to make all threads wait at a barrier, allowing each woman to accept the best proposal and reject the rest before letting all threads proceed.
+
+However, due to the dynamic nature of the GS algorithm, this method has limitations. Some men may get rejected and not participate in the updating process, while others may be accepted without any competition, making synchronization unnecessary for them.
+
+As a result, some threads may complete their tasks sooner and have to wait at the barrier, which does not align well with the static checkpoints of barrier synchronization. This leads to idle time and poor resource utilization.
+
+Thus, barrier synchronization is too rigid and introduces significant delays, especially in the dynamic and continuous operation environment of the GS algorithm. The synchronization points force threads to wait unnecessarily, negating the benefits of parallelization.
 
 
 
