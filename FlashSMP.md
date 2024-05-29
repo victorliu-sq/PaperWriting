@@ -412,18 +412,13 @@ Consider an example of an unstable matching with blocking pairs in Figure 1: \(M
 ### The Generic Procedure
 
 ```
+//
 The Gale-Shapley (GS) algorithm, also known as the Deferred Acceptance algorithm, is a foundational method for solving the Stable Marriage Problem (SMP). Proposed by David Gale and Lloyd Shapley in 1962, the GS algorithm guarantees finding a stable matching between two equally sized sets of participants, typically referred to as men and women, each with their own preference lists.
-```
 
-
-
-```
+//
 The algorithm operates in iterative rounds consisting of a proposal phase and an acceptance phase. Initially, all participants are free (unmatched). During the proposal phase, each free man proposes to the highest-ranked woman on his preference list who has not yet rejected him. In the acceptance phase, each woman receiving one or more proposals chooses the man she prefers the most among the proposers and tentatively accepts his proposal, rejecting all others. This proposal and acceptance cycle repeats until there are no more free men.
-```
 
-
-
-```
+//
 Consider the preference lists in Figure 1 to understand the execution of the Gale-Shapley algorithm:
 
 At the start, all participants are free. In the first iteration, \(M_1\) proposes to \(W_2\), the highest-ranked womanon on his list. \(W_2\) tentatively accepts, resulting in the tentative match \((M_1, W_2)\). Next, \(M_2\) proposes to \(W_2\). Since \(W_2\) prefers \(M_2\) over \(M_1\), she accepts \(M_2\)'s proposal and rejects \(M_1\). The tentative match is now \((M_2, W_2)\). Then, \(M_3\) proposes to \(W_2\), but \(W_2\) prefers \(M_2\) over \(M_3\), so she rejects \(M_3\). The tentative match remains \((M_2, W_2)\).
@@ -433,7 +428,6 @@ Now free again, \(M_1\) proposes to \(W_1\), the next highest-ranked woman who h
 Once more free, \(M_1\) proposes to \(W_3\), the next available woman on his list. \(W_3\) tentatively accepts \(M_1\)'s proposal, resulting in the tentative match \((M_1, W_3)\) alongside \((M_3, W_1)\) and \((M_2, W_2)\).
 
 Now every participant has been matched, so the algorithm terminates with the following stable matching: \(M_1\) is paired with \(W_3\), \(M_2\) with \(W_2\), and \(M_3\) with \(W_1\). In this matching, there are no blocking pairs because no two individuals prefer each other over their current partners, ensuring that the matching is stable.
-
 ```
 
 
@@ -515,6 +509,25 @@ for w = 1 ... n do
 ​	S[w] = WomenPref[w, PartnerRank[w]]
 
 return S
+
+
+
+```
+The implementation details of the GS algorithm are described in Algorithm 1.
+
+The algorithm begins by initializing one matrix, \( \text{WomanRank} \), which represents the rank of each man in the preference lists of women. For each man, the algorithm assigns ranks to all women according to his preference list. This matrix, referred to as \( \text{RankMatrix} \), is crucial because it provides a quick way to determine the preference order of any individual in constant time.
+
+Initially, all men are free, and a queue called \( \text{FreeManQueue} \) is created to keep track of them. Each man starts with the first woman on his preference list as the next woman to propose to. The \( \text{Next} \) array stores the index of the next woman each man will propose to. By incrementing the index in the \( \text{Next} \) array after each proposal, the algorithm ensures that each man sequentially proposes to women in his preference list without rechecking previously rejected proposals.
+
+\( \text{PartnerRank} \) is an array that stores the rank of the current partner of each woman. At the start, the partner rank for each woman is set to \( n+1 \), indicating that they are all currently unmatched. 
+
+The main loop of the algorithm runs until there are no free men left in the queue. Within this loop, a man \( m \) is taken from the queue to propose to the next woman on his preference list. The algorithm checks the rank of this man in the woman’s preference list and compares it with the rank of her current partner (if she has one).
+
+If the woman is free (i.e., her partner rank is \( n+1 \)), she accepts the proposal, and her partner rank is updated to reflect this new match. If she is already matched, the algorithm compares the ranks: if the current partner has a higher preference (lower rank) than the proposing man, the proposing man remains free and is added back to the queue. If the proposing man has a higher preference, the woman accepts his proposal, and her previous partner becomes free and is added back to the queue.
+
+Once the main loop finishes, the algorithm constructs the final stable matching list \( S \) by pairing each woman with her final partner according to the \( \text{PartnerRank} \) list. The initialization of the \( \text{RankMatrix} \) and the proposal process, both having \( O(n^2) \) complexity, ensure that the overall time complexity of the algorithm is \( O(n^2) \).
+
+```
 
 
 
