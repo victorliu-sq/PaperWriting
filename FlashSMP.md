@@ -298,6 +298,12 @@ Finally, the GS algorithm frequently accesses and updates shared data structures
 
 
 
+Point2 - Point3: Combine
+
+Point4: Load Balance, MW solves this
+
+
+
 ## Shortcoming of Previous Work
 
 Research on parallel algorithms for the Stable Marriage Problem (SMP) has attempted to address these issues, but has not been very effective because it only partially targets the problems. To our knowledge, the only parallel algorithms that outperform the sequential GS algorithm are the parallel Gale-Shapley algorithm and the parallel McVitie-Wilson algorithm. While these algorithms have set benchmarks by resolving load balancing issues and eliminating many synchronization points, they are primarily implemented on CPUs. Their performance on GPUs is hindered by high contention for shared resources and high-latency memory operations, making them less efficient than their CPU implementations. Moreover, none of these works have addressed the issue of inefficient memory access patterns, leaving room for further acceleration.
@@ -764,7 +770,7 @@ For example, in a scenario with tens of thousands of participants, M1 may first 
 
 
 
-## Synchronization in Shared Memory Contention
+## Synchronization Issues
 
 The GS algorithm naturally lends itself to parallelization because multiple men can propose simultaneously.
 
@@ -796,35 +802,72 @@ Thus, barrier synchronization is too rigid and introduces significant delays, es
 
 ### AtomicCAS
 
+
+The atomicCAS (Compare-And-Swap) operation is an atomic instruction used to compare a memory location's current value with a given expected value and, if they match, swap it with a new value. Otherwise, the operation fails and returns the old value, indicating the update was unsuccessful. This logic is performed atomically, ensuring no other thread can interfere during the comparison and swap.
+
+Using atomicCAS, multiple threads can update the partnerRank correctly to parallelize the GS algorithm. Algorithm 2 is a parallel version of lines 21-26 from Algorithm 1.
+
+```
+while (p_rank > m_rank) {
+	p_rank2 = atomicCAS(&partnerRank, p_rank, m_rank)
+	if (p_rank2 == p_rank) {
+		if (p_rank != n + 1) {
+			p <- WomenPref[w, p_rank]
+			FreeManQueue.Push(p)
+		}
+		p_rank = m_rank
+	} else {
+		p_rank = p_rank2
+	}
+}
+```
+
+In algorithm 3, each thread has its own FreeManQueue, so FreeManQueue.Push(p) does not have data racing issues. However, partnerRank is shared among threads.
+
+When a thread notices that m_rank is lower than the partner's rank, it will try to update the partnerRank atomically with m_rank using atomicCAS. If the returned partner_rank matches p_rank, the operation succeeds, and the rejected man is pushed to the queue if there is someone rejected, similar to the sequential version. If the returned partner_rank does not match p_rank, the atomicCAS operation fails, requiring a retry.
+
+While atomicCAS is a lightweight and fine-grained synchronization method effective for single-variable updates, however, it can become a contention point and bottleneck when too many threads try to update the rank of the same partner. The retries and wasted work from atomicCAS operations can significantly slow down the overall algorithm, offsetting the benefits of parallelization.
+
+
+
+```
+In the worst-case scenario, if the preference list size is \( n \), and all threads contend to update the same memory location, each thread may need to repeatedly attempt the atomicCAS operation until it succeeds. This can result in \( O(n) \) atomicCAS operations per thread, leading to a total of \( O(n^2) \) operations for all threads combined.
+
+To analyze the behavior of atomicCAS more closely, consider the scenario where multiple threads attempt to update a shared memory location to the smallest value. Let the values proposed by these threads be \( v_1, v_2, \ldots, v_n \), sorted such that \( v_1 < v_2 < \ldots < v_n \).
+
+The smallest value \( v_1 \) will execute atomicCAS successfully on its first attempt, as there is no smaller value in the memory yet. The second smallest value \( v_2 \) will execute atomicCAS successfully only after \( v_1 \) has updated the memory location, meaning it might attempt the operation twice—first failing when \( v_1 \) updates the location and then succeeding. Similarly, the \( k \)-th smallest value \( v_k \) may need up to \( k \) attempts, as it will fail for each smaller value that has already updated the location.
+
+The total number of atomicCAS executions \( T(n) \) for \( n \) values is the sum of these attempts:
+
+\[
+T(n) = \sum_{k=1}^{n} k = 1 + 2 + 3 + \ldots + n = \frac{n(n+1)}{2} = O(n^2)
+\]
+
+Consequently, the total number of CAS operations to decide a minimum value among \( n \) values will be \( O(n^2) \).
+
+Additionally, for an SMP instance with \( n \) men and \( n \) women, due to the nature of SMP where a woman never gets unpaired once being proposed to, a woman can be proposed to by at most \( n \) men.
+
+In this case, the total number of atomicCAS executions in the worst case is \( O(n^3) \).
+
+While atomicCAS is useful for simple atomic operations, it is not well-suited for the more complex and frequent updates required in the GS algorithm. The high contention and retry overheads negate the benefits of parallel execution.
+
+```
+
+
+
+
+
+### Unused Content
+
 The GS algorithm naturally lends itself to parallelization, as multiple proposers (men) can make proposals simultaneously. For example, by assigning each thread to simulate a man making proposals when implemented on an actual multithreading hardware, all men will initially propose to their preferred women. However, for the GS algorithm to make progress, it is crucial for threads to communicate with each other. Considering the preference lists given in Figure\ref{perferences}, men m1, m3, m5, and m6 will be paired with their proposed women directly whereas m2 and m7, as well as m4 and m8, will communicate to resolve conflicts if they are proposing to the same woman simultaneously.
 
-In parallel computing, atomic operations are essential for managing shared memory access without data races. The atomicCAS (Compare-And-Swap) operation is an atomic instruction used to compare a memory location's current value with a given expected value and, if they match, replace it with a new value. This operation is performed atomically, ensuring that no other thread can interfere during the comparison and swap process. In CUDA, atomicCAS guarantees correctness by allowing only one thread to successfully update the memory location at a time.
+In parallel computing, atomic operations are essential for managing shared memory access without data races. 
 
-atomic compare-and-swap (AtomicCAS) operations can become a contention point when multiple threads try to update the same variable simultaneously, leading to performance degradation. While AtomicCAS is effective for single-variable updates, the GS algorithm involves complex operations that often require multiple updates. Ensuring consistency across these operations with AtomicCAS can be challenging and inefficient. Additionally, when AtomicCAS fails, it requires retrying the operation, which can lead to significant performance overhead in high-contention scenarios. Therefore, while AtomicCAS is useful for simple atomic operations, it is not well-suited for the more complex and frequent updates required in the GS algorithm. The high contention and retry overheads negate the benefits of parallel execution.
-
-The retries and wasted work from `atomicCAS` operations can significantly slow down the overall algorithm, offsetting the benefits of parallelization.
-
-In the worst-case scenario, if the preference list size is 𝑛*n*, and all threads contend to update the same memory location, each thread may need to repeatedly attempt the atomicCAS operation until it succeeds. This can result in 𝑂(𝑛)*O*(*n*) atomicCAS operations per thread, leading to a total of 𝑂(𝑛2)*O*(*n*2) operations for all threads combined.
-
-To analyze the behavior of atomicCAS more closely, consider the scenario where multiple threads attempt to update a shared memory location to the smallest value. Let the values proposed by these threads be 𝑣1,𝑣2,…,𝑣𝑛*v*1,*v*2,…,*v**n*, sorted such that 𝑣1<𝑣2<…<𝑣𝑛*v*1<*v*2<…<*v**n*.
-
-The smallest value 𝑣1*v*1 will execute atomicCAS successfully on its first attempt, as there is no smaller value in the memory yet. The second smallest value 𝑣2*v*2 will execute atomicCAS successfully only after 𝑣1*v*1 has updated the memory location, meaning it might attempt the operation twice—first failing when 𝑣1*v*1 updates the location and then succeeding. Similarly, the 𝑘*k*-th smallest value 𝑣𝑘*v**k* may need up to 𝑘*k* attempts, as it will fail for each smaller value that has already updated the location.
-
-The total number of atomicCAS executions 𝑇(𝑛)*T*(*n*) for 𝑛*n* values is the sum of these attempts:
-
-𝑇(𝑛)=∑𝑘=1𝑛𝑘=1+2+3+…+𝑛=𝑛(𝑛+1)2*T*(*n*)=∑*k*=1*n**k*=1+2+3+…+*n*=2*n*(*n*+1)
-
-Thus the total number of CAS to decide a minimum value among n values will be O(n^2). 
-
-For a SMP instance with n men and n women, due to the nature of SMP that the woman never gets unpaired once being proposed, a woman can be proposed by at most n men.
-
-Thus, the total number of atomicCAS executions in the worst case is 𝑂(𝑛2)*O*(*n*2 * n) = O(n^3).
+In CUDA, atomicCAS guarantees correctness by allowing only one thread to successfully update the memory location at a time.
 
 
 
-
-
-## Irregular Parallelism
+## GPU Challenges
 
 Implementing the parallel Gale-Shapley (GS) algorithm on a GPU presents significant challenges, largely due to the unique architecture and operational characteristics of GPUs. 
 
@@ -1058,6 +1101,14 @@ In a scenario with 𝑛*n* values, `atomicMin` ensures that each value attempts 
 
 
 ### Descrition of Algorithm
+
+```
+int atomicMin(int* addr, int val) {
+	int old = *addr;
+	*addr = min(old, val);
+	return old;
+}
+```
 
 Using `atomicMin`, we can implement a parallel version of the McVitie-Wilson algorithm for the Stable Marriage Problem (SMP) that handles contention efficiently, as described in Algorithm 2.
 
