@@ -184,96 +184,6 @@ To our knowledge, the only parallel algorithm that outperforms the sequential Ga
 
 ## Challenges of Parallization
 
-1
-
-First, optimizing memory access patterns to reduce latency and improve cache performance is crucial since the Gale-Shapley (GS) algorithm is memory-intensive. Poor memory access patterns can lead to frequent cache misses, degrading both sequential and parallel performance.
-
-
-
-2.
-
-The workload, namely SMP instances, consists of preference lists for each individual where each man ranks women from highest to lowest preference, and each woman ranks men similarly.
-
-Then, In a parallel algorithm, each unpaired man is represented by a thread to make proposals.
-
-When multiple men propose to the same woman, the threads compete for the same shared memory location, requiring synchronization to ensure the woman accepts the best proposal.
-
-When all men have identical preference lists, their corresponding threads will compete for the same woman. This scenario requires robust synchronization methods since CAS-based data structures may perform poorly under high contention due to work wasted by CAS failures.
-
-
-
-Second, when multiple men propose to the same woman, the threads representing these men compete for the same shared memory location. This requires robust synchronization methods like atomicCAS. In extreme cases, where all the men propose to women in the exact same order, memory contention can become very high. As a result, the algorithm may perform poorly due to the wasted work from CAS failures.
-
-
-
-3.
-
-The next challenge is that Parallelism can drop significantly when variations are introduced in the preference lists. For example, if all men propose to half of the women in the first round, half of them will be paired. As women pair off and remain paired, the number of free men and active threads decreases. Eventually, only one man will be making proposals, leading to a serial problem. The synchronization overhead then outweighs the benefits of GPU's high bandwidth, making GPU implementations often perform worse than CPU implementations. 
-
-
-
-Third, parallelism can drop significantly when there are variations in people's preferences. For instance, if all men propose to half the women in the first round, half will be paired. As women pair off and remain paired, the number of free men and active threads will reduce. Eventually, this leads to a serial problem where only one man is making proposals, negating the benefits of GPU's high bandwidth due to synchronization overhead.
-
-
-
-4.
-
-This challenge is because Parallelizing SMP computation presents significant challenges for developing parallel algorithms due to its workload-dependent nature. 
-
-
-
-Another challenge is that Different workloads can exhibit distinct properties, significantly affecting the design and implementation of an effective algorithm. Therefore, developing an efficient parallel SMP algorithm requires careful consideration of these varying workload characteristics. That is resolution of conflicts in instance where preference lists are distinct cannot affect the efficiency of algorithm on , the approach to improve the performance of workload that eventually turns into a serial problem should also take into consideration whether efficiency on workload with distinct preference lists will be lowed.   
-
-
-
-Lastly, the algorithm must universally handle varying workloads. 
-
-In order to develop a more efficient parallel algorithm to SMP that fully exploits the high bandwidth of modern computing architectures, particularly GPUs, we need to address 4 non-trivial challenges:
-
-Techniques to resolve above issues should  high contention should not negatively impact instances that become serial problems early, and methods to accelerate serial problems should not affect instances with high contention. 
-
-This balance is crucial for maintaining efficient performance across diverse scenarios.
-
-
-
-
-
-Lastly, Different workloads can exhibit distinct properties, significantly affecting the design and implementation of an effective algorithm. Therefore, developing an efficient parallel SMP algorithm requires careful consideration of these varying workload characteristics such that technique to resolve above issues should not negatively impact instances in other scenarios but maintaining efficient performance across diverse scenarios.
-
-
-
-### AI
-
-To develop a more efficient parallel algorithm for SMP that fully leverages the high bandwidth of modern computing architectures, particularly GPUs, we need to address four significant challenges:
-
-First, optimizing memory access patterns to reduce latency and enhance cache performance is crucial due to the memory-intensive nature of the Gale-Shapley (GS) algorithm. Inefficient memory access patterns can result in frequent cache misses, thereby degrading both sequential and parallel performance.
-
-
-
-Second, when multiple proposers contend for the same recipient, the threads representing these proposers compete for the same shared memory location, necessitating robust synchronization mechanisms such as atomic compare-and-swap (atomicCAS) to prevent data races. In extreme scenarios where all proposers follow the same sequence, memory contention can become severe, leading to substantial performance degradation due to the inefficiency caused by CAS failures.
-
-
-
-Third, parallelism can diminish significantly when there are disparities in individual preferences. 
-
-For instance, if all proposers target half of the recipients at the beginning, then in the first round, half of the proposers will successfully pair with recipients.
-
-As recipients pair off and remain paired, the number of available proposers and active threads will steadily decrease.
-
-This scenario eventually leads to a serial bottleneck, where only a single proposer remains active, thereby negating the advantages of the GPU's high bandwidth due to synchronization overhead.
-
-
-
-Lastly, different workloads can exhibit distinct properties, which significantly affect the design and implementation of an effective algorithm. Therefore, developing an efficient parallel SMP algorithm requires careful consideration of these varying workload characteristics. The solutions to the aforementioned issues should be designed to maintain efficient performance across diverse scenarios, without negatively impacting any particular instance.
-
-
-
-The recognition of the importance of SMP has exposed the limitations of the classical GS algorithm.  Despite its foundational role, the GS algorithm is both computing- and data-intensive, with time and memory complexities that grow quadratically with the number of participants. This makes it impractical for real-time or large-scale scenarios \cite{lu2003parallel, wynn2024selection}.  As a result, efficient algorithms for SMP are becoming increasingly critical to handle the growing volume of participants \cite{nrmp2023results}, the need for centralized resource allocation \cite{ashlagi2021kidney}, and the frequent recalculations due to the dynamic nature of environments \cite{maggs2015algorithmic}. 
-
-
-
-## Paragraph3
-
 The most challenging aspect of computing SMP arises from the inherent computational and data-intensive nature of the GS algorithm. Its time and space complexities increase quadratically with the number of participants. As a result, when the input size reaches to a certain threshold, centralized computational resources for processing and storing preferences and matchings become quickly overwhelmed. Thus, parallel processing or hardware acceleration is required and necessary in practice. 
 
 
@@ -282,25 +192,15 @@ However, there are several reasons why parallelizing GS algorithm is challenging
 
 
 
-Second, if multiple men propose to the same woman simultaneously in a parallel environment, it can lead to conflicts. Ensuring that a woman can process and respond to multiple proposals efficiently in parallel is non-trivial. 
+Second, if multiple men propose to the same woman simultaneously in a parallel environment, conflicts can arise. Ensuring that a woman can efficiently process and respond to multiple proposals in parallel is non-trivial. This issue is compounded by the need for numerous synchronization points to handle updates to the matching state, introducing significant overhead and reducing the potential benefits of parallelism.
 
 
 
-Third, many synchronization points are needed to handle updates to the matching state, which can introduce significant overhead, reducing the potential benefits of parallelism. 
+Third, the execution of GS algorithm needs to deal with uneven work distribution. The amount of work done by different parts of the algorithm can vary significantly. For example, some participants can resolve their matches quickly, while others might take many iterations. A load balancing effort in parallel processing is another concern for this algorithm. 
 
 
 
-Fourth, the execution of GS algorithm needs to deal with uneven work distribution. The amount of work done by different parts of the algorithm can vary significantly. For example, some participants can resolve their matches quickly, while others might take many iterations. A load balancing effort in parallel processing is another concern for this algorithm. 
-
-
-
-Finally, the GS algorithm frequently accesses and updates shared data structures, such as lists of proposals and current matches. Minimizing data movement by exploiting data accessing locality is another challenge.
-
-
-
-Point2 - Point3: Combine
-
-Point4: Load Balance, MW solves this
+Additionally, the GS algorithm frequently accesses and updates data structures, such as preference lists, rank matrix and current matches. This frequent data movement poses a bottleneck, highlighting the importance of optimizing data access locality to improve overall performance.
 
 
 
@@ -310,20 +210,16 @@ Research on parallel algorithms for the Stable Marriage Problem (SMP) has attemp
 
 
 
-Ultimately, despite significant efforts in developing parallel algorithms to solve the Stable Marriage Problem (SMP), two critical questions remain unanswered:
+Currently,  two critical questions remain unanswered:
 
 1. **Is it possible to enhance the real-time performance of the Gale-Shapley algorithm in addressing the Stable Marriage Problem through the optimization of data movement patterns**
 2. **Can GPUs be leveraged to revolutionize the speed and scalability of solving the SMP through a parallel framework?**
 
 
 
-In this paper, we introduce Balanced-SMP, an innovative parallel framework that addresses these two questions as follows:
-
-
-
 ## Our Work
 
-
+In this paper, we introduce Balanced-SMP, an innovative parallel framework that addresses these two questions as follows:
 
 Firstly, we discovered a crucial relationship between the recipient index and the rank of the proposer in the recipient's preference list. This insight enabled us to implement a preprocessing step that eliminates data dependencies, allowing related data to be accessed together. This preprocessing step laid the foundation for a new data structure and sequential algorithm designed to fully exploit spatial locality, efficiently handle memory access patterns, and reduce latency.
 
