@@ -310,11 +310,20 @@ Research on parallel algorithms for the Stable Marriage Problem (SMP) has attemp
 
 
 
+Ultimately, despite significant efforts in developing parallel algorithms to solve the Stable Marriage Problem (SMP), two critical questions remain unanswered:
+
+1. **Is it possible to enhance the real-time performance of the Gale-Shapley algorithm in addressing the Stable Marriage Problem through the optimization of data movement patterns**
+2. **Can GPUs be leveraged to revolutionize the speed and scalability of solving the SMP through a parallel framework?**
+
+
+
+In this paper, we introduce Balanced-SMP, an innovative parallel framework that addresses these two questions as follows:
+
 
 
 ## Our Work
 
-In this paper, we present Balanced-SMP, an innovative parallel algorithm that addresses these issues as follows:
+
 
 Firstly, we discovered a crucial relationship between the recipient index and the rank of the proposer in the recipient's preference list. This insight enabled us to implement a preprocessing step that eliminates data dependencies, allowing related data to be accessed together. This preprocessing step laid the foundation for a new data structure and sequential algorithm designed to fully exploit spatial locality, efficiently handle memory access patterns, and reduce latency.
 
