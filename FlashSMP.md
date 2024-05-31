@@ -621,69 +621,25 @@ This results in a stable matching identical to the man-optimal stable marriage p
 
 
 
+# Issues with Massive Parallelism
 
+Implementing the parallel Gale-Shapley (GS) algorithm on a GPU presents significant challenges, largely due to the unique architecture and operational characteristics of GPUs. 
 
-# Section-The bottlenecks in GS Computation
+GPUs excel at handling highly parallel, data-parallel tasks with regular memory access patterns, providing high bandwidth for large-scale computations. This high bandwidth allows many threads to access memory simultaneously, which is advantageous for many parallel algorithms.
 
-In this section, we first provide an in-depth look at the implementation of the GS algorithm, analyze its inefficient memory access patterns, and identify the bottlenecks caused by frequent and costly data movements.
+However, GPUs typically have higher latency than CPUs when. it comes to certain operations, particularly those involving synchronization and memory access .
 
-
-
-## Data Movements
-
-The GS algorithm is memory-intensive because it requires frequent and repeated accesses to the men's preference lists ($MenPref$), the women's rank matrix ($WomanRank$), and the next array ($Next$). As shown in Algorithm 1, each proposal involves minimal computation but requires a man to access the $Next$ array on line 14 to find the rank of the best woman who has not yet rejected him, and the $WomanRank$ matrix on line 16 to determine his rank in the woman's preference list. This makes memory access the primary bottleneck.
-
-Figure 2 shows the access patterns of the men's preference lists and the women's rank matrix. The access pattern for the men's preference lists can be optimized by using an additional while-loop to allow the proposer to immediately propose to the next woman instead of being pushed back into the queue on line 18.
-
-However, optimizing memory access patterns of women's rank matrix remains challenging. The $WomanRank$ matrix is accessed in a non-linear order because the IDs of the men proposing and the women being proposed to are dynamically determined. Even with optimized access patterns for the men's preference lists, the randomization of the proposed women's IDs results in non-sequential accesses to the $WomanRank$ matrix. When the number of participants (n) is very large, this non-sequential nature of access causes significant memory jumps, disrupting efficient caching and prefetching mechanisms. These scattered and unpredictable accesses lead to poor memory usage and slower access times.
-
-To illustrate the importance of optimizing memory access, we tested the GS algorithm across diverse workloads to measure the impact of memory accesses to the $WomanRank$ matrix and the $Next$ array. As shown in Figure 3, the combined time to access the $WomanRank$ matrix to get a man's rank in a woman's preference list and the $Next$ array to get the rank of the next woman to propose to accounts for over 50% of the total execution time in all workloads. (The specific details of these workloads will be explained in Section 6; for now, just note this fact.)
+These challenges about memory access and synchronization exacerbate the issues inherent in parallelizing the GS algorithm, making efficient implementation difficult.
 
 
 
+## Synchronization
+
+Second, the synchronization challenge is magnified on GPUs. GPUs are designed with a high number of parallel processing units, which require synchronization to ensure correct execution of parallel tasks. This high bandwidth and large number of parallel units lead to increased contention when multiple threads attempt to access shared resources simultaneously. In the context of the GS algorithm, where many threads may need to update the partner status of participants concurrently, this contention can result in considerable wasted work. 
+
+Besides, the overhead associated with global synchronization  to ensure consistent state across all threads in such a highly parallel environment can significantly diminish the efficiency gains expected from parallelization.
 
 
-### Uesless Content
-
-Clearly, a sequential algorithm that initializes rank matrix runs in O(n^2) time, where n is the number of participants. The Rank Matrix is designed such that each entry 𝑅[𝑖][𝑗]*R*[*i*][*j*] represents the rank of man 𝑀𝑖*M**i* in woman 𝑊𝑗*W**j*'s preference list.
-
-Thanks to Rank matrix, reduces the complexity of rank retrieval to O(1) time. As GS algorithm is described before, for each iteration, preference list and rank matrix will be access in a constant times, O(1), thus resulting in time O(1) for each iteration. 
-
-Furthermore, it has been proven the number of proposals for an SMP instance is O(n^2). And each proposal takes O(1) time, thus the total execution time of GS algorithm takes O(n^2) to precompute rank matrix and O(n^2) to make proposals.
-
-In contrast, the preference lists of men are accessed sequentially because each man makes proposals from his highest preference to his lowest. However, the irregular access patterns of the Rank Matrix can significantly impact overall performance due to frequent cache misses.
-
-
-
-According to section 2, the acceptance phase of GS algorithm requires determining the rank of each man in the preference list of the proposed woman. An efficient approach is to utilize a precomputed data structure, called Rank Matrix, that allows for O(1) time complexity in retrieving these ranks. 
-
-To illustrate how the Rank Matrix works, consider rank matrices in Figure1, which are built upon prefereneces lists in Figure2:
-
-Constructing the Rank Matrix involves preprocessing each woman's preference list.
-
-The rank matrix for men should indicate the rank each man assigns to each woman and We scan the preference list of each woman from rank 1(highest) to rank 3(lowest)   For example, M1's row in the matrix has (M1, W1) as rank 2 because W1 is his second preference, (M1, W2) as rank 1 because W2 is his first preference, and (M1, W3) as rank 3 because W3 is his third preference. You can determine other entries in the rank matrix from the corresponding preference lists using the same method.
-
-Similarly, for women, W1's row in the matrix has (W1, M1) as rank 3 because M1 is her third preference, (W1, M2) as rank 2 because M2 is her second preference, and (W1, M3) as rank 1 because M3 is her first preference. The same method can be used to determine the other entries in the women's rank matrix from their preference lists.
-
-
-
-For instance, if M1 starts by proposing to W2, he will refer to RankMatrixWoman(W2, M1) to determine his rank, which is 1. Following his rejection by W2, M1 will then approach W1 and look up RankMatrixWoman(W1, M1) to find his rank, which is 3. Upon being turned down by W1, M1 will move on to W3 and consult RankMatrixWoman(W3, M1), where his rank is recorded as 2.
-
-
-
-
-
-For instance, if M1 starts by proposing to W2, he will refer to RankMatrixWoman(W2, M1) to determine his rank, which is 1. Following his rejection by W2, M1 will then approach W1 and look up RankMatrixWoman(W1, M1) to find his rank, which is 3. Upon being turned down by W1, M1 will move on to W3 and consult RankMatrixWoman(W3, M1), where his rank is recorded as 2.
-
-The access patterns of M1, M2, and M3 are shown in Figure 2.
-
-
-
-For example, in a scenario with tens of thousands of participants, M1 may first propose to W200, then to W31020, and finally to W1780, resulting in accesses to RankMatrixWoman(W200, M1), RankMatrixWoman(W31020, M1), and RankMatrixWoman(W1780, M1).
-
-
-
-## Synchronization Issues
 
 The GS algorithm naturally lends itself to parallelization because multiple men can propose simultaneously.
 
@@ -792,8 +748,6 @@ While atomicCAS is useful for simple atomic operations, it is not well-suited fo
 
 
 
-
-
 ### Unused Content
 
 The GS algorithm naturally lends itself to parallelization, as multiple proposers (men) can make proposals simultaneously. For example, by assigning each thread to simulate a man making proposals when implemented on an actual multithreading hardware, all men will initially propose to their preferred women. However, for the GS algorithm to make progress, it is crucial for threads to communicate with each other. Considering the preference lists given in Figure\ref{perferences}, men m1, m3, m5, and m6 will be paired with their proposed women directly whereas m2 and m7, as well as m4 and m8, will communicate to resolve conflicts if they are proposing to the same woman simultaneously.
@@ -804,33 +758,25 @@ In CUDA, atomicCAS guarantees correctness by allowing only one thread to success
 
 
 
-## GPU Challenges
-
-Implementing the parallel Gale-Shapley (GS) algorithm on a GPU presents significant challenges, largely due to the unique architecture and operational characteristics of GPUs. 
-
-These challenges about memory access and synchronization exacerbate the issues inherent in parallelizing the GS algorithm, making efficient implementation difficult.
-
-GPUs excel at handling highly parallel, data-parallel tasks with regular memory access patterns, providing high bandwidth for large-scale computations. This high bandwidth allows many threads to access memory simultaneously, which is advantageous for many parallel algorithms.
-
-However, GPUs typically have higher latency than CPUs when it comes to certain operations, particularly those involving memory access and synchronization.
-
-
-
-### Memory
+## Data dependent
 
 First,the GS algorithm involves irregular and dynamic access patterns during its iterative proposal and acceptance processes. The memory access problem becomes more pronounced on a GPU. Unlike CPUs, which have multiple levels of memory hierarchy (e.g., L1, L2, and L3 caches), GPUs typically have fewer levels of memory hierarchy. This limitation results in higher latency when accessing global memory. Since the GS algorithm involves frequent reads and writes to preference lists and rank matrices during proposals, the reduced memory hierarchy of GPUs can lead to significant delays. Each memory access incurs higher latency, slowing down the overall performance and negating some of the parallel execution benefits.
 
 
 
-### Synchronization
-
-Second, the synchronization challenge is magnified on GPUs. GPUs are designed with a high number of parallel processing units, which require synchronization to ensure correct execution of parallel tasks. This high bandwidth and large number of parallel units lead to increased contention when multiple threads attempt to access shared resources simultaneously. In the context of the GS algorithm, where many threads may need to update the partner status of participants concurrently, this contention can result in considerable wasted work. 
-
-Besides, the overhead associated with global synchronization  to ensure consistent state across all threads in such a highly parallel environment can significantly diminish the efficiency gains expected from parallelization.
+Second, the GS algorithm involves a series of proposals and rejections that are inherently sequential. Each man proposes to a woman, who then tentatively accepts, or rejects based on her current best offer. This process depends on the outcome of previous steps, making it difficult to execute multiple proposals simultaneously without conflicts.  
 
 
 
-### Existing Methods
+After the first round of proposals  in which al the members of the favored sex may propose, it may happen that only one free person who is ready to make a further proposal. An example instance of this kind is presented in detail in [119].
+
+
+
+In that case, parallism is not useful at all to speedup this serial execution process and any synchronization method will be useless and block the efficiency of algorithm.
+
+
+
+## Existing Methods
 
 To our knowledge, the parallel versions of both the Gale-Shapley (GS) and McVitie-Wilson (MW) algorithms are the only parallel algorithms that run faster than the sequential GS when implemented on CPUs. The speedup achieved is about 10 times with 72 threads. 
 
@@ -844,7 +790,9 @@ In addition, the need for frequent and coordinated synchronization makes GPUs le
 
 
 
-### Unused Content
+
+
+## Unused Content
 
 GPU can exacerate the issues that we mention above: 
 
@@ -895,6 +843,76 @@ In contrast, the parallel McVitie-Wilson algorithm adds rejected men to local st
 The parallel versions of both the Gale-Shapley and McVitie-Wilson algorithms partition the set of men among multiple threads, each running a local version of the algorithm. Threads make proposals on behalf of men using atomic compare-and-swap (CAS) operations to update the suitor status of women safely. In the parallel Gale-Shapley algorithm, rejected men are added to local queues and processed in subsequent rounds, with optional synchronization to redistribute unmarried men among threads for load balancing.
 
 In contrast, the parallel McVitie-Wilson algorithm adds rejected men to local stacks, allowing threads to continue making proposals immediately until all men are matched, thus avoiding the need for periodic synchronization.
+
+
+
+
+
+
+
+# Issues with Data Movement
+
+In this section, we first provide an in-depth look at the implementation of the GS algorithm, analyze its inefficient memory access patterns, and identify the bottlenecks caused by frequent and costly data movements.
+
+
+
+## Data Movements
+
+The GS algorithm is memory-intensive because it requires frequent and repeated accesses to the men's preference lists ($MenPref$), the women's rank matrix ($WomanRank$), and the next array ($Next$). As shown in Algorithm 1, each proposal involves minimal computation but requires a man to access the $Next$ array on line 14 to find the rank of the best woman who has not yet rejected him, and the $WomanRank$ matrix on line 16 to determine his rank in the woman's preference list. This makes memory access the primary bottleneck.
+
+Figure 2 shows the access patterns of the men's preference lists and the women's rank matrix. The access pattern for the men's preference lists can be optimized by using an additional while-loop to allow the proposer to immediately propose to the next woman instead of being pushed back into the queue on line 18.
+
+However, optimizing memory access patterns of women's rank matrix remains challenging. The $WomanRank$ matrix is accessed in a non-linear order because the IDs of the men proposing and the women being proposed to are dynamically determined. Even with optimized access patterns for the men's preference lists, the randomization of the proposed women's IDs results in non-sequential accesses to the $WomanRank$ matrix. When the number of participants (n) is very large, this non-sequential nature of access causes significant memory jumps, disrupting efficient caching and prefetching mechanisms. These scattered and unpredictable accesses lead to poor memory usage and slower access times.
+
+To illustrate the importance of optimizing memory access, we tested the GS algorithm across diverse workloads to measure the impact of memory accesses to the $WomanRank$ matrix and the $Next$ array. As shown in Figure 3, the combined time to access the $WomanRank$ matrix to get a man's rank in a woman's preference list and the $Next$ array to get the rank of the next woman to propose to accounts for over 50% of the total execution time in all workloads. (The specific details of these workloads will be explained in Section 6; for now, just note this fact.)
+
+
+
+
+
+## Uesless Content
+
+Clearly, a sequential algorithm that initializes rank matrix runs in O(n^2) time, where n is the number of participants. The Rank Matrix is designed such that each entry 𝑅[𝑖][𝑗]*R*[*i*][*j*] represents the rank of man 𝑀𝑖*M**i* in woman 𝑊𝑗*W**j*'s preference list.
+
+Thanks to Rank matrix, reduces the complexity of rank retrieval to O(1) time. As GS algorithm is described before, for each iteration, preference list and rank matrix will be access in a constant times, O(1), thus resulting in time O(1) for each iteration. 
+
+Furthermore, it has been proven the number of proposals for an SMP instance is O(n^2). And each proposal takes O(1) time, thus the total execution time of GS algorithm takes O(n^2) to precompute rank matrix and O(n^2) to make proposals.
+
+In contrast, the preference lists of men are accessed sequentially because each man makes proposals from his highest preference to his lowest. However, the irregular access patterns of the Rank Matrix can significantly impact overall performance due to frequent cache misses.
+
+
+
+According to section 2, the acceptance phase of GS algorithm requires determining the rank of each man in the preference list of the proposed woman. An efficient approach is to utilize a precomputed data structure, called Rank Matrix, that allows for O(1) time complexity in retrieving these ranks. 
+
+To illustrate how the Rank Matrix works, consider rank matrices in Figure1, which are built upon prefereneces lists in Figure2:
+
+Constructing the Rank Matrix involves preprocessing each woman's preference list.
+
+The rank matrix for men should indicate the rank each man assigns to each woman and We scan the preference list of each woman from rank 1(highest) to rank 3(lowest)   For example, M1's row in the matrix has (M1, W1) as rank 2 because W1 is his second preference, (M1, W2) as rank 1 because W2 is his first preference, and (M1, W3) as rank 3 because W3 is his third preference. You can determine other entries in the rank matrix from the corresponding preference lists using the same method.
+
+Similarly, for women, W1's row in the matrix has (W1, M1) as rank 3 because M1 is her third preference, (W1, M2) as rank 2 because M2 is her second preference, and (W1, M3) as rank 1 because M3 is her first preference. The same method can be used to determine the other entries in the women's rank matrix from their preference lists.
+
+
+
+For instance, if M1 starts by proposing to W2, he will refer to RankMatrixWoman(W2, M1) to determine his rank, which is 1. Following his rejection by W2, M1 will then approach W1 and look up RankMatrixWoman(W1, M1) to find his rank, which is 3. Upon being turned down by W1, M1 will move on to W3 and consult RankMatrixWoman(W3, M1), where his rank is recorded as 2.
+
+
+
+
+
+For instance, if M1 starts by proposing to W2, he will refer to RankMatrixWoman(W2, M1) to determine his rank, which is 1. Following his rejection by W2, M1 will then approach W1 and look up RankMatrixWoman(W1, M1) to find his rank, which is 3. Upon being turned down by W1, M1 will move on to W3 and consult RankMatrixWoman(W3, M1), where his rank is recorded as 2.
+
+The access patterns of M1, M2, and M3 are shown in Figure 2.
+
+
+
+For example, in a scenario with tens of thousands of participants, M1 may first propose to W200, then to W31020, and finally to W1780, resulting in accesses to RankMatrixWoman(W200, M1), RankMatrixWoman(W31020, M1), and RankMatrixWoman(W1780, M1).
+
+
+
+
+
+
 
 
 
