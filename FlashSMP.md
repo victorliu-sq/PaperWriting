@@ -182,25 +182,33 @@ To our knowledge, the only parallel algorithm that outperforms the sequential Ga
 
 
 
-## Challenges of Parallization
+## Challenges of Massive Parallelism
 
 The most challenging aspect of computing SMP arises from the inherent computational and data-intensive nature of the GS algorithm. Its time and space complexities increase quadratically with the number of participants. As a result, when the input size reaches to a certain threshold, centralized computational resources for processing and storing preferences and matchings become quickly overwhelmed. Thus, parallel processing or hardware acceleration is required and necessary in practice. 
 
 
 
-However, there are several reasons why parallelizing GS algorithm is challenging. First, the GS algorithm involves a series of proposals and rejections that are inherently sequential. Each man proposes to a woman, who then tentatively accepts, or rejects based on her current best offer. This process depends on the outcome of previous steps, making it difficult to execute multiple proposals simultaneously without conflicts.  
+However, there are several reasons why parallelizing GS algorithm is challenging. 
 
 
 
-Second, if multiple men propose to the same woman simultaneously in a parallel environment, conflicts can arise. Ensuring that a woman can efficiently process and respond to multiple proposals in parallel is non-trivial. This issue is compounded by the need for numerous synchronization points to handle updates to the matching state, introducing significant overhead and reducing the potential benefits of parallelism.
+First, if multiple men propose to the same woman simultaneously in a parallel environment, conflicts can arise. Ensuring that a woman can efficiently process and respond to multiple proposals in parallel is non-trivial. This issue is compounded by the need for numerous synchronization points to handle updates to the matching state, introducing significant overhead and reducing the potential benefits of parallelism.
 
 
 
-Third, the execution of GS algorithm needs to deal with uneven work distribution. The amount of work done by different parts of the algorithm can vary significantly. For example, some participants can resolve their matches quickly, while others might take many iterations. A load balancing effort in parallel processing is another concern for this algorithm. 
+Second, the GS algorithm involves a series of proposals and rejections that are inherently sequential. Each man proposes to a woman, who then tentatively accepts, or rejects based on her current best offer. This process depends on the outcome of previous steps, making it difficult to execute multiple proposals simultaneously without conflicts.  
+
+
 
 
 
 Additionally, the GS algorithm frequently accesses and updates data structures, such as preference lists, rank matrix and current matches. This frequent data movement poses a bottleneck, highlighting the importance of optimizing data access locality to improve overall performance.
+
+
+
+### Unused Content
+
+Third, the execution of GS algorithm needs to deal with uneven work distribution. The amount of work done by different parts of the algorithm can vary significantly. For example, some participants can resolve their matches quickly, while others might take many iterations. A load balancing effort in parallel processing is another concern for this algorithm. 
 
 
 
@@ -726,6 +734,30 @@ while (p_rank > m_rank) {
 	}
 }
 ```
+
+
+
+```
+\begin{algorithm}
+\caption{Parallel Procedure to Update PartnerRank Using atomicCAS}
+\begin{algorithmic}[1]
+\While{(p\_rank > m\_rank)}
+    \State p\_rank2 = atomicCAS(\&partnerRank, p\_rank, m\_rank)
+    \If{(p\_rank2 == p\_rank)}
+        \If{(p\_rank != n + 1)}
+            \State p $\gets$ WomenPref[w, p\_rank]
+            \State FreeManQueue.Push(p)
+        \EndIf
+        \State p\_rank = m\_rank
+    \Else
+        \State p\_rank = p\_rank2
+    \EndIf
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+```
+
+
 
 In algorithm 3, each thread has its own FreeManQueue, so FreeManQueue.Push(p) does not have data racing issues. However, partnerRank is shared among threads.
 
