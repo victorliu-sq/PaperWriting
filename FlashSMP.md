@@ -693,13 +693,13 @@ For example, in a scenario with tens of thousands of participants, M1 may first 
 
 # Issues with Synchronization
 
-The GS algorithm naturally lends itself to parallelization because multiple men can propose simultaneously.
+Although the GS algorithm naturally lends itself to parallelization because multiple men can propose simultaneously \cite{mcvitie1971stable}, efficiently parallelizing the GS algorithm is a non-trivial task.
 
-In a multi-core system or GPU, we can assign each thread to represent one man, allowing each man to make his proposal independently. When several men propose to the same woman at the same time, they can read her current partner's rank without synchronization. However, updating the suitor's value must be done in a way that prevents other threads from changing the value simultaneously, to avoid data races if one of the men is indeed a better partner.
+In a multi-core system or GPU, each thread can represent a man, allowing men to make their proposals independently. While multiple threads can read the partner's rank of the same woman without synchronization, updating the partner's rank must be done carefully to prevent simultaneous changes by other threads, ensuring that the woman is paired with her best choice.
 
 Specifically, in Algorithm 1, the operation on line 17 can be executed without synchronization, but the operation on line 21 requires synchronization to ensure that the woman accepts the best proposal.
 
-In parallelizing the GS algorithm, common synchronization methods such as locks, barrier synchronization, and atomic operations are not suitable due to their inherent shortcomings:
+While it may seem straightforward to ensure that each woman accepts the best proposal using common synchronization methods such as locks, barrier synchronization, and atomic operations, these approaches are inherently inefficient for this purpose.
 
 
 
