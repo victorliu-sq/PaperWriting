@@ -231,15 +231,19 @@ Currently,  3 critical questions remain unanswered:
 
 ## Our Work
 
-In this paper, we introduce Balanced-SMP, an innovative parallel framework that addresses these two questions as follows:
+In this paper, we introduce Balanced-SMP, an effective parallel processing framework by addressing the above three questions in the following ways. 
 
-Firstly, we discovered a crucial relationship between the recipient index and the rank of the proposer in the recipient's preference list. This insight enabled us to implement a preprocessing step that eliminates data dependencies, allowing related data to be accessed together. This preprocessing step laid the foundation for a new data structure and sequential algorithm designed to fully exploit spatial locality, efficiently handle memory access patterns, and reduce latency.
+First, we recognize a critical relationship between the recipient index and the rank of the proposer in the recipient’s preference list. Our finding enables us to implement a preprocessing step that eliminates data dependencies, allowing related data to be accessed together. This preprocessing step lays the foundation for a new data structure for the sequential algorithm implementation so that spatial locality can be fully exploited to significantly reduce the data accessing latency. 
 
-Building on this new sequential algorithm, we then parallelized it to take advantage of modern hardware capabilities. By utilizing atomicMIN, a hardware primitive introduced by CUDA, we significantly reduced the number of atomic operations under high memory contention, enhancing synchronization efficiency. The parallelization process involved adapting the sequential algorithm to effectively use atomic operations while minimizing contention, ensuring robust performance in a parallel computing environment.
 
-Next, we integrated the parallelized algorithm into a unified framework, creating Balanced-SMP. This involved seamlessly combining CPU and GPU resources to maximize their complementary strengths. The GPU's high bandwidth is leveraged for parallel proposals when there are many active threads, while the CPU's low latency is utilized for fast proposals when there is only a single active thread. This strategic integration ensures the algorithm remains efficient regardless of workload size or distribution, taking full advantage of both CPU and GPU capabilities.
 
-Finally, our evaluation results demonstrate that Balanced-SMP adapts effectively to different workloads, providing consistent and optimal performance across diverse scenarios.
+Second, we parallelize this new locality-aware sequential algorithm on GPU and utilize an advanced hardware synchronization utility, called “atomicMIN”. With this hardware primitive by CUDA, we can significantly reduce the number of atomic operations under high memory contention during parallel GS processing, enhancing the synchronization efficiency. 
+
+
+
+Finally, we integrate our parallel algorithm into a unified framework for Balanced-SMP. This involves seamlessly combining CPU and GPU resources to maximize their complementary strengths. The GPU’s high bandwidth is leveraged for parallel proposals when there are many active threads, while the CPU’s low latency is utilized for fast proposals when there is only a single active thread. This adaptive approach ensures the algorithm remains efficient regardless of workload size and distribution, taking full advantage of both CPU and GPU capabilities. 
+
+Our experimental evaluation results demonstrate that Balanced-SMP adapts effectively to different workloads, providing consistent and optimal performance across diverse scenarios.
 
 
 
@@ -689,19 +693,15 @@ For example, in a scenario with tens of thousands of participants, M1 may first 
 
 # Issues with Synchronization
 
-Second, the synchronization challenge is magnified on GPUs. GPUs are designed with a high number of parallel processing units, which require synchronization to ensure correct execution of parallel tasks. This high bandwidth and large number of parallel units lead to increased contention when multiple threads attempt to access shared resources simultaneously. In the context of the GS algorithm, where many threads may need to update the partner status of participants concurrently, this contention can result in considerable wasted work. 
-
-Besides, the overhead associated with global synchronization  to ensure consistent state across all threads in such a highly parallel environment can significantly diminish the efficiency gains expected from parallelization.
-
-
-
 The GS algorithm naturally lends itself to parallelization because multiple men can propose simultaneously.
 
 In a multi-core system or GPU, we can assign each thread to represent one man, allowing each man to make his proposal independently. When several men propose to the same woman at the same time, they can read her current partner's rank without synchronization. However, updating the suitor's value must be done in a way that prevents other threads from changing the value simultaneously, to avoid data races if one of the men is indeed a better partner.
 
 Specifically, in Algorithm 1, the operation on line 17 can be executed without synchronization, but the operation on line 21 requires synchronization to ensure that the woman accepts the best proposal.
 
-In parallelizing the GS algorithm, certain common synchronization methods are not suitable due to their inherent shortcomings. Here, we discuss three such methods: Locks, Barrier Synchronization, and Atomic Compare-And-Swap (AtomicCAS).
+In parallelizing the GS algorithm, common synchronization methods such as locks, barrier synchronization, and atomic operations are not suitable due to their inherent shortcomings:
+
+
 
 ### Lock
 
@@ -731,7 +731,7 @@ Thus, barrier synchronization is too rigid and introduces significant delays, es
 
 
 
-### AtomicCAS
+### AtomicCAS-Existing Methods
 
 
 The atomicCAS (Compare-And-Swap) operation is an atomic instruction used to compare a memory location's current value with a given expected value and, if they match, swap it with a new value. Otherwise, the operation fails and returns the old value, indicating the update was unsuccessful. This logic is performed atomically, ensuring no other thread can interfere during the comparison and swap.
@@ -775,13 +775,13 @@ while (p_rank > m_rank) {
 \end{algorithm}
 ```
 
-
-
 In algorithm 3, each thread has its own FreeManQueue, so FreeManQueue.Push(p) does not have data racing issues. However, partnerRank is shared among threads.
 
 When a thread notices that m_rank is lower than the partner's rank, it will try to update the partnerRank atomically with m_rank using atomicCAS. If the returned partner_rank matches p_rank, the operation succeeds, and the rejected man is pushed to the queue if there is someone rejected, similar to the sequential version. If the returned partner_rank does not match p_rank, the atomicCAS operation fails, requiring a retry.
 
 While atomicCAS is a lightweight and fine-grained synchronization method effective for single-variable updates, however, it can become a contention point and bottleneck when too many threads try to update the rank of the same partner. The retries and wasted work from atomicCAS operations can significantly slow down the overall algorithm, offsetting the benefits of parallelization.
+
+The memory contention problem is magnified on GPUs. GPUs are designed with a high number of parallel processing units, which require synchronization to ensure correct execution of parallel tasks. This high bandwidth and large number of parallel units lead to increased contention when multiple threads attempt to access shared resources simultaneously. In the context of the GS algorithm, where many threads may need to update the partner status of participants concurrently, this contention can result in considerable wasted work. 
 
 
 
@@ -810,6 +810,10 @@ While atomicCAS is useful for simple atomic operations, it is not well-suited fo
 
 
 
+These limitations of traditional synchronization methods lead to the question: **Can we leverage advanced hardware functions to further optimize synchronization performance in GS parallel processing?**
+
+
+
 ### Unused Content
 
 The GS algorithm naturally lends itself to parallelization, as multiple proposers (men) can make proposals simultaneously. For example, by assigning each thread to simulate a man making proposals when implemented on an actual multithreading hardware, all men will initially propose to their preferred women. However, for the GS algorithm to make progress, it is crucial for threads to communicate with each other. Considering the preference lists given in Figure\ref{perferences}, men m1, m3, m5, and m6 will be paired with their proposed women directly whereas m2 and m7, as well as m4 and m8, will communicate to resolve conflicts if they are proposing to the same woman simultaneously.
@@ -819,22 +823,6 @@ In parallel computing, atomic operations are essential for managing shared memor
 In CUDA, atomicCAS guarantees correctness by allowing only one thread to successfully update the memory location at a time.
 
 
-
-## Data dependent
-
-First,the GS algorithm involves irregular and dynamic access patterns during its iterative proposal and acceptance processes. The memory access problem becomes more pronounced on a GPU. Unlike CPUs, which have multiple levels of memory hierarchy (e.g., L1, L2, and L3 caches), GPUs typically have fewer levels of memory hierarchy. This limitation results in higher latency when accessing global memory. Since the GS algorithm involves frequent reads and writes to preference lists and rank matrices during proposals, the reduced memory hierarchy of GPUs can lead to significant delays. Each memory access incurs higher latency, slowing down the overall performance and negating some of the parallel execution benefits.
-
-
-
-Second, the GS algorithm involves a series of proposals and rejections that are inherently sequential. Each man proposes to a woman, who then tentatively accepts, or rejects based on her current best offer. This process depends on the outcome of previous steps, making it difficult to execute multiple proposals simultaneously without conflicts.  
-
-
-
-After the first round of proposals  in which al the members of the favored sex may propose, it may happen that only one free person who is ready to make a further proposal. An example instance of this kind is presented in detail in [119].
-
-
-
-In that case, parallism is not useful at all to speedup this serial execution process and any synchronization method will be useless and block the efficiency of algorithm.
 
 
 
@@ -919,6 +907,24 @@ GPUs excel at handling highly parallel, data-parallel tasks with regular memory 
 However, GPUs typically have higher latency than CPUs when. it comes to certain operations, particularly those involving synchronization and memory access .
 
 These challenges about memory access and synchronization exacerbate the issues inherent in parallelizing the GS algorithm, making efficient implementation difficult.
+
+
+
+## Data dependent
+
+First,the GS algorithm involves irregular and dynamic access patterns during its iterative proposal and acceptance processes. The memory access problem becomes more pronounced on a GPU. Unlike CPUs, which have multiple levels of memory hierarchy (e.g., L1, L2, and L3 caches), GPUs typically have fewer levels of memory hierarchy. This limitation results in higher latency when accessing global memory. Since the GS algorithm involves frequent reads and writes to preference lists and rank matrices during proposals, the reduced memory hierarchy of GPUs can lead to significant delays. Each memory access incurs higher latency, slowing down the overall performance and negating some of the parallel execution benefits.
+
+
+
+Second, the GS algorithm involves a series of proposals and rejections that are inherently sequential. Each man proposes to a woman, who then tentatively accepts, or rejects based on her current best offer. This process depends on the outcome of previous steps, making it difficult to execute multiple proposals simultaneously without conflicts.  
+
+
+
+After the first round of proposals  in which al the members of the favored sex may propose, it may happen that only one free person who is ready to make a further proposal. An example instance of this kind is presented in detail in [119].
+
+
+
+In that case, parallism is not useful at all to speedup this serial execution process and any synchronization method will be useless and block the efficiency of algorithm.
 
 
 
