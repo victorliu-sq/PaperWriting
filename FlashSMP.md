@@ -705,46 +705,39 @@ While it may seem straightforward to ensure that each woman accepts the best pro
 
 ### Lock
 
-One way to mitigate data racing is to lock the threads before updating, one per woman to ensure that each thread gets exclusive access to this critical section. However, locks can significantly slow down the algorithm because of the overhead associated with acquiring and releasing them. In a highly concurrent environment, this overhead can become a bottleneck. The GS algorithm requires frequent and fine-grained updates to the partner status of participants. Since locks are coarse-grained, they are inefficient for such frequent updates and can cause excessive waiting times for threads. Therefore, locks are too heavy-weight and inefficient for the frequent and fine-grained synchronization required in the GS algorithm.The performance overhead make locks unsuitable for this parallelization.
+To address data races in the GS algorithm, one common approach is to use locks. Each thread locks the data before updating it, ensuring exclusive access to the critical section for each woman. However, this method introduces significant overhead due to the frequent acquisition and release of locks, particularly in a highly concurrent environment. The GS algorithm's need for frequent and fine-grained updates makes locks inefficient, as they cause excessive waiting times and performance overhead, rendering them unsuitable for efficient parallelization.
 
 
 
 ### Barrier Synchronization
 
-Barrier synchronization is a method where all threads must reach a specific point before any can proceed.
+Another approach is barrier synchronization, where all threads must reach a specific point before any can proceed. Applied to the GS algorithm, this means making all threads wait at a barrier, allowing each woman to accept the best proposal and reject the rest before letting all threads continue. However, the dynamic nature of the GS algorithm limits this approach. Some men may be rejected and not participate in the updating process, while others may be accepted without competition, making synchronization unnecessary for them. Consequently, some threads finish their tasks sooner and must wait at the barrier, leading to idle time and poor resource utilization. Barrier synchronization's rigidity and the resulting delays negate the benefits of parallelization in the GS algorithm.
 
 
 
-When parallelizing the GS algorithm, one straightforward approach is to make all threads wait at a barrier, allowing each woman to accept the best proposal and reject the rest before letting all threads proceed.
+### AtomicCAS
+
+The atomicCAS (Compare-And-Swap) operation is an atomic instruction used to compare a memory location's current value with an expected value and, if they match, swap it with a new value. If they do not match, the operation returns the old value, indicating the update was unsuccessful. This operation is performed atomically, ensuring no other thread can interfere during the process.
 
 
 
-However, due to the dynamic nature of the GS algorithm, this method has limitations. Some men may get rejected and not participate in the updating process, while others may be accepted without any competition, making synchronization unnecessary for them.
+Algorithm 3 is a parallel implementation of lines 21-26 from Algorithm 1 and it is a critical component used in both the parallel GS (Gale-Shapley) and parallel MW (McVitie-Wilson) algorithms to ensure  that updates to partnerRank are done atomically, preventing race conditions. The way how atomicCAS makes sense is that If a thread finds that m_rank is lower than the partner's rank, it attempts to update partnerRank with m_rank using atomicCAS. If the returned partner_rank does not match p_rank and m_rank is still lower, the operation fails and will be retried with returned partner rank.
 
 
 
-As a result, some threads may complete their tasks sooner and have to wait at the barrier, which does not align well with the static checkpoints of barrier synchronization. This leads to idle time and poor resource utilization.
+The only difference between these 2 parallel versions of GS algorithms lies in handling the rejected man on line 7. In the parallel GS algorithm, if the returned partner_rank p_rank2 matches expected p_rank, the operation succeeds, and the rejected man is pushed to the FreeManQueue for further proposals. In contrast, the parallel MW algorithm allows the thread representing the rejected man to propose again.
 
 
-
-Thus, barrier synchronization is too rigid and introduces significant delays, especially in the dynamic and continuous operation environment of the GS algorithm. The synchronization points force threads to wait unnecessarily, negating the benefits of parallelization.
-
-
-
-### AtomicCAS-Existing Methods
-
-
-The atomicCAS (Compare-And-Swap) operation is an atomic instruction used to compare a memory location's current value with a given expected value and, if they match, swap it with a new value. Otherwise, the operation fails and returns the old value, indicating the update was unsuccessful. This logic is performed atomically, ensuring no other thread can interfere during the comparison and swap.
-
-Using atomicCAS, multiple threads can update the partnerRank correctly to parallelize the GS algorithm. Algorithm 2 is a parallel version of lines 21-26 from Algorithm 1.
 
 ```
+# Parallel Gale-Shapely Algorithm
 while (p_rank > m_rank) {
 	p_rank2 = atomicCAS(&partnerRank, p_rank, m_rank)
 	if (p_rank2 == p_rank) {
 		if (p_rank != n + 1) {
 			p <- WomenPref[w, p_rank]
-			FreeManQueue.Push(p)
+			FreeManQueue.Push(p) // each thread has its own FreeManQueue to prevent data races
+														// m < - p for Parallel Mcvitie-Wilson Algorithm
 		}
 		p_rank = m_rank
 	} else {
@@ -753,35 +746,25 @@ while (p_rank > m_rank) {
 }
 ```
 
+Although atomicCAS is a quite lightweight and fine-grained synchrnozaition approach suitable for GS' algorithm's frequent updates, however, it can become a contention point and bottleneck when too many threads try to update the rank of the same partner. The retries and wasted work from atomicCAS operations can significantly slow down the overall algorithm, offsetting the benefits of parallelization.
+
+Furthemore, this memory contention problem can be magnified on GPUs, which are designed with a high number of parallel processing units to ensure execution of large volume parallel tasks. 
+
+GPUs, with their large number of parallel units, experience high contention when multiple threads attempt to perform atomic operations simultaneously
+
+According to Lemma 3, in the worst-case scenario where all men have the same preference so contention to women is maximized, the number of atomicCAS can reach O(n^3)
+
+This contention significantly slows down the execution, as threads often need to retry operations multiple times due to conflicts, undermining the potential speedup from parallel execution.
 
 
-```
-\begin{algorithm}
-\caption{Parallel Procedure to Update PartnerRank Using atomicCAS}
-\begin{algorithmic}[1]
-\While{(p\_rank > m\_rank)}
-    \State p\_rank2 = atomicCAS(\&partnerRank, p\_rank, m\_rank)
-    \If{(p\_rank2 == p\_rank)}
-        \If{(p\_rank != n + 1)}
-            \State p $\gets$ WomenPref[w, p\_rank]
-            \State FreeManQueue.Push(p)
-        \EndIf
-        \State p\_rank = m\_rank
-    \Else
-        \State p\_rank = p\_rank2
-    \EndIf
-\EndWhile
-\end{algorithmic}
-\end{algorithm}
-```
 
-In algorithm 3, each thread has its own FreeManQueue, so FreeManQueue.Push(p) does not have data racing issues. However, partnerRank is shared among threads.
 
-When a thread notices that m_rank is lower than the partner's rank, it will try to update the partnerRank atomically with m_rank using atomicCAS. If the returned partner_rank matches p_rank, the operation succeeds, and the rejected man is pushed to the queue if there is someone rejected, similar to the sequential version. If the returned partner_rank does not match p_rank, the atomicCAS operation fails, requiring a retry.
 
-While atomicCAS is a lightweight and fine-grained synchronization method effective for single-variable updates, however, it can become a contention point and bottleneck when too many threads try to update the rank of the same partner. The retries and wasted work from atomicCAS operations can significantly slow down the overall algorithm, offsetting the benefits of parallelization.
+which require synchronization to ensure correct execution of parallel tasks. This high bandwidth and large number of parallel units lead to increased contention when multiple threads attempt to access shared resources simultaneously. In the context of the GS algorithm, where many threads may need to update the partner status of participants concurrently, this contention can result in considerable wasted work. 
 
-The memory contention problem is magnified on GPUs. GPUs are designed with a high number of parallel processing units, which require synchronization to ensure correct execution of parallel tasks. This high bandwidth and large number of parallel units lead to increased contention when multiple threads attempt to access shared resources simultaneously. In the context of the GS algorithm, where many threads may need to update the partner status of participants concurrently, this contention can result in considerable wasted work. 
+
+
+GPUs, with their large number of parallel units, experience high contention when multiple threads attempt to perform atomic operations simultaneously. This contention significantly slows down the execution, as threads often need to retry operations multiple times due to conflicts, undermining the potential speedup from parallel execution.
 
 
 
@@ -805,7 +788,6 @@ Additionally, for an SMP instance with \( n \) men and \( n \) women, due to the
 In this case, the total number of atomicCAS executions in the worst case is \( O(n^3) \).
 
 While atomicCAS is useful for simple atomic operations, it is not well-suited for the more complex and frequent updates required in the GS algorithm. The high contention and retry overheads negate the benefits of parallel execution.
-
 ```
 
 
@@ -834,7 +816,7 @@ However, both of parallel GS and parallel MW algorithm fail to acheive speedup w
 
 First of all, the two problems mentioned above will be exacerated when implmented on GPU.  CPUs are better at handling irregular memory access patterns due to their more flexible memory hierarchy and caching mechanisms. GPUs, on the other hand,  are optimized for regular, contiguous memory access patterns to maximize memory throughput. Irregular memory accesses lead to poor memory performance on GPUs because they cannot fully leverage their high-bandwidth memory architecture in such scenarios.
 
-Both parallel GS and McVitie-Wilson (MW) algorithms utilize atomic compare-and-swap (CAS) operations to safely update the suitor status of women during the proposal process. GPUs, with their large number of parallel units, experience high contention when multiple threads attempt to perform atomic operations simultaneously. This contention significantly slows down the execution, as threads often need to retry operations multiple times due to conflicts, undermining the potential speedup from parallel execution.
+
 
 In addition, the need for frequent and coordinated synchronization makes GPUs less efficient for implementing the parallel GS algorithm. The parallel Gale-Shapley (GS) algorithm requires global synchronization across multiple threads to ensure the correct redistribution of unmarried men among threads for load balancing. GPUs are not well-suited for global synchronization because it involves significant overhead and latency, disrupting the parallel execution flow and leading to performance degradation. 
 
