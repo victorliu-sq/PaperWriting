@@ -1,4 +1,8 @@
-You can insert sentences, deleted sentences and reorder sentences and use other words as long as you think it will make it more readable, logical and native
+You can insert sentences, deleted sentences and reorder sentences to strengthen the connections between sentences
+
+
+
+, and use other words as long as you think it will make it more readable, logical and native for a paper
 
 
 
@@ -746,53 +750,43 @@ while (p_rank > m_rank) {
 }
 ```
 
-Although atomicCAS is a quite lightweight and fine-grained synchrnozaition approach suitable for GS' algorithm's frequent updates, however, it can become a contention point and bottleneck when too many threads try to update the rank of the same partner. The retries and wasted work from atomicCAS operations can significantly slow down the overall algorithm, offsetting the benefits of parallelization.
+While atomicCAS is a lightweight and fine-grained synchronization approach seemingly suitable for the frequent updates in the GS algorithm, parallel GS and parallel MW algorithms may perform poorly under high contention due to frequent CAS failures.
 
-Furthemore, this memory contention problem can be magnified on GPUs, which are designed with a high number of parallel processing units to ensure execution of large volume parallel tasks. 
+According to Lemma 2, in the worst-case scenario where all men have the same preference lists and processing units are sufficient, the number of atomicCAS operations can reach O(n^3), offsetting the benefits of parallelization since the time complexity of the GS algorithm is only O(n^2).
 
-GPUs, with their large number of parallel units, experience high contention when multiple threads attempt to perform atomic operations simultaneously
-
-According to Lemma 3, in the worst-case scenario where all men have the same preference so contention to women is maximized, the number of atomicCAS can reach O(n^3)
-
-This contention significantly slows down the execution, as threads often need to retry operations multiple times due to conflicts, undermining the potential speedup from parallel execution.
-
-
-
-
-
-which require synchronization to ensure correct execution of parallel tasks. This high bandwidth and large number of parallel units lead to increased contention when multiple threads attempt to access shared resources simultaneously. In the context of the GS algorithm, where many threads may need to update the partner status of participants concurrently, this contention can result in considerable wasted work. 
-
-
-
-GPUs, with their large number of parallel units, experience high contention when multiple threads attempt to perform atomic operations simultaneously. This contention significantly slows down the execution, as threads often need to retry operations multiple times due to conflicts, undermining the potential speedup from parallel execution.
+Therefore, GPUs, with their large number of parallel units, can even exacerbate the contention problem, diminishing the potential advantages of parallel execution.
 
 
 
 ```
-In the worst-case scenario, if the preference list size is \( n \), and all threads contend to update the same memory location, each thread may need to repeatedly attempt the atomicCAS operation until it succeeds. This can result in \( O(n) \) atomicCAS operations per thread, leading to a total of \( O(n^2) \) operations for all threads combined.
+Lemma1: 
+To find the minimum value among \( n \) numbers using \( n \) threads and atomicCAS to update a shared memory location, where the initial value is greater than any of the \( n \) numbers, the number of atomicCAS operations is \( O(n^2) \).
 
-To analyze the behavior of atomicCAS more closely, consider the scenario where multiple threads attempt to update a shared memory location to the smallest value. Let the values proposed by these threads be \( v_1, v_2, \ldots, v_n \), sorted such that \( v_1 < v_2 < \ldots < v_n \).
 
-The smallest value \( v_1 \) will execute atomicCAS successfully on its first attempt, as there is no smaller value in the memory yet. The second smallest value \( v_2 \) will execute atomicCAS successfully only after \( v_1 \) has updated the memory location, meaning it might attempt the operation twice—first failing when \( v_1 \) updates the location and then succeeding. Similarly, the \( k \)-th smallest value \( v_k \) may need up to \( k \) attempts, as it will fail for each smaller value that has already updated the location.
 
-The total number of atomicCAS executions \( T(n) \) for \( n \) values is the sum of these attempts:
+Proof:
+Let the initial value in the shared memory location be \( v_{n+1} \), and the values proposed by the threads be \( v_1, v_2, \ldots, v_n \), sorted such that \( v_1 < v_2 < \ldots < v_n < v_{n+1} \). The thread proposing the smallest value \( v_1 \) will execute atomicCAS only once. On its first attempt, it will either succeed with the original maximum value or find a smaller value and stop. The thread proposing the second smallest value \( v_2 \) will execute atomicCAS at most twice. On its first attempt, it will fail and read out \( v_1 \) after \( v_1 \) has updated the memory location. On its second attempt, it will either succeed or read out a value smaller than \( v_2 \) and stop. Similarly, the \( k \)-th smallest value \( v_k \) can perform up to \( k \) attempts, as it will fail for each smaller value that has already updated the location. Thus, the total number of atomicCAS executions \( T(n) \) for \( n \) values is the sum of these attempts:
 
 \[
 T(n) = \sum_{k=1}^{n} k = 1 + 2 + 3 + \ldots + n = \frac{n(n+1)}{2} = O(n^2)
 \]
 
-Consequently, the total number of CAS operations to decide a minimum value among \( n \) values will be \( O(n^2) \).
+Consequently, the total number of atomicCAS operations to determine the minimum value among \( n \) values is \( O(n^2) \).
 
-Additionally, for an SMP instance with \( n \) men and \( n \) women, due to the nature of SMP where a woman never gets unpaired once being proposed to, a woman can be proposed to by at most \( n \) men.
 
-In this case, the total number of atomicCAS executions in the worst case is \( O(n^3) \).
 
-While atomicCAS is useful for simple atomic operations, it is not well-suited for the more complex and frequent updates required in the GS algorithm. The high contention and retry overheads negate the benefits of parallel execution.
+Lemma2:
+For an SMP instance with \( n \) men and \( n \) women, the total number of atomicCAS executions is \( O(n^3) \).
+
+
+
+Proof:
+In the worst-case scenario, all \( n \) men have identical preference lists, as shown in Figure 4. In the first round of proposals, all \( n \) men and corresponding \( n \) threads will contend to update the same memory location to set the minimum value. Based on Lemma 1, the total number of atomicCAS for this round of proposals is \( O(n^2) \). In the second round, \( n-1 \) men will make proposals since 1 man will already be paired. This results in \( O(n) \) men, leading to \( O(n^2) \) atomicCAS operations. This pattern continues for all \( n \) rounds of proposals. Thus, the total number of atomicCAS executions in the worst-case scenario is \( O(n^3) \). If the preference list size is \( n \), and all threads contend to update the same memory location, each thread may need to repeatedly attempt the atomicCAS operation until it succeeds. This can result in \( O(n) \) atomicCAS operations per thread, leading to a total of \( O(n^2) \) operations for all threads combined. In this case, the total number of atomicCAS executions in the worst-case scenario is \( O(n^3) \).
 ```
 
 
 
-These limitations of traditional synchronization methods lead to the question: **Can we leverage advanced hardware functions to further optimize synchronization performance in GS parallel processing?**
+The limitations of traditional synchronization methods lead to the question: **Can we leverage advanced hardware functions to further optimize synchronization performance in GS parallel processing?**
 
 
 
