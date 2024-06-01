@@ -725,7 +725,7 @@ The atomicCAS (Compare-And-Swap) operation is an atomic instruction used to comp
 
 
 
-Algorithm 3 is a parallel implementation of lines 21-26 from Algorithm 1 and it is a critical component used in both the parallel GS (Gale-Shapley) and parallel MW (McVitie-Wilson) algorithms to ensure  that updates to partnerRank are done atomically, preventing race conditions. The way how atomicCAS makes sense is that If a thread finds that m_rank is lower than the partner's rank, it attempts to update partnerRank with m_rank using atomicCAS. If the returned partner_rank does not match p_rank and m_rank is still lower, the operation fails and will be retried with returned partner rank.
+Algorithm 2 is a parallel implementation of lines 21-26 from Algorithm 1 and it is a critical component used in both the parallel GS (Gale-Shapley) and parallel MW (McVitie-Wilson) algorithms to ensure  that updates to partnerRank are done atomically, preventing race conditions. The way how atomicCAS makes sense is that If a thread finds that m_rank is lower than the partner's rank, it attempts to update partnerRank with m_rank using atomicCAS. If the returned partner_rank does not match p_rank and m_rank is still lower, the operation fails and will be retried with returned partner rank.
 
 
 
@@ -762,8 +762,6 @@ Therefore, GPUs, with their large number of parallel units, can even exacerbate 
 Lemma1: 
 To find the minimum value among \( n \) numbers using \( n \) threads and atomicCAS to update a shared memory location, where the initial value is greater than any of the \( n \) numbers, the number of atomicCAS operations is \( O(n^2) \).
 
-
-
 Proof:
 Let the initial value in the shared memory location be \( v_{n+1} \), and the values proposed by the threads be \( v_1, v_2, \ldots, v_n \), sorted such that \( v_1 < v_2 < \ldots < v_n < v_{n+1} \). The thread proposing the smallest value \( v_1 \) will execute atomicCAS only once. On its first attempt, it will either succeed with the original maximum value or find a smaller value and stop. The thread proposing the second smallest value \( v_2 \) will execute atomicCAS at most twice. On its first attempt, it will fail and read out \( v_1 \) after \( v_1 \) has updated the memory location. On its second attempt, it will either succeed or read out a value smaller than \( v_2 \) and stop. Similarly, the \( k \)-th smallest value \( v_k \) can perform up to \( k \) attempts, as it will fail for each smaller value that has already updated the location. Thus, the total number of atomicCAS executions \( T(n) \) for \( n \) values is the sum of these attempts:
 
@@ -774,14 +772,13 @@ T(n) = \sum_{k=1}^{n} k = 1 + 2 + 3 + \ldots + n = \frac{n(n+1)}{2} = O(n^2)
 Consequently, the total number of atomicCAS operations to determine the minimum value among \( n \) values is \( O(n^2) \).
 
 
-
 Lemma2:
 For an SMP instance with \( n \) men and \( n \) women, the total number of atomicCAS executions is \( O(n^3) \).
 
 
-
 Proof:
-In the worst-case scenario, all \( n \) men have identical preference lists, as shown in Figure 4. In the first round of proposals, all \( n \) men and corresponding \( n \) threads will contend to update the same memory location to set the minimum value. Based on Lemma 1, the total number of atomicCAS for this round of proposals is \( O(n^2) \). In the second round, \( n-1 \) men will make proposals since 1 man will already be paired. This results in \( O(n) \) men, leading to \( O(n^2) \) atomicCAS operations. This pattern continues for all \( n \) rounds of proposals. Thus, the total number of atomicCAS executions in the worst-case scenario is \( O(n^3) \). If the preference list size is \( n \), and all threads contend to update the same memory location, each thread may need to repeatedly attempt the atomicCAS operation until it succeeds. This can result in \( O(n) \) atomicCAS operations per thread, leading to a total of \( O(n^2) \) operations for all threads combined. In this case, the total number of atomicCAS executions in the worst-case scenario is \( O(n^3) \).
+In the worst-case scenario where contention is maximized, all \( n \) men have identical preference lists, as shown in Figure 4. In the first round of proposals, all \( n \) men and corresponding \( n \) threads will contend to update the same memory location to set the minimum value. Based on Lemma 1, the total number of atomicCAS for this round of proposals is \( O(n^2) \). In the second round, \( n-1 \) men will make proposals since 1 man will already be paired. This results in \( O(n) \) men, also leading to \( O(n^2) \) atomicCAS operations. This pattern continues for all \( n \) rounds of proposals. Thus, the total number of atomicCAS executions in the worst-case scenario is \( O(n^3) \).
+
 ```
 
 
