@@ -709,6 +709,10 @@ While it may seem straightforward to ensure that each woman accepts the best pro
 
 
 
+
+
+
+
 ### Lock
 
 To address data races in the GS algorithm, one common approach is to use locks. Each thread locks the data before updating it, ensuring exclusive access to the critical section for each woman. However, this method introduces significant overhead due to the frequent acquisition and release of locks, particularly in a highly concurrent environment. The GS algorithm's need for frequent and fine-grained updates makes locks inefficient, as they cause excessive waiting times and performance overhead, rendering them unsuitable for efficient parallelization.
@@ -718,6 +722,16 @@ To address data races in the GS algorithm, one common approach is to use locks. 
 ### Barrier Synchronization
 
 Another approach is barrier synchronization, where all threads must reach a specific point before any can proceed. Applied to the GS algorithm, this means making all threads wait at a barrier, allowing each woman to accept the best proposal and reject the rest before letting all threads continue. However, the dynamic nature of the GS algorithm limits this approach. Some men may be rejected and not participate in the updating process, while others may be accepted without competition, making synchronization unnecessary for them. Consequently, some threads finish their tasks sooner and must wait at the barrier, leading to idle time and poor resource utilization. Barrier synchronization's rigidity and the resulting delays negate the benefits of parallelization in the GS algorithm.
+
+
+
+### Summary for Lock and Barrier
+
+While it may seem straightforward to use common synchronization methods such as locks and barrier synchronization to ensure that each woman accepts the best proposal, both methods inherently hinder the efficiency and scalability of parallelizing the GS algorithm.
+
+Locks ensure exclusive access to the partner rank for each woman by requiring all threads to lock the data before updating the state of the match. Since the GS algorithm requires frequent and fine-grained updates to the partner rank for each woman, this method introduces significant overhead due to the frequent acquisition and release of locks.
+
+On the other hand, barrier synchronization forces all threads to wait at fixed points before any can proceed. In the context of the GS algorithm, this means making all men wait at a barrier after making proposals, allowing each woman to accept the best proposal and reject the rest before letting all threads continue. However, not all threads need to be synchronized simultaneously when parallelizing the GS algorithm. Some men may be rejected and need to propose again, while others are accepted without competition. As a result, using barrier synchronization leads to idle time and poor resource utilization.
 
 
 
@@ -797,6 +811,8 @@ For an SMP instance with \( n \) men and \( n \) women, the total number of atom
 In the worst-case scenario where contention is maximized, all \( n \) men have identical preference lists, as shown in Figure 4. In the first round of proposals, all \( n \) men and corresponding \( n \) threads will contend to update the same memory location to set the minimum value. Based on Lemma 1, the total number of atomicCAS for this round of proposals is \( O(n^2) \). In the second round, \( n-1 \) men will make proposals since 1 man will already be paired. This results in \( O(n) \) men, also leading to \( O(n^2) \) atomicCAS operations. This pattern continues for all \( n \) rounds of proposals. Thus, the total number of atomicCAS executions in the worst-case scenario is \( O(n^3) \).
 ```
 
+
+
 The limitations of traditional synchronization methods lead to the question: **Can we leverage advanced hardware functions to further optimize synchronization performance in GS parallel processing?**
 
 
@@ -821,11 +837,7 @@ However, both of parallel GS and parallel MW algorithm fail to acheive speedup w
 
 First of all, the two problems mentioned above will be exacerated when implmented on GPU.  CPUs are better at handling irregular memory access patterns due to their more flexible memory hierarchy and caching mechanisms. GPUs, on the other hand,  are optimized for regular, contiguous memory access patterns to maximize memory throughput. Irregular memory accesses lead to poor memory performance on GPUs because they cannot fully leverage their high-bandwidth memory architecture in such scenarios.
 
-
-
 In addition, the need for frequent and coordinated synchronization makes GPUs less efficient for implementing the parallel GS algorithm. The parallel Gale-Shapley (GS) algorithm requires global synchronization across multiple threads to ensure the correct redistribution of unmarried men among threads for load balancing. GPUs are not well-suited for global synchronization because it involves significant overhead and latency, disrupting the parallel execution flow and leading to performance degradation. 
-
-
 
 
 
@@ -887,37 +899,21 @@ In contrast, the parallel McVitie-Wilson algorithm adds rejected men to local st
 
 # Issues with GPU
 
-Implementing the massively parallel Gale-Shapley (GS) algorithm on a GPU presents significant challenges, largely due to the unique architecture and operational characteristics of GPUs. 
+Implementing the massively parallel Gale-Shapley (GS) algorithm on a GPU efficiently presents significant challenges due to the unique architecture characteristics of GPUs.
 
-GPUs excel at handling highly parallel, data-parallel tasks with regular memory access patterns, providing high bandwidth for large-scale computations. This high bandwidth allows many threads to access memory simultaneously, which is advantageous for many parallel algorithms.
+GPUs excel at handling highly parallel, data-parallel tasks with regular memory access patterns, providing high bandwidth for large-scale computations. This allows many threads to access memory simultaneously, which is advantageous for many parallel algorithms. 
 
-However, GPUs typically have higher latency than CPUs when. it comes to certain operations, particularly those involving synchronization and memory access .
+However, the massively-multithreaded GPU architecture typically has higher latency than CPUs when it comes to memory access operations. This higher latency is due to the difference in memory hierarchy between GPUs and CPUs. 
 
-These challenges about memory access and synchronization exacerbate the issues inherent in parallelizing the GS algorithm, making efficient implementation difficult.
+CPUs have multiple levels of memory hierarchy, including L1, L2, and L3 caches, as well as system RAM and sometimes additional layers like L4 caches in high-end processors. These multiple levels provide progressively larger storage with increasing latency, helping to mitigate delays by offering fast access to frequently used data.
 
+In contrast, GPUs typically have a simpler memory hierarchy. They include on-chip shared memory (often referred to as L1 cache), which is very fast but limited in size, L2 cache that is larger but slower, and global memory (GDDR or HBM), which offers high bandwidth but comes with significantly higher latency
 
+Moreover, the GS algorithm involves a series of proposals and rejections that are inherently sequential for certain workloads. As illustrated in Figure 5, after the initial round of proposals, it is possible that only one individual remains free and ready to make another proposal.
 
-## Data dependent
+In such scenarios, each proposal depends on the outcomes of previous steps, leaving no opportunity for parallelism. This makes GPUs ineffective for accelerating this serial process and can even reduce the algorithm's efficiency.
 
-First,the GS algorithm involves irregular and dynamic access patterns during its iterative proposal and acceptance processes. The memory access problem becomes more pronounced on a GPU. Unlike CPUs, which have multiple levels of memory hierarchy (e.g., L1, L2, and L3 caches), GPUs typically have fewer levels of memory hierarchy. This limitation results in higher latency when accessing global memory. Since the GS algorithm involves frequent reads and writes to preference lists and rank matrices during proposals, the reduced memory hierarchy of GPUs can lead to significant delays. Each memory access incurs higher latency, slowing down the overall performance and negating some of the parallel execution benefits.
-
-
-
-Second, the GS algorithm involves a series of proposals and rejections that are inherently sequential. Each man proposes to a woman, who then tentatively accepts, or rejects based on her current best offer. This process depends on the outcome of previous steps, making it difficult to execute multiple proposals simultaneously without conflicts.  
-
-
-
-After the first round of proposals  in which al the members of the favored sex may propose, it may happen that only one free person who is ready to make a further proposal. An example instance of this kind is presented in detail in [119].
-
-
-
-In that case, parallism is not useful at all to speedup this serial execution process and any synchronization method will be useless and block the efficiency of algorithm.
-
-
-
-
-
-
+To illustrate this, Figure 6 presents a performance comparison between the parallel GS algorithm on a GPU and the sequential GS algorithm on a CPU, using an SMP instance of size 10,000 with a preference list pattern similar to that in Figure 5. The results clearly show that the GPU's performance is inferior to the CPU's performance, highlighting the inefficiency of using GPUs for the GS algorithm under these conditions.
 
 
 
