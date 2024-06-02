@@ -247,6 +247,8 @@ Second, we parallelize this new locality-aware sequential algorithm on GPU and u
 
 Finally, we integrate our parallel algorithm into a unified framework for Balanced-SMP. This involves seamlessly combining CPU and GPU resources to maximize their complementary strengths. The GPU’s high bandwidth is leveraged for parallel proposals when there are many active threads, while the CPU’s low latency is utilized for fast proposals when there is only a single active thread. This adaptive approach ensures the algorithm remains efficient regardless of workload size and distribution, taking full advantage of both CPU and GPU capabilities. 
 
+
+
 Our experimental evaluation results demonstrate that Balanced-SMP adapts effectively to different workloads, providing consistent and optimal performance across diverse scenarios.
 
 
@@ -255,19 +257,19 @@ Our experimental evaluation results demonstrate that Balanced-SMP adapts effecti
 
 Specifically, we make the following contributions:
 
-1.We developed a new sequential algorithm for SMP that expolits data locality using innovative data structure called PRNode. By incorporating a preprocessing step to initialize these PRNodes, we ensure that all necessary rank information is immediately accessible within the same PRNode during proposals. This significantly enhances the real-time performance of the new sequential algorithm by reducing its reliance on global memory access.
+1.We have developed a new data structure for implementing the GS algorithm that effectively exploits data locality This locality-aware approach ensures that all necessary rank references are accessible locally during the proposing procedure, eliminating the need for data movement. As a result, this implementation significantly reduces the execution latency of the GS algorithm by minimizing global memory accessing. 
 
 
 
-2.We parallelized the new sequential algorithm to leverage modern hardware capabilities, significantly reducing the number of atomic operations under high memory contention by utilizing atomicMIN, a hardware primitive introduced by CUDA. This adaptation enhances synchronization efficiency and ensures robust performance in high-contention scenarios.
+2.We further parallelize the locality-aware GS algorithm that leverages modern hardware synchronization utilities, significantly reducing the number of atomic operations under high memory contention. As a result, the synchronization efficiency is significantly improved in parallel GS processing, particularly for workloads with high conflicts in proposals between man and woman groups.
 
 
 
-3.Building on this, we introduce a novel framework named Balanced-SMP for the parallel computation of SMP. This framework seamlessly integrates CPU and GPU resources to maximize their complementary strengths. The integration of CPU and GPU ensures efficient performance in a heterogeneous environment, regardless of workload distribution.
+3.Combining the locality-aware data structure with a hardware synchronization facility, we have developed a framework called Balanced-SMP for the parallel computation of SMP. This framework seamlessly integrates CPU and GPU resources to maximize their complementary strengths. This integration allows us to adaptively switch between the two devices for different workloads, optimizing both the parallel performance and the execution efficiency in non-parallel sections.
 
 
 
-4.Through exhaustive testing in diverse scenarios, we have proven Balanced-SMP's capacity to deliver consistent and optimal performance regardless of the workload. Our extensive experimental evaluations demonstrate that Balanced-SMP consistently outperforms state-of-the-art parallel algorithms by 2.4x to 28.3x across a wide range of workloads. These results highlight the framework's exceptional efficiency and its robust ability to adapt to different types of computational demands.
+4.By comprehensive experimental evaluations, we demonstrate that Balanced-SMP consistently outperforms all the existing parallel algorithms by 2.4x to 28.3x across a wide range of workloads. These results also show the effectiveness of Balanced-SMP and its robust ability to adapt to different computational demands of SMPs.  
 
 
 
@@ -725,11 +727,15 @@ The atomicCAS (Compare-And-Swap) operation is an atomic instruction used to comp
 
 
 
-Algorithm 2 is a parallel implementation of lines 21-26 from Algorithm 1 and it is a critical component used in both the parallel GS (Gale-Shapley) and parallel MW (McVitie-Wilson) algorithms to ensure  that updates to partnerRank are done atomically, preventing race conditions. The way how atomicCAS makes sense is that If a thread finds that m_rank is lower than the partner's rank, it attempts to update partnerRank with m_rank using atomicCAS. If the returned partner_rank does not match p_rank and m_rank is still lower, the operation fails and will be retried with returned partner rank.
+```
+Algorithm 2 is a parallel implementation of lines 21-26 from Algorithm 1 and is a critical component used in both the parallel GS (Gale-Shapley) and parallel MW (McVitie-Wilson) algorithms to ensure that updates to \texttt{partnerRank} are done atomically, preventing race conditions. The way atomicCAS makes sense is that if a thread finds that \texttt{m\_rank} is lower than the partner's rank, it attempts to update \texttt{partnerRank} with \texttt{m\_rank} using atomicCAS. If the returned \texttt{partner\_rank} does not match \texttt{p\_rank} and \texttt{m\_rank} is still lower, the operation fails and will be retried with the returned partner rank.
+```
 
 
 
-The only difference between these 2 parallel versions of GS algorithms lies in handling the rejected man on line 7. In the parallel GS algorithm, if the returned partner_rank p_rank2 matches expected p_rank, the operation succeeds, and the rejected man is pushed to the FreeManQueue for further proposals. In contrast, the parallel MW algorithm allows the thread representing the rejected man to propose again.
+```
+The only difference between these two parallel versions of GS algorithms lies in handling the rejected man on line 7. In the parallel GS algorithm, if the returned rank of the current partner \texttt{p\_rank2} matches the expected \texttt{p\_rank}, the operation succeeds, and the rejected man is pushed to the \texttt{FreeManQueue} for further proposals. To prevent data races, each thread has its own \texttt{FreeManQueue}. In contrast, the parallel MW algorithm allows the thread representing the rejected man to propose again.
+```
 
 
 
@@ -752,36 +758,44 @@ while (p_rank > m_rank) {
 
 While atomicCAS is a lightweight and fine-grained synchronization approach seemingly suitable for the frequent updates in the GS algorithm, parallel GS and parallel MW algorithms may perform poorly under high contention due to frequent CAS failures.
 
-According to Lemma 2, in the worst-case scenario where all men have the same preference lists and processing units are sufficient, the number of atomicCAS operations can reach O(n^3), offsetting the benefits of parallelization since the time complexity of the GS algorithm is only O(n^2).
 
-Therefore, GPUs, with their large number of parallel units, can even exacerbate the contention problem, diminishing the potential advantages of parallel execution.
+
+```
+According to Lemma 2, in the worst-case scenario where all men have the same preference lists and processing units are sufficient, the number of atomicCAS operations can reach \( O(n^3) \), offsetting the benefits of parallelization since the time complexity of the GS algorithm is only \( O(n^2) \).
+```
+
+
+
+Therefore, GPUs, with their large number of parallel units, can even exacerbate the contention problem, diminishing the potential advantages of parallel execution. 
 
 
 
 ```
-Lemma1: 
+\section*{Lemma 1: AtomicCAS Operations for Finding the Minimum Value}
+
 To find the minimum value among \( n \) numbers using \( n \) threads and atomicCAS to update a shared memory location, where the initial value is greater than any of the \( n \) numbers, the number of atomicCAS operations is \( O(n^2) \).
 
-Proof:
+\subsection*{Proof}
+
 Let the initial value in the shared memory location be \( v_{n+1} \), and the values proposed by the threads be \( v_1, v_2, \ldots, v_n \), sorted such that \( v_1 < v_2 < \ldots < v_n < v_{n+1} \). The thread proposing the smallest value \( v_1 \) will execute atomicCAS only once. On its first attempt, it will either succeed with the original maximum value or find a smaller value and stop. The thread proposing the second smallest value \( v_2 \) will execute atomicCAS at most twice. On its first attempt, it will fail and read out \( v_1 \) after \( v_1 \) has updated the memory location. On its second attempt, it will either succeed or read out a value smaller than \( v_2 \) and stop. Similarly, the \( k \)-th smallest value \( v_k \) can perform up to \( k \) attempts, as it will fail for each smaller value that has already updated the location. Thus, the total number of atomicCAS executions \( T(n) \) for \( n \) values is the sum of these attempts:
 
 \[
 T(n) = \sum_{k=1}^{n} k = 1 + 2 + 3 + \ldots + n = \frac{n(n+1)}{2} = O(n^2)
 \]
 
-Consequently, the total number of atomicCAS operations to determine the minimum value among \( n \) values is \( O(n^2) \).
-
-
-Lemma2:
-For an SMP instance with \( n \) men and \( n \) women, the total number of atomicCAS executions is \( O(n^3) \).
-
-
-Proof:
-In the worst-case scenario where contention is maximized, all \( n \) men have identical preference lists, as shown in Figure 4. In the first round of proposals, all \( n \) men and corresponding \( n \) threads will contend to update the same memory location to set the minimum value. Based on Lemma 1, the total number of atomicCAS for this round of proposals is \( O(n^2) \). In the second round, \( n-1 \) men will make proposals since 1 man will already be paired. This results in \( O(n) \) men, also leading to \( O(n^2) \) atomicCAS operations. This pattern continues for all \( n \) rounds of proposals. Thus, the total number of atomicCAS executions in the worst-case scenario is \( O(n^3) \).
-
 ```
 
 
+
+```
+\section*{Lemma 2: AtomicCAS Operations for SMP Instance}
+
+For an SMP instance with \( n \) men and \( n \) women, the total number of atomicCAS executions is \( O(n^3) \).
+
+\subsection*{Proof}
+
+In the worst-case scenario where contention is maximized, all \( n \) men have identical preference lists, as shown in Figure 4. In the first round of proposals, all \( n \) men and corresponding \( n \) threads will contend to update the same memory location to set the minimum value. Based on Lemma 1, the total number of atomicCAS for this round of proposals is \( O(n^2) \). In the second round, \( n-1 \) men will make proposals since 1 man will already be paired. This results in \( O(n) \) men, also leading to \( O(n^2) \) atomicCAS operations. This pattern continues for all \( n \) rounds of proposals. Thus, the total number of atomicCAS executions in the worst-case scenario is \( O(n^3) \).
+```
 
 The limitations of traditional synchronization methods lead to the question: **Can we leverage advanced hardware functions to further optimize synchronization performance in GS parallel processing?**
 
