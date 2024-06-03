@@ -1,10 +1,4 @@
-You can insert sentences, deleted sentences and reorder sentences to strengthen the connections between sentences
-
-
-
-, and use other words as long as you think it will make it more readable, logical and native for a paper
-
-
+You can insert sentences, deleted sentences and reorder sentences to strengthen the connections between sentencesYou can insert sentences, deleted sentences and reorder sentences to strengthen the connections between sentences
 
 # Title
 
@@ -383,7 +377,7 @@ Consider an example of an unstable matching with blocking pairs in Figure 1: \(M
 The Gale-Shapley (GS) algorithm, also known as the Deferred Acceptance algorithm, is a foundational method for solving the Stable Marriage Problem (SMP). Proposed by David Gale and Lloyd Shapley in 1962, the GS algorithm guarantees finding a stable matching between two equally sized sets of participants, typically referred to as men and women, each with their own preference lists.
 
 //
-The algorithm operates in iterative rounds consisting of a proposal phase and an acceptance phase. Initially, all participants are free (unmatched). During the proposal phase, each free man proposes to the highest-ranked woman on his preference list who has not yet rejected him. In the acceptance phase, each woman receiving one or more proposals chooses the man she prefers the most among the proposers and tentatively accepts his proposal, rejecting all others. This proposal and acceptance cycle repeats until there are no more free men.
+The GS algorithm begins with all participants being unmatched. In each iteration, an unmatched man proposes to the highest-ranked woman on his preference list who has not previously rejected him. If the woman is unmatched or prefers the new proposer over her current partner, she tentatively accepts the proposal, freeing her current partner if necessary. If she prefers her current partner, she rejects the new proposal, and the man remains unmatched. This process is repeated until all participants are matched.
 
 //
 Consider the preference lists in Figure 1 to understand the execution of the Gale-Shapley algorithm:
@@ -480,19 +474,24 @@ return S
 
 
 ```
+\cite{raman2014gs}
 The implementation details of the GS algorithm are described in Algorithm 1.
 
-The algorithm begins by initializing one matrix, \( \text{WomanRank} \), which represents the rank of each man in the preference lists of women. For each man, the algorithm assigns ranks to all women according to his preference list. This matrix, referred to as \( \text{RankMatrix} \), is crucial because it provides a quick way to determine the preference order of any individual in constant time.
+In the preprocessing phase, the algorithm initializes a matrix called \( \text{WomanRank} \), which shows the rank of each man in the women's preference lists. For each man, the algorithm assigns ranks to all women based on his preference list. This matrix, known as the rank matrix, provides a quick way to determine the preference order of any individual in constant time. For example, \( \text{RankMtxW}[w, m] \) gives the rank of man \( m \) in woman \( w \)’s preference list.
 
-Initially, all men are free, and a queue called \( \text{FreeManQueue} \) is created to keep track of them. Each man starts with the first woman on his preference list as the next woman to propose to. The \( \text{Next} \) array stores the index of the next woman each man will propose to. By incrementing the index in the \( \text{Next} \) array after each proposal, the algorithm ensures that each man sequentially proposes to women in his preference list without rechecking previously rejected proposals.
+The \( \text{FreeManQueue} \) is a queue that keeps track of free men. Initially, all men are free and added to the queue. The \( \text{Next} \) array records, for each man, the rank of the highest-priority woman who hasn't rejected him yet. This array allows each man to propose to women in his preference list in order without rechecking previously rejected proposals. At the start, each man proposes to the woman he prefers the most, so all ranks stored in \( \text{Next} \) are set to 1. The \( \text{PartnerRank} \) array stores the rank of the current partner of each woman. Initially, the partner rank for each woman is set to \( n+1 \), indicating they are all unmatched.
 
-\( \text{PartnerRank} \) is an array that stores the rank of the current partner of each woman. At the start, the partner rank for each woman is set to \( n+1 \), indicating that they are all currently unmatched. 
 
-The main loop of the algorithm runs until there are no free men left in the queue. Within this loop, a man \( m \) is taken from the queue to propose to the next woman on his preference list. The algorithm checks the rank of this man in the woman’s preference list and compares it with the rank of her current partner (if she has one).
+During the execution phase, the algorithm runs a main loop until there are no free men left in the queue. In each iteration, a man \( m \) is taken from the queue to propose to the highest-priority woman who hasn't rejected him yet. After each proposal, the man increments his rank to move to the next woman on his preference list for future proposals.
 
-If the woman is free (i.e., her partner rank is \( n+1 \)), she accepts the proposal, and her partner rank is updated to reflect this new match. If she is already matched, the algorithm compares the ranks: if the current partner has a higher preference (lower rank) than the proposing man, the proposing man remains free and is added back to the queue. If the proposing man has a higher preference, the woman accepts his proposal, and her previous partner becomes free and is added back to the queue.
+The algorithm then checks the rank of this man in the woman’s preference list and compares it to the rank of her current partner. If the woman's current partner is ranked higher (lower numerical value) than the proposing man, the proposing man (\( m \)) remains free and is added back to the queue. Otherwise, the proposing man's partner rank is updated to \( m\_rank \). If the woman is already paired (i.e., \( p\_rank \neq n + 1 \)), the previous partner (\( p \)), identified from the woman's preference list, becomes free and is added back to the queue.
 
-Once the main loop finishes, the algorithm constructs the final stable matching list \( S \) by pairing each woman with her final partner according to the \( \text{PartnerRank} \) list. The initialization of the \( \text{RankMatrix} \) and the proposal process, both having \( O(n^2) \) complexity, ensure that the overall time complexity of the algorithm is \( O(n^2) \).
+Once the main loop finishes, the algorithm constructs the final stable matching list \( S \) by pairing each woman with her final partner according to the \( \text{PartnerRank} \) list. 
+
+The initialization of the \( \text{RankMatrix} \) and the proposal process, both having \( O(n^2) \) complexity, ensure that the overall time complexity of the algorithm is \( O(n^2) \).
+
+
+The initialization of entries in the \( \texttt{RankMatrix} \) and the postprocessing of \( \texttt{PartnerRank} \) are completely independent for each entry. This independence allows these phases to be fully parallelized, meaning that with sufficient processing units, they can be done in constant time. Therefore, we focus on the execution phase in the performance analysis presented in this paper.
 ```
 
 
@@ -571,6 +570,18 @@ Once the main loop finishes, the algorithm constructs the final stable matching 
 
 
 
+
+
+## The Mcvitie-Wilson Algorithm
+
+The algorithm proposed by McVitie and Wilson is essentially another implementation of the Gale-Shapley algorithm, based on the principle that the proposal order does not affect the resulting stable matching. 
+
+The key distinctions between the MW and GS algorithms lie in their execution phases. The MW algorithm iterates through every man and invokes a recursive procedure for free men to make proposals. When a man enters this recursive procedure, he proposes to his highest-ranked woman who has not yet rejected him. If the woman is unpaired, her partner rank is updated as in the GS algorithm.
+
+The main difference is in how rejected proposals are handled. In the MW algorithm, if a proposer is rejected by the woman he is proposing to, he immediately moves on to propose to the next woman on his list, rather than being added back to a queue. Similarly, if a woman accepts a new proposal, her previous partner will continue to propose to his next preference, instead of being pushed back to a queue. This approach eliminates the need for a queue and changes the flow of the algorithm compared to the GS method, streamlining the proposal process and reducing the complexity of managing free individuals.
+
+
+
 ## Unused
 
 In conclusion, a matching in the context of SMP is stable if and only if there are no blocking pairs. The Gale-Shapley algorithm ensures that a stable matching is always found, thus addressing the issue of instability in matchings by systematically eliminating blocking pairs through its proposal and acceptance phases. This guarantees that the final matching is stable, demonstrating the robustness and efficiency of the algorithm in solving the Stable Marriage Problem.
@@ -617,9 +628,9 @@ The GS Algorithm
 
 
 
-**Mcvitie-Wilson**
 
-The algorithm proposed by McVitie and Wilson[10] is based on the Gale-Shapley algorithm, together with the observation that the order in which the suitors propose does not change the set of matched vertice.
+
+, together with the observation that the order in which the suitors propose does not change the set of matched vertice.
 
 The key difference between the Gale-Shapley and McVitie-Wilson algorithms is in how they handle proposals.The Gale-Shapley algorithm selects a free man from the queue and makes proposals on his behalf until he is matched.In contrast, the McVitie-Wilson algorithm also selects a free man from the queue. If he proposes to a woman who is already paired, the rejected man then makes proposals. This process continues until a man proposes to an unpaired woman, ensuring no man is left unmatched.
 
@@ -637,11 +648,15 @@ This results in a stable matching identical to the man-optimal stable marriage p
 
 # Issues with Data Movement
 
-In this section, we first provide an in-depth look at the implementation of the GS algorithm, analyzing its inefficient memory access patterns and identifying the bottlenecks caused by frequent and costly data movements.
+In this section, we explore the various bottlenecks encountered in GS computation. We first provide an in-depth look at the implementation of the GS algorithm, analyzing its inefficient memory access patterns and identifying the bottlenecks caused by frequent and costly data movements. 
 
-We then observe that efficiently parallelizing the GS algorithm on multi-core systems or GPUs is challenging due to synchronization needs. Common methods like locks and barriers are inefficient, and while atomicCAS is lightweight, it suffers from high contention.
 
-Finally, we address the challenges of implementing the GS algorithm on GPUs, highlighting their high memory access latency and the algorithm's inherent sequential dependencies, which make GPUs less efficient than CPUs for this task.
+
+We then observe that efficiently parallelizing the GS algorithm is challenging due to synchronization needs. Common methods like locks and barriers are inefficient, and while atomicCAS is lightweight, it suffers from high contention. 
+
+
+
+Finally, we highlight the difficulties of implementing the GS algorithm on GPUs, focusing on their high memory access latency and the algorithm's inherent sequential dependencies, which make GPUs less efficient than CPUs for this task.
 
 
 
