@@ -899,21 +899,11 @@ In contrast, the parallel McVitie-Wilson algorithm adds rejected men to local st
 
 # Issues with GPU
 
-Implementing the massively parallel Gale-Shapley (GS) algorithm on a GPU efficiently presents significant challenges due to the unique architecture characteristics of GPUs.
+GPUs (Graphics Processing Units) and CPUs (Central Processing Units) are both critical components in computing, each designed for specific types of tasks. CPUs, with their complex control logic, multi-level cache hierarchies (L1, L2, L3), and higher clock speeds, are optimized for general-purpose computing and can handle a wide range of tasks efficiently, including those requiring quick memory access and low latency. GPUs, on the other hand, are designed for highly parallel tasks, such as rendering graphics or performing large-scale computations. They feature a simpler two-level caching system and lower clock speeds, prioritizing bandwidth and the ability to process large volumes of data in parallel. This straightforward memory hierarchy, while effective for parallel processing, results in higher latency for memory access operations compared to CPUs.
 
-GPUs excel at handling highly parallel, data-parallel tasks with regular memory access patterns, providing high bandwidth for large-scale computations. This allows many threads to access memory simultaneously, which is advantageous for many parallel algorithms. 
+Efficiently implementing the massively parallel Gale-Shapley (GS) algorithm on a GPU presents significant challenges due to its inherently sequential nature for certain workloads. In specific SMP instances, such as the one illustrated in Figure 5, after the initial round of proposals, only one individual may remain free and ready to make another proposal. This scenario leaves no opportunity for parallelism, as each subsequent proposal depends on the outcomes of previous steps. This sequential dependency complicates the effective use of the massively multithreaded architecture of GPUs for the GS algorithm.
 
-However, the massively-multithreaded GPU architecture typically has higher latency than CPUs when it comes to memory access operations. This higher latency is due to the difference in memory hierarchy between GPUs and CPUs. 
-
-CPUs have multiple levels of memory hierarchy, including L1, L2, and L3 caches, as well as system RAM and sometimes additional layers like L4 caches in high-end processors. These multiple levels provide progressively larger storage with increasing latency, helping to mitigate delays by offering fast access to frequently used data.
-
-In contrast, GPUs typically have a simpler memory hierarchy. They include on-chip shared memory (often referred to as L1 cache), which is very fast but limited in size, L2 cache that is larger but slower, and global memory (GDDR or HBM), which offers high bandwidth but comes with significantly higher latency
-
-Moreover, the GS algorithm involves a series of proposals and rejections that are inherently sequential for certain workloads. As illustrated in Figure 5, after the initial round of proposals, it is possible that only one individual remains free and ready to make another proposal.
-
-In such scenarios, each proposal depends on the outcomes of previous steps, leaving no opportunity for parallelism. This makes GPUs ineffective for accelerating this serial process and can even reduce the algorithm's efficiency.
-
-To illustrate this, Figure 6 presents a performance comparison between the parallel GS algorithm on a GPU and the sequential GS algorithm on a CPU, using an SMP instance of size 10,000 with a preference list pattern similar to that in Figure 5. The results clearly show that the GPU's performance is inferior to the CPU's performance, highlighting the inefficiency of using GPUs for the GS algorithm under these conditions.
+As presented in Figure 6, we conducted a performance comparison between the sequential GS on a CPU, sequential MW on a GPU, and the parallel GS algorithm on a CPU, as well as the parallel MW algorithm on both CPU and GPU, using an SMP instance of size 10,000 with a preference list pattern similar to that in Figure 5. We did not implement the parallel GS algorithm on a GPU because, when processing units are sufficient, each queue can only maintain at most one free man, making this implementation equivalent to the parallel MW algorithm. The results clearly show that the GPU's performance is inferior to the CPU's for the GS algorithm, highlighting the inefficiency of using GPUs for this algorithm under these conditions.
 
 
 
