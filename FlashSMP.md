@@ -637,7 +637,11 @@ This results in a stable matching identical to the man-optimal stable marriage p
 
 # Issues with Data Movement
 
-In this section, we first provide an in-depth look at the implementation of the GS algorithm, analyze its inefficient memory access patterns, and identify the bottlenecks caused by frequent and costly data movements.
+In this section, we first provide an in-depth look at the implementation of the GS algorithm, analyzing its inefficient memory access patterns and identifying the bottlenecks caused by frequent and costly data movements.
+
+We then observe that efficiently parallelizing the GS algorithm on multi-core systems or GPUs is challenging due to synchronization needs. Common methods like locks and barriers are inefficient, and while atomicCAS is lightweight, it suffers from high contention.
+
+Finally, we address the challenges of implementing the GS algorithm on GPUs, highlighting their high memory access latency and the algorithm's inherent sequential dependencies, which make GPUs less efficient than CPUs for this task.
 
 
 
@@ -904,6 +908,14 @@ GPUs (Graphics Processing Units) and CPUs (Central Processing Units) are both cr
 Efficiently implementing the massively parallel Gale-Shapley (GS) algorithm on a GPU presents significant challenges due to its inherently sequential nature for certain workloads. In specific SMP instances, such as the one illustrated in Figure 5, after the initial round of proposals, only one individual may remain free and ready to make another proposal. This scenario leaves no opportunity for parallelism, as each subsequent proposal depends on the outcomes of previous steps. This sequential dependency complicates the effective use of the massively multithreaded architecture of GPUs for the GS algorithm.
 
 As presented in Figure 6, we conducted a performance comparison between the sequential GS on a CPU, sequential MW on a GPU, and the parallel GS algorithm on a CPU, as well as the parallel MW algorithm on both CPU and GPU, using an SMP instance of size 10,000 with a preference list pattern similar to that in Figure 5. We did not implement the parallel GS algorithm on a GPU because, when processing units are sufficient, each queue can only maintain at most one free man, making this implementation equivalent to the parallel MW algorithm. The results clearly show that the GPU's performance is inferior to the CPU's for the GS algorithm, highlighting the inefficiency of using GPUs for this algorithm under these conditions.
+
+
+
+**Figure 5: SMP Instance with 10,000 Participants Highlighting Sequential Dependency**
+
+**Figure 6: Performance Comparison of Sequential and Parallel GS and MW Algorithms on CPU and GPU**
+
+
 
 
 
