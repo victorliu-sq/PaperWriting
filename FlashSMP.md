@@ -1054,6 +1054,23 @@ This phase further leverages the information established in the first phase to c
 
 The initialization of each PRNode is indepedent of each other, which means this process can also be fully parallelized as initialization of Rank Matrices. 
 
+```
+for m = 1 to n:
+	for r = 1 to n:
+		w = prefListsM[m, r]
+		rankMatrixM[m, w] = r
+for w = 1 to n:
+	for r = 1 to n:
+		m = prefListsW[w, r]
+		rankMatrixM[w, m] = r
+for m = 1 to n:
+	for w = 1 to n:
+		r_w = rankMatrixM[m, w]
+		r_m = rankMatrixW[w, m]
+		PRNodesM[m, r_w] = (w, r_m)
+		PRNodesW[w, r_m] = (m, r_w + 1)
+```
+
 
 
 
@@ -1065,8 +1082,6 @@ This preprocessing step lays the foundation for a new data structure for the seq
 
 
 As a result, this implementation significantly reduces the execution latency of the GS algorithm by minimizing global memory accessing.
-
-
 
 
 
