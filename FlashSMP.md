@@ -1058,7 +1058,7 @@ The initialization of each PRNode is indepedent of each other, which means this 
 
 
 
-## Locality-Aware implementation of GS algotihmalgorithm
+## Locality-Aware implementation of GS algorithm
 
 This preprocessing step lays the foundation for a new data structure for the sequential algorithm implementation so that spatial locality can be fully exploited to significantly reduce the data accessing latency. 
 
@@ -1076,12 +1076,13 @@ for i = 1 to n:
 	
 Procedure LocalityAwareProcedure(m)
 bool done = false
-w_rank = 0
+w_rank = Next[m]
 while (not done) {
 	w, m_rank = PRNodesM[m, w_rank]
 	w_rank = w_rank + 1
 	p_rank = partnerRank[w]
 	if (p_rank > m_rank) {
+		Next[m] = w_rank
 		partnerRank[w] = m_rank
 		if (p_rank == n + 1){
 			done = true
