@@ -1066,6 +1066,9 @@ for w = 1 to n:
 		m = prefListsW[w, r_m]
 		r_w = rankMatrixM[m, w]
 		PRNodesW[w, r_m] = (m, r_w)
+
+for i = 1 to n:
+	parterRank[i] = n + 1
 ```
 
 
@@ -1076,19 +1079,19 @@ for w = 1 to n:
 
 ## Locality-Aware implementation of GS algorithm
 
-This ensures that if the woman rejects the current proposer, the algorithm can efficiently determine the next man to propose to her by referencing the updated rank position. This encapsulation of data ensures that when the Gale-Shapley algorithm runs, each access to a PRNode provides both the woman to whom a proposal should be made and her ranking of the proposer in a single operation.
+In addition to PRMatrices, the only data structure we need to initialize is \textit{partnerRank}. This preprocessing step for PRMatrix lays the foundation for a new locality-aware sequential implementation of the algorithm for SMP, allowing spatial locality to be fully exploited and significantly reducing data access latency.
 
 
 
-During the execution of the GS algorithm, a proposer accessing their PRNode can retrieve both the woman to propose to and the relevant rank information in a single memory operation. Similarly, when a woman accesses the PRNode, she can retrieve both the current partner she is paired with and the rank information of herself on the man's preference list in a single memory operation. This integrated approach significantly optimizes the data access patterns, improving the overall performance of the GS algorithm.
+In this algorithm, the main loop iterates through each participant, calling the \texttt{performLocalityAwareMatching} procedure for each one. The \texttt{performLocalityAwareMatching} procedure is designed to efficiently handle the proposing and acceptance process by leveraging the locality-aware PRNodes.
 
 
 
-This preprocessing step lays the foundation for a new data structure for the sequential algorithm implementation so that spatial locality can be fully exploited to significantly reduce the data accessing latency. 
+Within \texttt{performLocalityAwareMatching}, we initialize \texttt{done} to \texttt{False} and \texttt{w\_rank} to 0. The while loop continues until \texttt{done} is set to \texttt{True}. During each iteration, we retrieve the woman \(w\) and the rank \(m\_rank\) from \texttt{PRNodesM} for the current man \(m\) and increment \texttt{w\_rank}. We then check the current partner's rank \(p\_rank\) for woman \(w\) from \texttt{partnerRank}.
 
 
 
-As a result, this implementation significantly reduces the execution latency of the GS algorithm by minimizing global memory accessing.
+If \(p\_rank\) is greater than \(m\_rank\), meaning the woman \(w\) prefers the current proposer \(m\) over her current partner, we update \texttt{partnerRank[w]} to \(m\_rank\). If \(p\_rank\) equals \(n + 1\), indicating the woman was previously unpaired, we set \texttt{done} to \texttt{True}. Otherwise, we retrieve the next proposer \(m\) and his rank \(w\_rank\) from \texttt{PRNodesW} and continue the loop.
 
 
 
@@ -1096,24 +1099,28 @@ The value $r_w + 1$ is used for \textit{PRNodesW[$w$, $r_m$]} to indicate the ne
 
 
 
+By integrating PRMatrices and efficiently handling proposals and acceptances within the locality-aware procedure, this algorithm significantly reduces data access latency, improving overall performance on SMP systems.
+
+
+
 ```
-for i = 1 to n:
+for m = 1 to n:
 	LocalityAwareProcedure(m)
 	
 Procedure LocalityAwareProcedure(m)
   bool done = false
-  w_rank = Next[m]
+  w_rank = 0
   while (not done) {
     w, m_rank = PRNodesM[m, w_rank]
     w_rank = w_rank + 1
     p_rank = partnerRank[w]
     if (p_rank > m_rank) {
-      Next[m] = w_rank
       partnerRank[w] = m_rank
       if (p_rank == n + 1){
         done = true
       } else {
         m, w_rank = PRNodesW[w, m_rank]
+        w_rank = w_rank + 1
       }
     } 
   }
@@ -1164,6 +1171,16 @@ This approach optimizes memory access patterns, improving the efficiency of both
 The parallel nature of the algorithm allows for rapid initialization of the PRNodes, leveraging the computational power of parallel processors to handle large datasets efficiently.
 
 
+
+This ensures that if the woman rejects the current proposer, the algorithm can efficiently determine the next man to propose to her by referencing the updated rank position. This encapsulation of data ensures that when the Gale-Shapley algorithm runs, each access to a PRNode provides both the woman to whom a proposal should be made and her ranking of the proposer in a single operation.
+
+
+
+During the execution of the GS algorithm, a proposer accessing their PRNode can retrieve both the woman to propose to and the relevant rank information in a single memory operation. Similarly, when a woman accesses the PRNode, she can retrieve both the current partner she is paired with and the rank information of herself on the man's preference list in a single memory operation. This integrated approach significantly optimizes the data access patterns, improving the overall performance of the GS algorithm.
+
+
+
+As a result, this implementation significantly reduces the execution latency of the GS algorithm by minimizing global memory accessing.
 
 
 
