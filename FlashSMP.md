@@ -1093,11 +1093,9 @@ During each iteration, we retrieve the woman $w$ and the rank $m\_rank$ from \te
 If $p\_rank$ is greater than $m\_rank$, meaning the woman $w$ prefers the current proposer $m$ over her current partner, we update \textit{partnerRank}[$w$] to $m\_rank$. If $p\_rank$ equals $n + 1$, indicating the woman was previously unpaired and no man is rejected, we set \texttt{done} to \texttt{True} to terminate the main loop. If $p\_rank$ is not equal to $n + 1$, meaning the woman is currently paired with another partner she prefers less, we retrieve the ID of that partner and the rank of his last proposed woman from \texttt{PRNodesW}.
 
 Finally, if a rejected man exists at the end of the loop, \texttt{w_rank} is incremented by 1 to indicate the next rank of the woman the current man will propose to in the next iteration. The loop then checks whether it should terminate or continue to the next iteration.
+
+By using PRMatrix, which integrates preference lists and rank matrices, this algorithm efficiently handles proposals and acceptances within the locality-aware procedure. This integration eliminates the need for separate access to the rank matrix and the next array, significantly reducing data access latency and improving overall performance in solving SMP.
 ```
-
-
-
-By integrating PRMatrices and efficiently handling proposals and acceptances within the locality-aware procedure, this algorithm significantly reduces data access latency, improving overall performance on sovling SMP.
 
 
 
