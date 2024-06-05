@@ -1,4 +1,6 @@
-You can insert sentences, deleted sentences and reorder sentences to strengthen the connections between sentencesYou can insert sentences, deleted sentences and reorder sentences to strengthen the connections between sentences
+You can insert sentences, deleted sentences and reorder sentences, (also for words) to strengthen the connections between sentences
+
+
 
 # Title
 
@@ -974,85 +976,78 @@ we recognize a critical relationship between the recipient index and the rank of
 
 We have developed a new data structure for implementing the GS algorithm that effectively exploits data locality This locality-aware approach ensures that all necessary rank references are accessible locally during the proposing procedure, eliminating the need for data movement. 
 
+
+
 ## PRNode & preprocessing algorithm
 
-As discuessed in Section2, the major overhead  comes from access the data structure rank matrix and next.
+As discussed in Section 2, the primary overhead in the GS algorithm arises from accessing the data structures, specifically the rank matrix `RankMatrixW` and the `Next` array.
+
+Both `RankMatrixW` and the `Next` array exhibit a direct mapping between entries in the preference lists and the corresponding rank matrices. This observation underscores the potential for optimizing memory access patterns by leveraging the inherent structure of the GS algorithm.
+
+To clarify the relationship between data access patterns and identify key points where optimizations are possible., it is essential to analyze the manner and timing of these accesses. Specifically, we need to understand the one-to-one correspondence between entries in the preference list of men and entries in the rank matrix of women, and vice versa.
 
 
 
-In order to make a proposal, 2 kinds of information should be accessed:
+The first one-to-one correspondence is between `PrefListM` and `RankMatrixW`.
 
-(1) access the preference lists of men to get the id of woman to propose to.
+In Algorithm 1, after retrieving the ID of the best woman who has yet to reject him from the man's preference list on line 16, we determine the man's rank in the woman's preference list on line 17 by accessing the rank matrix so that the rank is required to decide whether the woman will accept or reject the proposal based on her current partner's rank.
 
-(2) access the rank matrix to get the rank of this man in the woman’s preference list so that it can be used to compare to the rank of her current partner and woman can determine to accept or reject.
+Specifically, when accessing the men's preference list entry for man mmm at rank rrr (denoted as `PrefListM[m, r]`), we obtain woman www. This necessitates a subsequent access to the rank matrix entry for woman www and man mmm (denoted as `RankMatrixW[w, m]`) to determine the man's rank in her list.
 
-
-
-To be specific, if we are accessing PrefListM[m, r] and get w, then we must access RankMatrixW[w, m]
+This process illustrates a direct one-to-one correspondence: each man's decision on which specific woman to propose is directly mapped to the rank of the proposer in the woman's preference list and each entry in the men's preference list is intrinsically linked to a unique entry in the women's rank matrix. 
 
 
 
-When the woman accepts a new proposal and she is already paired, then
-
-(1) access the preferences lists of women to get the id of rejected partner 
-
-(2) acccess the Next array to get the rank of best woman who has yet to reject the partner
+Therefore, if these data structures are stored together, we can access both pieces of information with a single load instruction, eliminating the need to access `RankMatrixW` separately. This optimization can significantly reduce the overhead associated with data access in the GS algorithm.
 
 
 
-In this case, if we are access PrefListM[w, r] and get w, then we must access next[m].
-
-It's worth meaning that since w is paired with p, thus p is the last woman that he has proposed to.
-
-Let's say we have another rank matrix RankMatrixM that stores the similar data as RankMatrixW, namely RankMatrixM[m, w] is the rank of w on the preference list of m.
-
-Since Next[m] store the rank of next woman that man will propose to, thus next[m] will be equal to RankMatrixM[m, w] + 1.
 
 
+Similarly, there is also a one-to-one correspondence between the access of `PrefListW` and `RankMatrixM` if we construct `RankMatrixM` in a similar way as `RankMatrixW`.
 
-As we can see, both pair of PrefListM[m, r] and RankMatrixW[w, m] & pair of PrefListW[w, r] and RankMatrixM[m, w] will be accessed one step by another.
+The `Next` array is accessed when a woman accepts a new proposal and is already paired with a man ranked `p_r` on her preference list. 
+
+After determining the ID of the rejected partner by accessing the women's preference list (i.e., accessing `PrefListW[w, p_r]` to get `p`), the algorithm accesses the `Next` array to ascertain the rank of the next woman who has yet to reject the partner (i.e., accessing `Next[p]`). 
+
+However, it is important to note that direct access to `Next[p]` is not always necessary for this information. Since `w` is paired with `p`, `w` represents the last woman that `p` proposed to, which implies that the rank of the last woman `p` proposed to is `RankMatrixM[p, w]`. Therefore, the rank of the best woman who has yet to reject `p` is `RankMatrixM[p, w] + 1`. Given that this occurs after accessing `PrefListW[w, p_r]` and identifying `p`, it becomes evident that there is a one-to-one correspondence between `PrefListW[w, p_r]` and `RankMatrixM[p, w]`.
 
 
 
-As a result,  We argue that both of above memory access pattern can be optimized using a  a specialized data structure.called PRNodes.
+In summary, both `RankMatrixW` and the `Next` array exhibit a direct mapping between entries in the preference lists and the rank matrices of the opposite gender. This observation underscores the potential for optimizing memory access patterns by leveraging the inherent structure of the GS algorithm.
 
 
 
-A PRNode is a struct that encapsulates both the data element from a man's preference list and the corresponding rank entry from the woman's rank matrix, facilitating efficient access during both the proposal and acceptance phases of the algorithm.
+
+
+By integrating the preference list and rank matrix entries
 
 
 
-Each PRNode combines information from both the men's and women's preference lists. Specifically, a PRNode includes the woman that a particular man would propose to at a given rank and the rank of that man on the woman’s preference list.
+To optimize these data access patterns, we propose the use of a specialized data structure called PRNodes. A PRNode is a struct that encapsulates both the data element from a man's preference list and the corresponding rank entry from the woman's rank matrix, facilitating efficient access during both the proposal and acceptance phases of the algorithm. 
 
 
 
-By closely coupling related data elements from the preference lists and rank matrices, all necessary rank references are accessible locally during the proposing procedure, eliminating the need for data movement.
+Each PRNode combines information from both the men's and women's preference lists, specifically including the woman that a particular man would propose to at a given rank and the rank of that man on the woman’s preference list. By closely coupling related data elements from the preference lists and rank matrices, all necessary rank references are accessible locally during the proposing procedure, eliminating the need for data movement.
 
 
 
-During the execution of GS algorithm, when a proposer accesses their PRNode, they can retrieve both the woman to propose to and the relevant rank information in a single memory operation, 
-
-when a woman access the PRNode, they can  both the current partner that she is paired with and the rank information of woman on the preference list of man in a single memory operation, which can be used to get the rank of next proposed man, 
-
-thereby reducing the frequency of data access and enhancing memory access efficiency.
+During the execution of the GS algorithm, when a proposer accesses their PRNode, they can retrieve both the woman to propose to and the relevant rank information in a single memory operation. Similarly, when a woman accesses the PRNode, they can retrieve both the current partner that she is paired with and the rank information of the woman on the preference list of the man in a single memory operation. This can then be used to get the rank of the next proposed man, thereby reducing the frequency of data access and enhancing memory access efficiency.
 
 
-
-First, we describe how to initialzie PRndoes in the preprocessing phase.
-
-The preprocessing phase consists of 2 steps: initializing the rank matrices and then initializing the PRNodes.
-
-Instead of only initializing RankMatrixW like what we did int Algorithm1, this time we initialzie both RankMatrixW and RankMatrxiM in the similar mechanisms.
-
-Once the rank matrices are initialized, the algorithm proceeds to initialize the PRNodes. 
 
 ```
-For each man \(m\) and each rank \(r_w\), the algorithm retrieves the woman \(w\) corresponding to rank \(r_w\) in man \(m\)'s preference list. It then retrieves \(r_m\), which is the rank of man \(m\) in woman \(w\)'s preference list from the women's rank matrix. The PRNode matrix at position \((m, r_w)\) is then assigned the pair \((w, r_m)\). This encapsulation of data ensures that when the Gale-Shapley algorithm runs, each access to a PRNode provides both the woman to whom a proposal should be made and her ranking of the proposer in a single operation.
+First, we describe how to initialize PRNodes in the preprocessing phase. 
+
+This phase consists of two steps: initializing the rank matrices and then initializing the PRNodes. 
+
+Instead of only initializing \textit{RankMatrixW} as in Algorithm 1, we initialize both \textit{RankMatrixW} and \textit{RankMatrixM} using similar mechanisms. Once the rank matrices are initialized, the algorithm proceeds to initialize the PRNodes. For each man $m$ and each rank $r_w$, the algorithm retrieves the woman $w$ corresponding to rank $r_w$ in man $m$'s preference list. It then retrieves $r_m$, which is the rank of man $m$ in woman $w$'s preference list from the women's rank matrix. The PRNode matrix at position $(m, r_w)$ is then assigned the pair $(w, r_m)$. The value $r_w + 1$ is used for \textit{PRNodesW[$w$, $r_m$]} to indicate the next rank in the man's preference list that the woman needs to consider after the current proposal. This ensures that if the woman rejects the current proposer, the algorithm can efficiently determine the next man to propose to her by referencing the updated rank position. This encapsulation of data ensures that when the Gale-Shapley algorithm runs, each access to a PRNode provides both the woman to whom a proposal should be made and her ranking of the proposer in a single operation.
+
 ```
 
-This phase further leverages the information established in the first phase to create a more efficient data structure.
 
-The initialization of each PRNode is indepedent of each other, which means this process can also be fully parallelized as initialization of Rank Matrices. 
+
+This phase further leverages the information established in the first phase to create a more efficient data structure. The initialization of each PRNode is independent of each other, which means this process can also be fully parallelized, similar to the initialization of the rank matrices. 
 
 ```
 for m = 1 to n:
@@ -1073,6 +1068,10 @@ for m = 1 to n:
 
 
 
+By using PRNodes, we ensure that all necessary rank references are accessible locally during the proposing procedure, which eliminates the need for data movement and significantly enhances the efficiency of the GS algorithm.
+
+
+
 
 
 ## Locality-Aware implementation of GS algorithm
@@ -1090,22 +1089,22 @@ for i = 1 to n:
 	LocalityAwareProcedure(m)
 	
 Procedure LocalityAwareProcedure(m)
-bool done = false
-w_rank = Next[m]
-while (not done) {
-	w, m_rank = PRNodesM[m, w_rank]
-	w_rank = w_rank + 1
-	p_rank = partnerRank[w]
-	if (p_rank > m_rank) {
-		Next[m] = w_rank
-		partnerRank[w] = m_rank
-		if (p_rank == n + 1){
-			done = true
-		} else {
-			m, w_rank = PRNodesW[w, m_rank]
-		}
-	} 
-}
+  bool done = false
+  w_rank = Next[m]
+  while (not done) {
+    w, m_rank = PRNodesM[m, w_rank]
+    w_rank = w_rank + 1
+    p_rank = partnerRank[w]
+    if (p_rank > m_rank) {
+      Next[m] = w_rank
+      partnerRank[w] = m_rank
+      if (p_rank == n + 1){
+        done = true
+      } else {
+        m, w_rank = PRNodesW[w, m_rank]
+      }
+    } 
+  }
 ```
 
 
