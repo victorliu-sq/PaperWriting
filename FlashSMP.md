@@ -988,51 +988,39 @@ To clarify the relationship between data access patterns and identify key points
 
 
 
-The first one-to-one correspondence is between `PrefListM` and `RankMatrixW`.
+The first one-to-one correspondence is between the men's preference list (`PrefListM`) and the women's rank matrix (`RankMatrixW`).
 
-In Algorithm 1, after retrieving the ID of the best woman who has yet to reject him from the man's preference list on line 16, we determine the man's rank in the woman's preference list on line 17 by accessing the rank matrix so that the rank is required to decide whether the woman will accept or reject the proposal based on her current partner's rank.
+In Algorithm 1, after retrieving the ID of the best woman who has yet to reject him from the man's preference list on line 16, we determine the man's rank in the woman's preference list on line 17 by accessing the rank matrix. This rank is crucial for deciding whether the woman will accept or reject the proposal based on her current partner's rank.
 
 Specifically, when accessing the men's preference list entry for man mmm at rank rrr (denoted as `PrefListM[m, r]`), we obtain woman www. This necessitates a subsequent access to the rank matrix entry for woman www and man mmm (denoted as `RankMatrixW[w, m]`) to determine the man's rank in her list.
 
-This process illustrates a direct one-to-one correspondence: each man's decision on which specific woman to propose is directly mapped to the rank of the proposer in the woman's preference list and each entry in the men's preference list is intrinsically linked to a unique entry in the women's rank matrix. 
-
-
+This process illustrates a direct one-to-one correspondence: each man's decision on which specific woman to propose to is directly mapped to the rank of the proposer in the woman's preference list. Thus, each entry in the men's preference list is intrinsically linked to a unique entry in the women's rank matrix.
 
 Therefore, if these data structures are stored together, we can access both pieces of information with a single load instruction, eliminating the need to access `RankMatrixW` separately. This optimization can significantly reduce the overhead associated with data access in the GS algorithm.
 
 
 
+Similarly, there is also a one-to-one correspondence between the access of the women's preference list (`PrefListW`) and the men's rank matrix (`RankMatrixM`), assuming we construct `RankMatrixM` in a similar way as `RankMatrixW`.
 
+The `Next` array is accessed when a woman accepts a new proposal and is already paired with a man ranked prp_rpr on her preference list. After determining the ID of the rejected partner by accessing the women's preference list (i.e., accessing `PrefListW[w, p_r]` to get`p`), the algorithm accesses the `Next` array to ascertain the rank of the next woman who has yet to reject the partner (i.e., accessing `Next[p]`).
 
-Similarly, there is also a one-to-one correspondence between the access of `PrefListW` and `RankMatrixM` if we construct `RankMatrixM` in a similar way as `RankMatrixW`.
-
-The `Next` array is accessed when a woman accepts a new proposal and is already paired with a man ranked `p_r` on her preference list. 
-
-After determining the ID of the rejected partner by accessing the women's preference list (i.e., accessing `PrefListW[w, p_r]` to get `p`), the algorithm accesses the `Next` array to ascertain the rank of the next woman who has yet to reject the partner (i.e., accessing `Next[p]`). 
-
-However, it is important to note that direct access to `Next[p]` is not always necessary for this information. Since `w` is paired with `p`, `w` represents the last woman that `p` proposed to, which implies that the rank of the last woman `p` proposed to is `RankMatrixM[p, w]`. Therefore, the rank of the best woman who has yet to reject `p` is `RankMatrixM[p, w] + 1`. Given that this occurs after accessing `PrefListW[w, p_r]` and identifying `p`, it becomes evident that there is a one-to-one correspondence between `PrefListW[w, p_r]` and `RankMatrixM[p, w]`.
-
-
-
-In summary, both `RankMatrixW` and the `Next` array exhibit a direct mapping between entries in the preference lists and the rank matrices of the opposite gender. This observation underscores the potential for optimizing memory access patterns by leveraging the inherent structure of the GS algorithm.
+However, it is important to note that direct access to `Next[p]` is not always necessary for this information. Since `w` is paired with`p`, www represents the last woman that `p` proposed to, which implies that the rank of the last woman`p` proposed to is `RankMatrixM[p, w]`. Therefore, the rank of the best woman who has yet to reject ppp is `RankMatrixM[p, w] + 1`. Given that this occurs after accessing `PrefListW[w, p_r]` and identifying `p`, it becomes evident that there is a one-to-one correspondence between `PrefListW[w, p_r]` and `RankMatrixM[p, w]`.
 
 
 
 
 
-By integrating the preference list and rank matrix entries
+To optimize the data access patterns discussed earlier, we introduce a specialized data structure called PRMatrix, which integrates both the preference lists and the rank matrices. This integration streamlines data retrieval and significantly reduces the overhead of separate data accesses.
+
+PRMatrix consists of n×nn \times nn×n PRNodes, each encapsulating the necessary information for the efficient execution of the GS algorithm. There are two types of PRMatrix: PRMatrixM and PRMatrixW.
+
+PRMatrixM combines all information from the men's preference lists and the women's rank matrix. Similarly, PRMatrixW integrates the women's preference lists with the men's rank matrix.
+
+Each PRNode within PRMatrixM includes an entry from the men's preference list, indicating the woman a specific man would propose to at a given rank, and the corresponding entry from the women's rank matrix, specifying the rank of that man on the woman’s preference list. This ensures that each entry in the men's preference list is directly linked to an entry in the women's rank matrix, allowing for local access to all necessary rank references during the proposing phase and eliminating extensive data movement.
+
+PRMatrixW operates similarly by combining entries from the women's preference lists and the men's rank matrix. Each PRNode in PRMatrixW includes the man a woman would propose to and her rank on his preference list. This setup is crucial for the acceptance phase, enabling quick access to the rank information of both current and potential partners.
 
 
-
-To optimize these data access patterns, we propose the use of a specialized data structure called PRNodes. A PRNode is a struct that encapsulates both the data element from a man's preference list and the corresponding rank entry from the woman's rank matrix, facilitating efficient access during both the proposal and acceptance phases of the algorithm. 
-
-
-
-Each PRNode combines information from both the men's and women's preference lists, specifically including the woman that a particular man would propose to at a given rank and the rank of that man on the woman’s preference list. By closely coupling related data elements from the preference lists and rank matrices, all necessary rank references are accessible locally during the proposing procedure, eliminating the need for data movement.
-
-
-
-During the execution of the GS algorithm, when a proposer accesses their PRNode, they can retrieve both the woman to propose to and the relevant rank information in a single memory operation. Similarly, when a woman accesses the PRNode, they can retrieve both the current partner that she is paired with and the rank information of the woman on the preference list of the man in a single memory operation. This can then be used to get the rank of the next proposed man, thereby reducing the frequency of data access and enhancing memory access efficiency.
 
 
 
@@ -1068,13 +1056,15 @@ for m = 1 to n:
 
 
 
-By using PRNodes, we ensure that all necessary rank references are accessible locally during the proposing procedure, which eliminates the need for data movement and significantly enhances the efficiency of the GS algorithm.
-
 
 
 
 
 ## Locality-Aware implementation of GS algorithm
+
+During the execution of the GS algorithm, a proposer accessing their PRNode can retrieve both the woman to propose to and the relevant rank information in a single memory operation. Similarly, when a woman accesses the PRNode, she can retrieve both the current partner she is paired with and the rank information of herself on the man's preference list in a single memory operation. This integrated approach significantly optimizes the data access patterns, improving the overall performance of the GS algorithm.
+
+
 
 This preprocessing step lays the foundation for a new data structure for the sequential algorithm implementation so that spatial locality can be fully exploited to significantly reduce the data accessing latency. 
 
