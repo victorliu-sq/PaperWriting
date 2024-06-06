@@ -991,6 +991,7 @@ In Algorithm 1, after retrieving the ID of the best woman who has yet to reject 
 
 This process illustrates a direct one-to-one correspondence between the men's preference list (\texttt{PrefListM}) and the women's rank matrix (\texttt{RankMatrixW}). Each man's decision on which specific woman to propose to is directly mapped to the rank of the proposer in the woman's preference list. Thus, each entry in the men's preference list is intrinsically linked to a unique entry in the women's rank matrix.
 
+
 If these data structures are stored together, both pieces of information can be accessed with a single load instruction, eliminating the need to access \texttt{RankMatrixW} separately. This optimization can significantly reduce the overhead associated with data access in the GS algorithm.
 
 Similarly, there is a one-to-one correspondence between the access of the women's preference list (\texttt{PrefListW}) and the men's rank matrix (\texttt{RankMatrixM}). By constructing \texttt{RankMatrixM} in a similar way to \texttt{RankMatrixW}, we can optimize the data access pattern of the \texttt{Next} array.
@@ -1007,15 +1008,17 @@ By accessing \texttt{RankMatrixM[p, w]}, we can determine the rank of the best w
 
 ## PRMatrix
 
-To optimize these data access patterns, we introduce a specialized data structure called PRMatrix, which integrates both the preference lists and the rank matrices. This integration significantly reduces the overhead associated with separate data accesses and streamlines the data retrieval process.
+```
+To optimize the data access patterns discussed above, we introduce a specialized data structure called PRMatrix, which integrates both the preference lists and the rank matrices. This integration provides opportunities to significantly reduce overhead by streamlining the data retrieval process and eliminating separate data accesses.
 
-There are two types of PRMatrix: PRMatrixM and PRMatrixW. PRMatrixM combines all information from the men's preference lists and the women's rank matrix, while PRMatrixW integrates the women's preference lists with the men's rank matrix.
+There are two types of PRMatrix serving distinct purposes: PRMatrixM and PRMatrixW. PRMatrixM combines information from the men's preference lists with the women's rank matrix to facilitate the determination of the proposer rank , while PRMatrixW integrates the women's preference lists with the men's rank matrix to accelerate the identification of the next viable partner.
 
-Each PRMatrix contains \(n \times n\) entries, which we refer to as PRNodes. Each PRNode includes one element from the preference lists and one element from the rank matrices, combining these two pieces of information into a single structure. Because both the preference lists and rank matrices are \(n \times n\) structures, where \(n\) represents the number of participants, PRMatrix also has \(n \times n\) entries, ensuring efficient organization and access to all necessary data.
+Both of these PRMatrice contains \(n \times n\) entries, referred to as PRNodes. Each PRNode includes one element from the preference lists and one element from the rank matrices, combining these two pieces of information into a single structure. Because the preference lists and rank matrices are both of size \(n \times n\), where \(n\) represents the number of participants, PRMatrix also has \(n \times n\) entries, ensuring efficient organization and access to all necessary data.
 
-Each PRNode within PRMatrixM includes an element from the men's preference list, indicating the woman a specific man would propose to at a given rank, along with the corresponding element from the women's rank matrix, specifying the rank of that man on the woman’s preference list. By storing these two elements together, they can be accessed simultaneously with a single load instruction. 
+In PRMatrixM, each PRNode includes an entry from the men's preference list, indicating the woman a specific man would propose to at a given rank, along with the corresponding entry from the women's rank matrix, specifying the rank of that man on the woman’s preference list. By storing these two elements together, they can be accessed simultaneously with a single load instruction.
 
-Similarly, each PRNode in PRMatrixW includes an element from the women's preference list and the corresponding element from the men's rank matrix. This configuration allows a single access to retrieve both the ID of the current partner and the rank of the partner's last proposed woman when the woman evaluates a new proposer. 
+Similarly, each PRNode in PRMatrixW includes an entry from the women's preference list and the corresponding entry from the men's rank matrix. This configuration allows a single access to retrieve both the ID of the current partner and the rank of the his last proposed woman.
+```
 
 
 
