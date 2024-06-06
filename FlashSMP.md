@@ -1094,7 +1094,7 @@ If $p\_rank$ is greater than $m\_rank$, meaning the woman $w$ prefers the curren
 
 Finally, \texttt{w_rank} is incremented by 1 to indicate the next rank of the woman the current man will propose to in the next iteration. The loop then checks whether a rejected man exists at the end of the loop to determine it should terminate or continue.
 
-In summary, by using PRMatrix to integrate preference lists and rank matrices, we create a new locality-aware sequential algorithm that efficiently handles proposals and acceptances. The integration eliminates the need for separate access to the rank matrix and the next array, significantly reducing data access latency and improving overall performance in solving SMP.
+In summary, by using PRMatrix to integrate preference lists and rank matrices, we create a new locality-aware sequential algorithm that efficiently handles proposals and rejections. The integration eliminates the need for separate access to the rank matrix and the next array, significantly reducing data access latency and improving overall performance in solving SMP.
 ```
 
 
