@@ -1040,7 +1040,27 @@ Similarly, for each woman $w$ and each rank $r_m$, the algorithm retrieves the m
 The initialization of each PRNode is independent of the others, which means this process can also be fully parallelized, similar to the initialization of the rank matrices. By parallelizing these steps, it will be ensured that the preprocessing phase remains efficient and does not become a major source of overhead.
 ```
 
- 
+
+
+
+
+```
+To illustrate the initialization of PRMatrix with preference lists and rank matrices, we use Figure 7 to demonstrate the process for the first column of PRMatrixM. This initialization utilizes the preference lists depicted in Figure 1.
+
+The process begins by constructing rankMatrixW from prefListsW. Afterward, we initialize PRMatrixM using prefListsM and rankMatrixW.
+
+The first column of PRMatrixM contains PRNodes representing the ID of the best proposed woman for each man and the rank of the proposer in those women's preference lists.
+
+Initially, the PRNodes PRMatrixM[M1, rank1], PRMatrixM[M2, rank1], and PRMatrixM[M3, rank1] are assigned the ID of the best woman for each man. These IDs come from the corresponding entries in prefListsM: PrefListsM[M1, rank1], PrefListsM[M2, rank1], and PrefListsM[M3, rank1]. Since all these entries correspond to W2, W2 is stored in all these PRNodes.
+
+Next, each PRNode obtains the rank of the man in W2's preference list from RankMatrix[W2, M1], RankMatrix[W2, M2], and RankMatrix[W2, M3], which correspond to rank2, rank1, and rank3, respectively.
+
+As a result, these PRNodes are initialized as (W2, rank2), (W2, rank1), and (W2, rank3).
+
+Following this process, all PRNodes in PRMatrixM and PRNodes in PRMatrixW can be initialized once rankMatrixW is established.
+```
+
+
 
 ```
 // Initializartion of Rank Matrices
