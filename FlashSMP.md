@@ -982,35 +982,32 @@ We have developed a new data structure for implementing the GS algorithm that ef
 
 
 
+## Logical Flow
+
+```
+As discussed in Section 2, the primary overhead in the GS algorithm arises from accessing the data structures, specifically the rank matrix \texttt{RankMatrixW} and the \texttt{Next} array. To identify key points where optimizations in the organization of these two data structures are possible, it is essential to clarify the dependent relationship between data access patterns.
+
+In Algorithm 1, after retrieving the ID of the best woman who has yet to reject the proposer from his preference list on line 16, the rank matrix is accessed on line 17 to determine the man's rank in the woman's preference list. Specifically, when accessing the men's preference list entry for man \(m\) at rank \(r\) (denoted as \texttt{PrefListM[m, r]}), we obtain woman \(w\). This necessitates a subsequent access to the rank matrix entry for woman \(w\) and man \(m\) (denoted as \texttt{RankMatrixW[w, m]}) to determine the man's rank in her list.
+
+This process illustrates a direct one-to-one correspondence between the men's preference list (\texttt{PrefListM}) and the women's rank matrix (\texttt{RankMatrixW}). Each man's decision on which specific woman to propose to is directly mapped to the rank of the proposer in the woman's preference list. Thus, each entry in the men's preference list is intrinsically linked to a unique entry in the women's rank matrix.
+
+If these data structures are stored together, both pieces of information can be accessed with a single load instruction, eliminating the need to access \texttt{RankMatrixW} separately. This optimization can significantly reduce the overhead associated with data access in the GS algorithm.
+
+Similarly, there is a one-to-one correspondence between the access of the women's preference list (\texttt{PrefListW}) and the men's rank matrix (\texttt{RankMatrixM}). By constructing \texttt{RankMatrixM} in a similar way to \texttt{RankMatrixW}, we can optimize the data access pattern of the \texttt{Next} array.
+
+When a woman accepts a new proposal and is already paired with a man ranked \(p_r\) on her preference list, the women's preference list is accessed by \texttt{PrefListW[w, p_r]} on line 24 to determine the ID of the rejected partner \(p\). Subsequently, the algorithm accesses \texttt{Next[p]} to get the rank of the next woman who has yet to reject the partner on line 14 for future proposals.
+
+
+However, accessing \texttt{Next[p]} directly is not always necessary. Since \(w\) is paired with \(p\), \(w\) is the last woman that \(p\) proposed to. Therefore, the rank of the last woman \(p\) proposed to is stored in \texttt{RankMatrixM[p, w]}. 
+
+By accessing \texttt{RankMatrixM[p, w]}, we can determine the rank of the best woman who has yet to reject \(p\) by simply adding one to this value, resulting in \texttt{RankMatrixM[p, w] + 1}. Given that this occurs after accessing \texttt{PrefListW[w, p_r]} and identifying \(p\), it becomes evident that there is a one-to-one correspondence between \texttt{PrefListW[w, p_r]} and \texttt{RankMatrixM[p, w]}.
+```
+
+
+
 ## PRMatrix
 
-As discussed in Section 2, the primary overhead in the GS algorithm arises from accessing the data structures, specifically the rank matrix `RankMatrixW` and the `Next` array.
-
-To  identify key points where optimizations are possible, it is essential to clarify the dependent relationship between data access patterns.
-
-
-
-In Algorithm 1, after retrieving the ID of the best woman who has yet to reject him from the man's preference list on line 16, the rank matrix is accessed on line 17 to determine the man's rank in the woman's preference list. 
-
-Specifically, when accessing the men's preference list entry for man mmm at rank rrr (denoted as `PrefListM[m, r]`), we obtain woman www. This necessitates a subsequent access to the rank matrix entry for woman www and man mmm (denoted as `RankMatrixW[w, m]`) to determine the man's rank in her list.
-
-This process illustrates a direct one-to-one correspondence between the men's preference list (`PrefListM`) and the women's rank matrix (`RankMatrixW`): each man's decision on which specific woman to propose to is directly mapped to the rank of the proposer in the woman's preference list. Thus, each entry in the men's preference list is intrinsically linked to a unique entry in the women's rank matrix.
-
-Therefore, if these data structures are stored together, we can access both pieces of information with a single load instruction, eliminating the need to access `RankMatrixW` separately. This optimization can significantly reduce the overhead associated with data access in the GS algorithm.
-
-
-
-Similarly, there is also a one-to-one correspondence between the access of the women's preference list (`PrefListW`) and the men's rank matrix (`RankMatrixM`), assuming we construct `RankMatrixM` in a similar way as `RankMatrixW`.
-
-The `Next` array is accessed when a woman accepts a new proposal and is already paired with a man ranked prp_rpr on her preference list. After determining the ID of the rejected partner by accessing the women's preference list (i.e., accessing `PrefListW[w, p_r]` to get`p`), the algorithm accesses the `Next` array to ascertain the rank of the next woman who has yet to reject the partner (i.e., accessing `Next[p]`).
-
-However, it is important to note that direct access to `Next[p]` is not always necessary for this information. Since `w` is paired with`p`, www represents the last woman that `p` proposed to, which implies that the rank of the last woman`p` proposed to is `RankMatrixM[p, w]`. Therefore, the rank of the best woman who has yet to reject ppp is `RankMatrixM[p, w] + 1`. Given that this occurs after accessing `PrefListW[w, p_r]` and identifying `p`, it becomes evident that there is a one-to-one correspondence between `PrefListW[w, p_r]` and `RankMatrixM[p, w]`.
-
-
-
-
-
-To optimize the data access patterns discussed earlier, we introduce a specialized data structure called PRMatrix, which integrates both the preference lists and the rank matrices. This integration significantly reduces the overhead associated with separate data accesses and streamlines the data retrieval process.
+To optimize these data access patterns, we introduce a specialized data structure called PRMatrix, which integrates both the preference lists and the rank matrices. This integration significantly reduces the overhead associated with separate data accesses and streamlines the data retrieval process.
 
 There are two types of PRMatrix: PRMatrixM and PRMatrixW. PRMatrixM combines all information from the men's preference lists and the women's rank matrix, while PRMatrixW integrates the women's preference lists with the men's rank matrix.
 
@@ -1025,7 +1022,7 @@ Similarly, each PRNode in PRMatrixW includes an element from the women's prefere
 ## preprocessing algorithm
 
 ```
-In order to initialize PRMatrix in the preprocessing phase, there are two steps: initializing the rank matrices and then initializing the PRNodes.
+In order to setup PRMatrix, two steps will be exeucted in the preprocessing phase: initializing the rank matrices and then initializing the PRNodes.
 
 Instead of only initializing \textit{RankMatrixW} as done in the Preprocessing Phase in Algorithm 1, here both \textit{RankMatrixW} and \textit{RankMatrixM} will be initialized using similar mechanisms. Once both rank matrices have been initialized, the algorithm proceeds to initialize the PRMatrices.
 
@@ -1082,8 +1079,6 @@ for w = 1 to n:
 for i = 1 to n:
 	parterRank[i] = n + 1
 ```
-
-
 
 
 
