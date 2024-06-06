@@ -1017,7 +1017,7 @@ Both of these PRMatrice contains \(n \times n\) entries, referred to as PRNodes.
 
 In PRMatrixM, each PRNode includes an entry from the men's preference list, indicating the woman a specific man would propose to at a given rank, along with the corresponding entry from the women's rank matrix, specifying the rank of that man on the woman’s preference list. By storing these two elements together, they can be accessed simultaneously with a single load instruction.
 
-Similarly, each PRNode in PRMatrixW includes an entry from the women's preference list and the corresponding entry from the men's rank matrix. This configuration allows a single access to retrieve both the ID of the current partner and the rank of the his last proposed woman.
+Similarly, each PRNode in PRMatrixW includes an entry from the women's preference list and the corresponding entry from the men's rank matrix. This configuration allows a single access to retrieve both the ID of the current partner and the rank of the his last proposed woman.	
 ```
 
 
@@ -1025,31 +1025,30 @@ Similarly, each PRNode in PRMatrixW includes an entry from the women's preferenc
 ## preprocessing algorithm
 
 ```
-In order to setup PRMatrix, two steps will be exeucted in the preprocessing phase: initializing the rank matrices and then initializing the PRNodes.
+To set up PRMatrix, the preprocessing phase involves two main steps: constructing the rank matrices and then configuring the PRNodes.
 
-Instead of only initializing \textit{RankMatrixW} as done in the Preprocessing Phase in Algorithm 1, here both \textit{RankMatrixW} and \textit{RankMatrixM} will be initialized using similar mechanisms. Once both rank matrices have been initialized, the algorithm proceeds to initialize the PRMatrices.
+Rather than constructing only \textit{RankMatrixW} as done in Algorithm 1, both \textit{RankMatrixW} and \textit{RankMatrixM} will be built using the same mechanisms. Once these rank matrices are in place, the algorithm proceeds to configure the PRMatrices.
 
-For each man $m$ and each rank $r_w$, the algorithm retrieves the woman $w$ corresponding to rank $r_w$ in man $m$'s preference list. It then retrieves $r_m$, which is the rank of man $m$ in woman $w$'s preference list from the women's rank matrix. The PRMatrixM at position $(m, r_w)$ is then assigned the pair $(w, r_m)$.
+For each man \(m\) and each rank \(r_w\), the algorithm retrieves the woman \(w\) corresponding to rank \(r_w\) in the man's preference list. It then retrieves \(r_m\), which is the rank of man \(m\) in the woman's preference list from \textit{RankMatrixW}. The PRMatrixM at position \((m, r_w)\) is then assigned the pair \((w, r_m)\).
 
-Similarly, for each woman $w$ and each rank $r_m$, the algorithm retrieves the man $m$ corresponding to rank $r_m$ in woman $w$'s preference list. It then retrieves $r_w$, which is the rank of woman $w$ in man $m$'s preference list from the men's rank matrix. The PRMatrixW at position $(w, r_m)$ is then assigned the pair $(m, r_w)$.
+Similarly, for each woman \(w\) and each rank \(r_m\), the algorithm retrieves the man \(m\) corresponding to rank \(r_m\) in the woman's preference list. It then retrieves \(r_w\), which is the rank of woman \(w\) in the man's preference list from \textit{RankMatrixM}. The PRMatrixW at position \((w, r_m)\) is then assigned the pair \((m, r_w)\).
 
-The initialization of each PRNode is independent of the others, which means this process can also be fully parallelized, similar to the initialization of the rank matrices. By parallelizing these steps, it will be ensured that the preprocessing phase remains efficient and does not become a major source of overhead.
-```
-
-
-
-
+Since the configuration of each PRNode is independent of the others, this process can be fully parallelized, much like the construction of the rank matrices. By parallelizing these steps, the preprocessing phase remains efficient and avoids becoming a major source of overhead.
 
 ```
-To illustrate how to set up PRMatrix, we use Figure 7 to demonstrate the process for the first column of PRMatrixM, based on the preference lists depicted in Figure 1.
 
-The process begins by constructing rankMatrixW from prefListsW. Following this, we configure the first column of PRMatrixM using prefListsM and rankMatrixW.
 
-Initially, the PRNodes PRMatrixM[M1, rank1], PRMatrixM[M2, rank1], and PRMatrixM[M3, rank1] are assigned the ID of the best candidate for each man. These IDs come from the corresponding entries in prefListsM: PrefListsM[M1, rank1], PrefListsM[M2, rank1], and PrefListsM[M3, rank1]. Since all these entries correspond to W2, W2 will be stored in all these PRNodes.
 
-Next, each PRNode retrieves the rank of the man in W2's preference list from RankMatrix[W2, M1], RankMatrix[W2, M2], and RankMatrix[W2, M3], which correspond to rank2, rank1, and rank3, respectively. Consequently, these PRNodes are configured as (W2, rank2), (W2, rank1), and (W2, rank3).
+```
+We illustrate the initialization of PRMatrix using Figure 7, focusing on the process for the first column of PRMatrixM, based on the preference lists depicted in Figure 1.
 
-By following this procedure, we can set up all PRNodes in PRMatrixM and PRMatrixW once rankMatrixW is established.
+The process begins by constructing \textit{RankMatrixW} from \textit{PrefListsW}. Following this, we configure the first column of PRMatrixM using \textit{PrefListsM} and \textit{RankMatrixW}.
+
+To begin with, the PRNodes \texttt{PRMatrixM[M1, rank1]}, \texttt{PRMatrixM[M2, rank1]}, and \texttt{PRMatrixM[M3, rank1]} are assigned the ID of the best candidate for each man. These IDs come from the corresponding entries in \textit{PrefListsM}: \texttt{PrefListsM[M1, rank1]}, \texttt{PrefListsM[M2, rank1]}, and \texttt{PrefListsM[M3, rank1]}. Since all these entries correspond to W2, W2 will be stored in all these PRNodes.
+
+Next, each PRNode retrieves the rank of the man in W2's preference list from \texttt{RankMatrix[W2, M1]}, \texttt{RankMatrix[W2, M2]}, and \texttt{RankMatrix[W2, M3]}, which correspond to rank2, rank1, and rank3, respectively. Consequently, these PRNodes are configured as (W2, rank2), (W2, rank1), and (W2, rank3).
+
+By following this procedure, we can set up all PRNodes in PRMatrixM and PRMatrixW once \textit{RankMatrixW} is established.
 ```
 
 
