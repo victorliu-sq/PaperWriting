@@ -1281,31 +1281,31 @@ This two-phase preprocessing algorithm processes 𝑂(𝑛2)*O*(*n*2) entries in
 
 # Conflict Resolution-atomicMin
 
-In modern CPUs, such a specific atomic operation that reads a value, computes the minimum with another value, and stores the result back in one atomic transaction is not directly provided as a single instruction. However, CPUs provide a variety of atomic operations and primitives that can be used to build such functionality.
+In parallelized Gale-Shapley (GS) algorithms, ensuring mutual exclusion when updating shared data structures, such as `partnerRank`, is critical to avoid race conditions and lost updates. Traditional synchronization methods can be inefficient, especially in high-performance computing environments, leading to wasted work due to high memory contention.
 
 
 
-a single atomic operation that performs a read-modify-write (RMW) cycle for a minimum function, modern GPU architectures like NVIDIA's CUDA provide atomic functions like `atomicMin`
+While modern CPUs do not provide a single atomic operation that performs a read-modify-write (RMW) cycle for a minimum function and instead rely on implementations based on atomicCAS, modern GPU architectures like NVIDIA's CUDA provide a full suite of atomic functions designed for arithmetic operations, including `atomicMin`, to address these challenges effectively.
 
 
 
-CUDA Provides a full suite of atomic functions for performing arithmetic operations.
-
-Mutual exclusion is enforced, removing the possibility of *Lost Updates* occurring as a result of race conditions.
-
-Instead of being implemented based on `atomicCAS`, these atomic operations perform a read-modify-write atomic operation on one 32-bit or 64-bit word residing in global or shared memory.
-
-The operation is atomic in the sense that it is guaranteed to be performed without interference from other threads.
-
-atomicMin reads the 32-bit or 64-bit word `old` located at the address `address` in global or shared memory, computes the minimum of `old` and `val`, and stores the result back to memory at the same address. These three operations are performed in one atomic transaction. The function returns `old`.
+In parallelized Gale-Shapley (GS) algorithms, we ensure that each woman selects the best proposal with the minimum numerical value when many proposals are made simultaneously. Therefore, we use `atomicMin` for this purpose.
 
 
 
-With `atomicMin`, each value attempts to update the shared memory location to the minimum of the current value and the new value. If the new value is smaller, it replaces the original value; otherwise, the original value remains unchanged. This ensures that each thread performs the operation only once, eliminating the need for repeated retries.
+The `atomicMin` function in CUDA reads the 32-bit or 64-bit word `old` at the address in global or shared memory, computes the minimum of `old` and `val`, stores the result back to memory at the same address—all in one atomic transaction. The function then returns `old` so the caller can determine whether the value has been updated. If `old` is larger, the caller knows the value has been updated to `val`; otherwise, no update has occurred.
 
-Therefore ,  `atomicMin` significantly reduces the number of atomic operations compared to `atomicCAS`.
 
-According to Lemma 5.1, For a Stable Marriage Problem (SMP) instance with 𝑛*n* men and 𝑛*n* wome, the total number of `atomicMin` operations will be 𝑂(𝑛2)*O*(*n*2), much smaller than   the total number of `atomicCAS` operations, which is asymptotically smaller than the 𝑂(𝑛3)*O*(*n*3) operations required by `atomicCAS`.
+
+The advantage of `atomicMin` in parallelizing GS is that it does not require an expected value to proceed only if the expected value matches the `old`. This ensures that each thread performs the operation only once, eliminating the need for repeated retries. Specifically, even if the returned value mismatches the previously read one and is still larger than `val`, `atomicMin` can proceed to update the minimum value with `val`, whereas atomicCAS would need to repeat the operation.
+
+
+
+As a result, `atomicMin` significantly reduces the number of atomic operations compared to using `atomicCAS` (compare-and-swap). According to Lemma 5.1, for a Stable Marriage Problem (SMP) instance with nnn men and nnn women, the total number of `atomicMin` operations is O(n2)O(n^2)O(n2), which is significantly smaller than the O(n3)O(n^3)O(n3) operations required by `atomicCAS`.
+
+
+
+This optimization is crucial for implementing high-performance parallel algorithms in modern computing environments. By leveraging this atomic function provided by modern GPU architectures, the GS algorithm can achieve significant performance improvements, reducing the total number of atomic operations and streamlining the synchronization process. Using `atomicMin`, we can implement a parallel version of the Locality-Aware implementation of the GS algorithm for the Stable Marriage Problem (SMP) that handles contention efficiently.
 
 
 
@@ -1324,15 +1324,20 @@ Let the initial value in the shared memory location be \( v_{n+1} \), and the va
 
 ### Descrition of Algorithm
 
-Using `atomicMin`, we can implement a parallel version of the Locality-Aware implementation of GS algorithm for the Stable Marriage Problem (SMP) that handles contention efficiently
+```
+This optimization is crucial for implementing high-performance parallel algorithms in modern computing environments. By leveraging the atomic functions provided by modern GPU architectures, the GS algorithm can achieve significant performance improvements. This reduces the total number of atomic operations and streamlines the synchronization process. Using \texttt{atomicMin}, we can implement a parallel version of the Locality-Aware GS algorithm for the Stable Marriage Problem (SMP) that handles contention efficiently.
 
-The algorithm operates in parallel, with each processor (thread) corresponding to a unique man. The main data structures used are PRNodes, preference lists for women, and the rank matrix for men. Another crucial data structure is Women's Match Ranks, an array initialized with 𝑛*n* entries set to 𝑛*n*, indicating that all women are unpaired and ready to pair with any proposer. This array stores the rank of the current partner for each woman and will be returned as the result of the SMP instance.
+The algorithm operates in parallel, with each processor (thread) corresponding to a unique man. While the parallel algorithm inherits most of the logic from its sequential version, the key difference lies in how it ensures mutual exclusion and prevents race conditions by using \texttt{atomicMin} to update the shared data structure \texttt{partnerRank}.
 
-The algorithm proceeds as follows: each processor starts by initializing variables for the man's ID (`manID`), the rank of the current proposal (`r_w`), and a flag (`matched`) to track whether the man has successfully paired. Each man then repeatedly proposes to the next woman on his preference list. The processor retrieves the next woman and the rank of the man from the PRNodes array. When a man proposes to a woman, `atomicMin` attempts to update the woman's current match to the proposing man if his rank is better (lower) than her current match. This atomic operation ensures that only one man's proposal is accepted if multiple proposals are made simultaneously.
+Each thread, representing a man \(m\), starts by proposing to the highest-ranked woman on his preference list that he has not yet proposed to. After retrieving the current partner's rank \(p\_rank\) for woman \(w\) from \texttt{partnerRank[w]}, the algorithm checks if \(p\_rank\) is greater than \(m\_rank\). If \(p\_rank > m\_rank\), meaning the woman \(w\) prefers the current proposer \(m\) over her current partner, the \texttt{partnerRank[w]} is updated to \(m\_rank\) using \texttt{atomicMin(\&partnerRank[w], m\_rank)}. If the update is successful and \(p\_rank\) equals \(n + 1\), indicating the woman was previously unpaired and no man is rejected, the variable \texttt{done} is set to \texttt{true} to terminate the main loop.
 
-There are three cases for a proposal. If a proposal is accepted by an unpaired woman, the processor sets the `matched` flag to true, indicating that the processor should complete its execution. If the proposal is rejected because the woman's current match has a lower rank, the man moves to the next woman on his list, and the loop continues. If the proposal is accepted but the woman prefers the new proposer over her current match, the processor updates the `manID` to the rejected man (the woman's previous match), using the preference list of that woman, and sets `r_w` to the next rank this rejected man should propose to, based on the woman's rank matrix. The rejected man then continues proposing to the next woman on his preference list.
+If \(p\_rank\) is not equal to \(n + 1\), meaning the woman is currently paired with another partner she prefers less, the ID of that partner and the rank of his last proposed woman are retrieved from \texttt{PRNodesW[w, m\_rank]}. In this case, the current partner of woman \(w\) is rejected and will have to propose to the next woman on his preference list in the next iteration.
 
-The loop continues until a proposal is accepted by an unpaired woman. By using `atomicMin`, the algorithm ensures efficient handling of contention, allowing multiple proposals and updates to occur simultaneously. This leads to improved performance and faster convergence.
+```
+
+
+
+
 
 
 
