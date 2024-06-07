@@ -738,8 +738,6 @@ While it may seem straightforward to ensure that each woman accepts the best pro
 
 
 
-
-
 ### Lock
 
 To address data races in the GS algorithm, one common approach is to use locks. Each thread locks the data before updating it, ensuring exclusive access to the critical section for each woman. However, this method introduces significant overhead due to the frequent acquisition and release of locks, particularly in a highly concurrent environment. The GS algorithm's need for frequent and fine-grained updates makes locks inefficient, as they cause excessive waiting times and performance overhead, rendering them unsuitable for efficient parallelization.
@@ -974,7 +972,9 @@ The main procedure of thread2 involves the use of both the second GPU (GPU2) and
 
 
 
-# Cohabitation-Locality-Aware Algo
+
+
+# Locality-Aware Implementation of the GS Algorithm
 
 we recognize a critical relationship between the recipient index and the rank of the proposer in the recipient’s preference list. Our finding enables us to implement a preprocessing step that eliminates data dependencies, allowing related data to be accessed together. This preprocessing step lays the foundation for a new data structure for the sequential algorithm implementation so that spatial locality can be fully exploited to significantly reduce the data accessing latency. 
 
@@ -984,26 +984,15 @@ We have developed a new data structure for implementing the GS algorithm that ef
 
 
 
-## Logical Flow
+## Depdendent Data Access Pattern
 
 ```
 As discussed in Section 2, the primary overhead in the GS algorithm arises from accessing the data structures, specifically the rank matrix \texttt{RankMatrixW} and the \texttt{Next} array. To identify key points where optimizations in the organization of these two data structures are possible, it is essential to clarify the dependent relationship between data access patterns.
 
-In Algorithm 1, after retrieving the ID of the best woman who has yet to reject the proposer from his preference list on line 16, the rank matrix is accessed on line 17 to determine the man's rank in the woman's preference list. Specifically, when accessing the men's preference list entry for man \(m\) at rank \(r\) (denoted as \texttt{PrefListM[m, r]}), we obtain woman \(w\). This necessitates a subsequent access to the rank matrix entry for woman \(w\) and man \(m\) (denoted as \texttt{RankMatrixW[w, m]}) to determine the man's rank in her list.
+In Algorithm 1, after retrieving the ID of the best woman who has yet to reject the proposer from his preference list on line 16, the rank matrix is accessed on line 17 to determine the man's rank in the woman's preference list. Specifically, when accessing the men's preference list entry for man \texttt{m} at rank \texttt{r} (denoted as \texttt{PrefListM[m, r]}), we obtain woman \texttt{w}. This necessitates a subsequent access to the rank matrix entry for woman \texttt{w} and man \texttt{m} (denoted as \texttt{RankMatrixW[w, m]}) to determine the man's rank in her list. This process illustrates a direct one-to-one correspondence between the men's preference list (\texttt{PrefListM}) and the women's rank matrix (\texttt{RankMatrixW}). Each man's decision on which specific woman to propose to is directly mapped to the rank of the proposer in the woman's preference list. Thus, each entry in the men's preference list is intrinsically linked to a unique entry in the women's rank matrix. If these data structures are stored together, both pieces of information can be accessed with a single load instruction, eliminating the need to access \texttt{RankMatrixW} separately. This optimization can significantly reduce the overhead associated with data access in the GS algorithm.
 
-This process illustrates a direct one-to-one correspondence between the men's preference list (\texttt{PrefListM}) and the women's rank matrix (\texttt{RankMatrixW}). Each man's decision on which specific woman to propose to is directly mapped to the rank of the proposer in the woman's preference list. Thus, each entry in the men's preference list is intrinsically linked to a unique entry in the women's rank matrix.
+Similarly, there is a one-to-one correspondence between the access of the women's preference list \texttt{PrefListW} and the men's rank matrix texttt{RankMatrixM}. By constructing \texttt{RankMatrixM} in a similar way to \texttt{RankMatrixW}, we can optimize the data access pattern of the \texttt{Next} array. When a woman accepts a new proposal and is already paired with a man ranked \texttt{p_r} on her preference list, the women's preference list is accessed by \texttt{PrefListW[w, p_r]} on line 24 to determine the ID of the rejected partner \texttt{p}. Subsequently, the algorithm accesses \texttt{Next[p]} to get the rank of the next woman who has yet to reject the partner on line 14 for future proposals. However, accessing \texttt{Next[p]} directly is not always necessary. Since \texttt{w} is paired with \texttt{p}, \texttt{w} is the last woman that \texttt{p} proposed to. Therefore, the rank of the last woman \texttt{p} proposed to is stored in \texttt{RankMatrixM[p, w]}. By accessing \texttt{RankMatrixM[p, w]}, we can determine the rank of the best woman who has yet to reject \texttt{p} by simply adding one to this value, resulting in \texttt{RankMatrixM[p, w] + 1}. Given that this occurs after accessing \texttt{PrefListW[w, p_r]} and identifying \texttt{p}, it becomes evident that there is a one-to-one correspondence between \texttt{PrefListW[w, p_r]} and \texttt{RankMatrixM[p, w]}.
 
-
-If these data structures are stored together, both pieces of information can be accessed with a single load instruction, eliminating the need to access \texttt{RankMatrixW} separately. This optimization can significantly reduce the overhead associated with data access in the GS algorithm.
-
-Similarly, there is a one-to-one correspondence between the access of the women's preference list (\texttt{PrefListW}) and the men's rank matrix (\texttt{RankMatrixM}). By constructing \texttt{RankMatrixM} in a similar way to \texttt{RankMatrixW}, we can optimize the data access pattern of the \texttt{Next} array.
-
-When a woman accepts a new proposal and is already paired with a man ranked \(p_r\) on her preference list, the women's preference list is accessed by \texttt{PrefListW[w, p_r]} on line 24 to determine the ID of the rejected partner \(p\). Subsequently, the algorithm accesses \texttt{Next[p]} to get the rank of the next woman who has yet to reject the partner on line 14 for future proposals.
-
-
-However, accessing \texttt{Next[p]} directly is not always necessary. Since \(w\) is paired with \(p\), \(w\) is the last woman that \(p\) proposed to. Therefore, the rank of the last woman \(p\) proposed to is stored in \texttt{RankMatrixM[p, w]}. 
-
-By accessing \texttt{RankMatrixM[p, w]}, we can determine the rank of the best woman who has yet to reject \(p\) by simply adding one to this value, resulting in \texttt{RankMatrixM[p, w] + 1}. Given that this occurs after accessing \texttt{PrefListW[w, p_r]} and identifying \(p\), it becomes evident that there is a one-to-one correspondence between \texttt{PrefListW[w, p_r]} and \texttt{RankMatrixM[p, w]}.
 ```
 
 
@@ -1024,7 +1013,7 @@ Similarly, each PRNode in PRMatrixW includes an entry from the women's preferenc
 
 
 
-## PRMarrx Init
+## PRMatrix Init
 
 ```
 Setting up PRMatrix involves two main steps in the preprocessing phase, as shown in Algorithm 2: constructing the rank matrices and then configuring the PRNodes.
@@ -1065,7 +1054,8 @@ for m = 1 to n:
 for w = 1 to n:
 	for r_m = 1 to n:
 		m = prefListsW[w, r_m]
-		rankMatrixM[w, m] = r_m
+		rankMatrixW[w, m] = r_m
+	
 		
 // Initializartion of PRMatrices
 for m = 1 to n:
@@ -1086,22 +1076,61 @@ for i = 1 to n:
 
 
 
+```
+\begin{algorithm}
+\caption{Building the Rank Matrix}
+\label{InitRankMatrix}
+\begin{algorithmic}[1]
+\State \textbf{Input:} \text{prefLists}
+\State \textbf{Output:} \text{rankMatrix}
+\For{$i = 1$ to $n$}
+    \For{$r = 1$ to $n$}
+        \State $j \gets \text{prefLists}[i, r]$
+        \State $\text{rankMatrix}[i, j] \gets r$
+    \EndFor
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+```
+
+
+
+```
+\begin{algorithm}
+\caption{Building the PR Matrix}
+\begin{algorithmic}[1]
+\State \textbf{Input:} \text{prefLists}, \text{rankMatrix}
+\State \textbf{Output:} \text{PRMatrix}
+\For{$i = 1$ to $n$}
+    \For{$r = 1$ to $n$}
+        \State $j \gets \text{prefLists}[i, r]$
+        \State $r' \gets \text{rankMatrix}[j, i]$
+        \State $\text{PRMatrix}[i, r] \gets (j, r')$
+    \EndFor
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+```
+
+
+
 ## Locality-Aware implementation of GS(MW) algorithm
 
 ```
-The PRMatrix structure eliminates the need for separate accesses to the rank matrix and the next array, laying the foundation for a more efficient locality-aware sequential implementation of the GS algorithm.
+The \texttt{PRMatrix} structure eliminates the need for separate accesses to the rank matrix and the next array, laying the foundation for a more efficient locality-aware sequential implementation of the GS algorithm.
 
-To implement this new locality-aware approach, we begin with the preprocessing phase, where we construct PRMatrices as previously discussed, along with the \textit{partnerRank} data structure.
+To implement this new locality-aware approach, we begin with the preprocessing phase, where we construct \texttt{PRMatrices} as previously discussed, along with the \texttt{partnerRank} data structure.
 
 Following the initialization, the execution phase involves iterating through each man who has not yet made a proposal and invoking the \texttt{performLocalityAwareMatching} procedure for each man.
 
-Within \texttt{performLocalityAwareMatching}, we initialize \texttt{done} to \texttt{False} and \texttt{w\_rank} to 1, as the man $m$ has not been rejected by any woman yet and can propose to the highest-ranked woman on his list. Similar to the MW algorithm, after each iteration, \texttt{performLocalityAwareMatching} handles the rejected man from the previous iteration, continuing until a proposal is accepted, indicated by \texttt{done} being set to \texttt{True}.
+Within \texttt{performLocalityAwareMatching}, we initialize \texttt{done} to \texttt{False} and \texttt{w\_rank} to 1, as the man \texttt{m} has not been rejected by any woman yet and can propose to the highest-ranked woman on his list. Similar to the MW algorithm, after each iteration, \texttt{performLocalityAwareMatching} handles the rejected man from the previous iteration, continuing until a proposal is accepted, indicated by \texttt{done} being set to \texttt{True}.
 
-During each iteration, we retrieve the woman $w$ and the rank $m\_rank$ from \texttt{PRNodesM} for the current man $m$ and increment \texttt{w\_rank}. We then check the current partner's rank $p\_rank$ for woman $w$ from \textit{partnerRank}.
+During each iteration, we retrieve the woman \texttt{w} and the rank \texttt{m\_rank} from \texttt{PRNodesM} for the current man \texttt{m} and increment \texttt{w\_rank}. We then check the current partner's rank \texttt{p\_rank} for woman \texttt{w} from \texttt{partnerRank}.
 
-If $p\_rank$ is greater than $m\_rank$, meaning the woman $w$ prefers the current proposer $m$ over her current partner, we update \textit{partnerRank}[$w$] to $m\_rank$. If $p\_rank$ equals $n + 1$, indicating the woman was previously unpaired and no man is rejected, we set \texttt{done} to \texttt{True} to terminate the main loop. If $p\_rank$ is not equal to $n + 1$, meaning the woman is currently paired with another partner she prefers less, we retrieve the ID of that partner and the rank of his last proposed woman from \texttt{PRNodesW}.
+If \texttt{p\_rank} is greater than \texttt{m\_rank}, meaning the woman \texttt{w} prefers the current proposer \texttt{m} over her current partner, we update \texttt{partnerRank[w]} to \texttt{m\_rank}. If \texttt{p\_rank} equals \texttt{n + 1}, indicating the woman was previously unpaired and no man is rejected, we set \texttt{done} to \texttt{True} to terminate the main loop. If \texttt{p\_rank} is not equal to \texttt{n + 1}, meaning the woman is currently paired with another partner she prefers less, we retrieve the ID of that partner and the rank of his last proposed woman from \texttt{PRNodesW}.
 
-Then, \texttt{w_rank} is incremented by 1 to indicate the next rank of the woman the current man will propose to in the next iteration. The loop then checks whether a rejected man exists at the end of the loop to determine it should terminate or continue.
+Then, \texttt{w\_rank} is incremented by 1 to indicate the next rank of the woman the current man will propose to in the next iteration. The loop then checks whether a rejected man exists at the end of the loop to determine if it should terminate or continue.
+
 ```
 
 
@@ -1221,6 +1250,29 @@ By organizing the data in this manner, the PRNodes effectively encapsulate the n
 
 
 
+```
+
+\textbf{Phase 1: Initializing the Rank Matrices}
+
+In this phase, the algorithm initializes the rank matrices using parallel processing to ensure efficiency. Each processing unit handles a specific element in the preference lists for men and women.
+
+For the men's rank matrix, the algorithm iterates over each man \(m\) and each rank \(r\) in parallel. It retrieves the woman \(w\) from the men's preference list at position \((m, r)\) and assigns the rank \(r\) to the men's rank matrix at position \((m, w)\). This indicates that woman \(w\) is the \(r\)-th preference of man \(m\). The women's rank matrix is generated in a similar way. By leveraging parallel processing, the algorithm ensures that both men's and women's preferences are accurately represented in the rank matrices.
+
+\textbf{Phase 2: Initializing the PRNodes}
+
+Once the rank matrices are initialized, the algorithm proceeds to the second phase: initializing the PRNodes. This phase further leverages the information established in the first phase to create a more efficient data structure.
+
+For each man \(m\) and each rank \(r_w\), the algorithm retrieves the woman \(w\) corresponding to rank \(r_w\) in man \(m\)'s preference list. It then retrieves \(r_m\), which is the rank of man \(m\) in woman \(w\)'s preference list from the women's rank matrix. The PRNode matrix at position \((m, r_w)\) is then assigned the pair \((w, r_m)\). This encapsulation of data ensures that when the Gale-Shapley algorithm runs, each access to a PRNode provides both the woman to whom a proposal should be made and her ranking of the proposer in a single operation.
+
+By organizing the data in this manner, the PRNodes effectively encapsulate the necessary entries from the preference lists and rank matrices, ensuring that related data is closely coupled and can be accessed efficiently. The use of parallel processing in both phases allows the algorithm to handle large datasets quickly and efficiently, optimizing memory access patterns and reducing the frequency and impact of memory jumps.
+
+This two-phase preprocessing algorithm processes $O(n^2)$ entries in each phase. The independence of each entry during processing allows for significant parallelization. Theoretically, with a sufficient number of processors, the entire preprocessing can be accomplished in constant time. By utilizing the large number of SIMD threads provided by a GPU, the algorithm can efficiently handle large datasets, quickly initializing the PRNodes and optimizing the overall execution of the Gale-Shapley algorithm.
+
+
+```
+
+
+
 **Conclusion**
 
 This two-phase preprocessing algorithm processes 𝑂(𝑛2)*O*(*n*2) entries in each phase. The independence of each entry during processing allows for significant parallelization. Theoretically, with a sufficient number of processors, the entire preprocessing can be accomplished in constant time. By utilizing the large number of SIMD threads provided by a GPU, the algorithm can efficiently handle large datasets, quickly initializing the PRNodes and optimizing the overall execution of the Gale-Shapley algorithm.
@@ -1229,27 +1281,50 @@ This two-phase preprocessing algorithm processes 𝑂(𝑛2)*O*(*n*2) entries in
 
 # Conflict Resolution-atomicMin
 
-Handling the optimal proposer in the Gale-Shapley (GS) algorithm involves finding the minimum value among possible proposals for a woman, corresponding to the highest priority proposal from the proposing man. This minimization process is critical for determining optimal matches and ensuring the algorithm converges efficiently to a stable state.
+In modern CPUs, such a specific atomic operation that reads a value, computes the minimum with another value, and stores the result back in one atomic transaction is not directly provided as a single instruction. However, CPUs provide a variety of atomic operations and primitives that can be used to build such functionality.
 
-To solve this synchronization problem, the `atomicMin` operation can be used effectively. `atomicMin` is an atomic operation implemented on GPUs, similar to `atomicCAS`. According to the CUDA documentation, `atomicMin` reads a 32-bit or 64-bit word located at a given address in global or shared memory, computes the minimum of this value and a given value, and stores the result back to the memory address in a single atomic transaction. The function returns the original value before the update, allowing us to check if the atomic operation succeeded.
 
-`atomicMin` significantly reduces the number of atomic operations compared to `atomicCAS`. With `atomicMin`, each value attempts to update the shared memory location to the minimum of the current value and the new value. If the new value is smaller, it replaces the original value; otherwise, the original value remains unchanged. This ensures that each thread performs the operation only once, eliminating the need for repeated retries.
 
-In a scenario with 𝑛*n* values, `atomicMin` ensures that each value attempts the update operation exactly once, resulting in a total of 𝑂(𝑛)*O*(*n*) atomic operations. For a Stable Marriage Problem (SMP) instance with 𝑛*n* men and 𝑛*n* women, a woman can be proposed to by at most 𝑛*n* men. Thus, the total number of `atomicMin` operations will be 𝑂(𝑛2)*O*(*n*2), similar to the total number of `atomicCAS` operations, which is asymptotically smaller than the 𝑂(𝑛3)*O*(*n*3) operations required by `atomicCAS`.
+a single atomic operation that performs a read-modify-write (RMW) cycle for a minimum function, modern GPU architectures like NVIDIA's CUDA provide atomic functions like `atomicMin`
+
+
+
+CUDA Provides a full suite of atomic functions for performing arithmetic operations.
+
+Mutual exclusion is enforced, removing the possibility of *Lost Updates* occurring as a result of race conditions.
+
+Instead of being implemented based on `atomicCAS`, these atomic operations perform a read-modify-write atomic operation on one 32-bit or 64-bit word residing in global or shared memory.
+
+The operation is atomic in the sense that it is guaranteed to be performed without interference from other threads.
+
+atomicMin reads the 32-bit or 64-bit word `old` located at the address `address` in global or shared memory, computes the minimum of `old` and `val`, and stores the result back to memory at the same address. These three operations are performed in one atomic transaction. The function returns `old`.
+
+
+
+With `atomicMin`, each value attempts to update the shared memory location to the minimum of the current value and the new value. If the new value is smaller, it replaces the original value; otherwise, the original value remains unchanged. This ensures that each thread performs the operation only once, eliminating the need for repeated retries.
+
+Therefore ,  `atomicMin` significantly reduces the number of atomic operations compared to `atomicCAS`.
+
+According to Lemma 5.1, For a Stable Marriage Problem (SMP) instance with 𝑛*n* men and 𝑛*n* wome, the total number of `atomicMin` operations will be 𝑂(𝑛2)*O*(*n*2), much smaller than   the total number of `atomicCAS` operations, which is asymptotically smaller than the 𝑂(𝑛3)*O*(*n*3) operations required by `atomicCAS`.
+
+
+
+```
+\begin{lemma}
+For a Stable Marriage Problem (SMP) instance with \( n \) men and \( n \) women, the total number of \texttt{atomicMin} executions is \( O(n^2) \).
+\end{lemma}
+
+\begin{proof}
+Let the initial value in the shared memory location be \( v_{n+1} \), and the values proposed by the threads be \( v_1, v_2, \ldots, v_n \), sorted such that \( v_1 < v_2 < \ldots < v_n < v_{n+1} \). Each thread will execute \texttt{atomicMin} only once since there won't be failures—each thread writes the minimum of the proposed value and the value stored in the memory location. Thus, the total number of \texttt{atomicMin} executions to determine the minimum value among \( n \) values is \( n \). This pattern continues for all \( n \) rounds of proposal, resulting in a worst-case scenario of \( O(n^2) \) \texttt{atomicMin} executions.
+\end{proof}
+
+```
 
 
 
 ### Descrition of Algorithm
 
-```
-int atomicMin(int* addr, int val) {
-	int old = *addr;
-	*addr = min(old, val);
-	return old;
-}
-```
-
-Using `atomicMin`, we can implement a parallel version of the McVitie-Wilson algorithm for the Stable Marriage Problem (SMP) that handles contention efficiently, as described in Algorithm 2.
+Using `atomicMin`, we can implement a parallel version of the Locality-Aware implementation of GS algorithm for the Stable Marriage Problem (SMP) that handles contention efficiently
 
 The algorithm operates in parallel, with each processor (thread) corresponding to a unique man. The main data structures used are PRNodes, preference lists for women, and the rank matrix for men. Another crucial data structure is Women's Match Ranks, an array initialized with 𝑛*n* entries set to 𝑛*n*, indicating that all women are unpaired and ready to pair with any proposer. This array stores the rank of the current partner for each woman and will be returned as the result of the SMP instance.
 
