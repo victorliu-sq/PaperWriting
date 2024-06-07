@@ -1,8 +1,10 @@
-You can insert sentences, deleted sentences and reorder sentences, (also for words) to strengthen the connections between sentences
+Can you rewrite these sentences in your words? 
+
+You can insert sentences, deleted sentences and reorder sentences, (also for words) to strengthen the connections between sentences.
 
 
 
-These paragraphs have too many duplicated information like "" Please make it concise and easy to read
+ These paragraphs also have too many duplicated information / words. Please make it concise and easy to read
 
 
 
@@ -1022,10 +1024,10 @@ Similarly, each PRNode in PRMatrixW includes an entry from the women's preferenc
 
 
 
-## preprocessing algorithm
+## PRMarrx Init
 
 ```
-To set up PRMatrix, the preprocessing phase involves two main steps: constructing the rank matrices and then configuring the PRNodes.
+Setting up PRMatrix involves two main steps in the preprocessing phase, as shown in Algorithm 2: constructing the rank matrices and then configuring the PRNodes.
 
 Rather than constructing only \textit{RankMatrixW} as done in Algorithm 1, both \textit{RankMatrixW} and \textit{RankMatrixM} will be built using the same mechanisms. Once these rank matrices are in place, the algorithm proceeds to configure the PRMatrices.
 
@@ -1084,26 +1086,22 @@ for i = 1 to n:
 
 
 
-
-
 ## Locality-Aware implementation of GS(MW) algorithm
 
 ```
-In addition to PRMatrices, the only data structure we need to initialize is \textit{partnerRank}. This preprocessing step for PRMatrix lays the foundation for a new locality-aware sequential implementation of the algorithm for SMP, allowing spatial locality to be fully exploited and significantly reducing data access latency.
+The PRMatrix structure eliminates the need for separate accesses to the rank matrix and the next array, laying the foundation for a more efficient locality-aware sequential implementation of the GS algorithm.
 
-In this algorithm, the main loop iterates through each man who has not yet made a proposal, calling the \texttt{performLocalityAwareMatching} procedure. This procedure is designed to efficiently manage the proposing process for the man and any subsequently rejected men by leveraging the locality-aware PRMatrix.
+To implement this new locality-aware approach, we begin with the preprocessing phase, where we construct PRMatrices as previously discussed, along with the \textit{partnerRank} data structure.
+
+Following the initialization, the execution phase involves iterating through each man who has not yet made a proposal and invoking the \texttt{performLocalityAwareMatching} procedure for each man.
 
 Within \texttt{performLocalityAwareMatching}, we initialize \texttt{done} to \texttt{False} and \texttt{w\_rank} to 1, as the man $m$ has not been rejected by any woman yet and can propose to the highest-ranked woman on his list. Similar to the MW algorithm, after each iteration, \texttt{performLocalityAwareMatching} handles the rejected man from the previous iteration, continuing until a proposal is accepted, indicated by \texttt{done} being set to \texttt{True}.
 
-
 During each iteration, we retrieve the woman $w$ and the rank $m\_rank$ from \texttt{PRNodesM} for the current man $m$ and increment \texttt{w\_rank}. We then check the current partner's rank $p\_rank$ for woman $w$ from \textit{partnerRank}.
-
 
 If $p\_rank$ is greater than $m\_rank$, meaning the woman $w$ prefers the current proposer $m$ over her current partner, we update \textit{partnerRank}[$w$] to $m\_rank$. If $p\_rank$ equals $n + 1$, indicating the woman was previously unpaired and no man is rejected, we set \texttt{done} to \texttt{True} to terminate the main loop. If $p\_rank$ is not equal to $n + 1$, meaning the woman is currently paired with another partner she prefers less, we retrieve the ID of that partner and the rank of his last proposed woman from \texttt{PRNodesW}.
 
-Finally, \texttt{w_rank} is incremented by 1 to indicate the next rank of the woman the current man will propose to in the next iteration. The loop then checks whether a rejected man exists at the end of the loop to determine it should terminate or continue.
-
-In summary, by using PRMatrix to integrate preference lists and rank matrices, we create a new locality-aware sequential algorithm that efficiently handles proposals and rejections. The integration eliminates the need for separate access to the rank matrix and the next array, significantly reducing data access latency and improving overall performance in solving SMP.
+Then, \texttt{w_rank} is incremented by 1 to indicate the next rank of the woman the current man will propose to in the next iteration. The loop then checks whether a rejected man exists at the end of the loop to determine it should terminate or continue.
 ```
 
 
@@ -1147,6 +1145,10 @@ The first one-to-one correspondence is between the men's preference list (`PrefL
 
 
 This rank is crucial for deciding whether the woman will accept or reject the proposal based on her current partner's rank.
+
+
+
+The \texttt{performLocalityAwareMatching} procedure is designed to efficiently manage the proposing process for the man and any subsequently rejected men by leveraging the locality-aware PRMatrix.
 
 
 
