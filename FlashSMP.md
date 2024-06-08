@@ -1281,7 +1281,7 @@ As previously mentioned, in parallelized Gale-Shapley (GS) algorithms, each woma
 
 
 
-To overcome this problem, we need a fine-grained hardware primitive that handles contention well. Unfortunately, modern CPUs still depend on atomicCAS implementations to perform  specific arithmetic functions using a read-modify-write (RMW) process. However, modern GPU architectures, such as NVIDIA's CUDA, provide a full suite of atomic functions designed for arithmetic operations. Among these, `atomicMin` effectively addresses the challenges of synchronization and contention in parallelized Gale-Shapley (GS) algorithms.
+To overcome this problem, we need a fine-grained hardware primitive that handles high memory contention efficiently. Modern CPUs still rely on atomicCAS implementations to perform specific arithmetic functions using a read-modify-write (RMW) process. In contrast, modern GPU architectures, such as NVIDIA's CUDA, offer a comprehensive set of atomic functions for arithmetic operations. Among these, `atomicMin` effectively addresses the challenges of synchronization and high contention in parallelized Gale-Shapley (GS) algorithms.
 
 
 
