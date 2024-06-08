@@ -1281,15 +1281,21 @@ This two-phase preprocessing algorithm processes 𝑂(𝑛2)*O*(*n*2) entries in
 
 # Conflict Resolution-atomicMin
 
-In parallelized Gale-Shapley (GS) algorithms, ensuring mutual exclusion when updating shared data structures, such as `partnerRank`, is critical to avoid race conditions and lost updates. Traditional synchronization methods can be inefficient, especially in high-performance computing environments, leading to wasted work due to high memory contention.
+In parallelized Gale-Shapley (GS) algorithms, each woman selects the best proposal with the minimum numerical value when multiple proposals are made simultaneously.
+
+As previously mentioned, traditional synchronization methods can be inefficient when updating shared data structures like `partnerRank` due to the high cost of coarse-grained synchronization and wasted work from atomicCAS failures under high memory contention.. 
 
 
 
-While modern CPUs do not provide a single atomic operation that performs a read-modify-write (RMW) cycle for a minimum function and instead rely on implementations based on atomicCAS, modern GPU architectures like NVIDIA's CUDA provide a full suite of atomic functions designed for arithmetic operations, including `atomicMin`, to address these challenges effectively.
+To overcome this problem, we need a fine-grained hardware primitive that guarantees success to avoid retries.
 
 
 
-In parallelized Gale-Shapley (GS) algorithms, we ensure that each woman selects the best proposal with the minimum numerical value when many proposals are made simultaneously. Therefore, we use `atomicMin` for this purpose.
+Unfortunately, modern CPUs lack a single atomic operation for performing specific arithmetic functions using a read-modify-write (RMW) process and still depend on atomicCAS implementations.
+
+However, modern GPU architectures, such as NVIDIA's CUDA, provide a full suite of atomic functions designed for arithmetic operations. Among these, `atomicMin` effectively addresses the challenges of synchronization and contention in parallelized Gale-Shapley (GS) algorithms.
+
+
 
 
 
@@ -1337,7 +1343,7 @@ If \(p\_rank\) is not equal to \(n + 1\), meaning the woman is currently paired 
 
 
 
-
+Massive Parallelism of Locality-Aware GS
 
 
 
