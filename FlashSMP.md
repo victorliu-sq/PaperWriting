@@ -1159,10 +1159,6 @@ Procedure LocalityAwareProcedure(m)
 
 
 
-
-
-
-
 ### Unused
 
 Both `RankMatrixW` and the `Next` array exhibit a direct mapping between entries in the preference lists and the corresponding rank matrices. This observation underscores the potential for optimizing memory access patterns by leveraging the inherent structure of the GS algorithm.
@@ -1281,9 +1277,11 @@ This two-phase preprocessing algorithm processes 𝑂(𝑛2)*O*(*n*2) entries in
 
 # Conflict Resolution-atomicMin
 
-In parallelized Gale-Shapley (GS) algorithms, each woman selects the best proposal with the minimum numerical value when multiple proposals are made simultaneously.
+As previously mentioned, in parallelized Gale-Shapley (GS) algorithms, each woman needs to select the best proposal with the minimum numerical value when multiple proposals are made simultaneously.
 
-As previously mentioned, traditional synchronization methods can be inefficient when updating shared data structures like `partnerRank` due to the high cost of coarse-grained synchronization and wasted work from atomicCAS failures under high memory contention.. 
+
+
+However, traditional synchronization methods can be inefficient when updating shared data structures like `partnerRank` due to the high cost of coarse-grained synchronization and wasted work from atomicCAS failures under high memory contention.. 
 
 
 
@@ -1293,9 +1291,9 @@ To overcome this problem, we need a fine-grained hardware primitive that guarant
 
 Unfortunately, modern CPUs lack a single atomic operation for performing specific arithmetic functions using a read-modify-write (RMW) process and still depend on atomicCAS implementations.
 
+
+
 However, modern GPU architectures, such as NVIDIA's CUDA, provide a full suite of atomic functions designed for arithmetic operations. Among these, `atomicMin` effectively addresses the challenges of synchronization and contention in parallelized Gale-Shapley (GS) algorithms.
-
-
 
 
 
@@ -1303,15 +1301,11 @@ The `atomicMin` function in CUDA reads the 32-bit or 64-bit word `old` at the ad
 
 
 
-The advantage of `atomicMin` in parallelizing GS is that it does not require an expected value to proceed only if the expected value matches the `old`. This ensures that each thread performs the operation only once, eliminating the need for repeated retries. Specifically, even if the returned value mismatches the previously read one and is still larger than `val`, `atomicMin` can proceed to update the minimum value with `val`, whereas atomicCAS would need to repeat the operation.
+The advantage of `atomicMin` in parallelizing GS is that it does not require an expected value to proceed if and only if the expected value matches the `old`. This ensures that each thread performs the operation only once, eliminating the need for repeated retries. Specifically, even if the returned value mismatches the previously read one and is still larger than `val`, `atomicMin` can proceed to update the minimum value with `val`, whereas atomicCAS would need to repeat the operation.
 
 
 
 As a result, `atomicMin` significantly reduces the number of atomic operations compared to using `atomicCAS` (compare-and-swap). According to Lemma 5.1, for a Stable Marriage Problem (SMP) instance with nnn men and nnn women, the total number of `atomicMin` operations is O(n2)O(n^2)O(n2), which is significantly smaller than the O(n3)O(n^3)O(n3) operations required by `atomicCAS`.
-
-
-
-This optimization is crucial for implementing high-performance parallel algorithms in modern computing environments. By leveraging this atomic function provided by modern GPU architectures, the GS algorithm can achieve significant performance improvements, reducing the total number of atomic operations and streamlining the synchronization process. Using `atomicMin`, we can implement a parallel version of the Locality-Aware implementation of the GS algorithm for the Stable Marriage Problem (SMP) that handles contention efficiently.
 
 
 
@@ -1331,9 +1325,11 @@ Let the initial value in the shared memory location be \( v_{n+1} \), and the va
 ### Descrition of Algorithm
 
 ```
-This optimization is crucial for implementing high-performance parallel algorithms in modern computing environments. By leveraging the atomic functions provided by modern GPU architectures, the GS algorithm can achieve significant performance improvements. This reduces the total number of atomic operations and streamlines the synchronization process. Using \texttt{atomicMin}, we can implement a parallel version of the Locality-Aware GS algorithm for the Stable Marriage Problem (SMP) that handles contention efficiently.
+By leveraging the atomic functions provided by modern GPU architectures, a parallel version of the Locality-Aware GS algorithm can be implemented efficiently for the SMP associated with high contention.
 
-The algorithm operates in parallel, with each processor (thread) corresponding to a unique man. While the parallel algorithm inherits most of the logic from its sequential version, the key difference lies in how it ensures mutual exclusion and prevents race conditions by using \texttt{atomicMin} to update the shared data structure \texttt{partnerRank}.
+With straightforward parallelization of preprocessing and postprocessing phase based on processing of independent entries. 
+
+The algorithm operates in parallel, with each processor (thread) corresponding to a unique man. While the parallel algorithm inherits most of the logic from its sequential version to exploit locality using PRMatrix, the key difference lies in how it ensures mutual exclusion and prevents race conditions by using \texttt{atomicMin} to update the shared data structure \texttt{partnerRank}.
 
 Each thread, representing a man \(m\), starts by proposing to the highest-ranked woman on his preference list that he has not yet proposed to. After retrieving the current partner's rank \(p\_rank\) for woman \(w\) from \texttt{partnerRank[w]}, the algorithm checks if \(p\_rank\) is greater than \(m\_rank\). If \(p\_rank > m\_rank\), meaning the woman \(w\) prefers the current proposer \(m\) over her current partner, the \texttt{partnerRank[w]} is updated to \(m\_rank\) using \texttt{atomicMin(\&partnerRank[w], m\_rank)}. If the update is successful and \(p\_rank\) equals \(n + 1\), indicating the woman was previously unpaired and no man is rejected, the variable \texttt{done} is set to \texttt{true} to terminate the main loop.
 
@@ -1394,6 +1390,8 @@ This hybrid approach ensures that the initial parallel processing on the GPU eff
 # Section-Experiment
 
 if preference lists divide the members on the opposite side into groups and rank groups in the same way while randomize the people inside each group, which we call the mixed instance, then the number of proposing men will not dramatically decrease to a single man to make peoposal
+
+
 
 
 
@@ -1477,6 +1475,16 @@ Work Experience
 (2) Worker Side:
 
 Salary
+
+
+
+# Mark
+
+This example has an education purpose. The best case is n proposal times to end. The worst case is n^2 times. Your case is in the middle. If we use an example to cover all these cases, it would be nice. You don’t need to go over the worst case, but just give the preference ranks for man and each woman.  
+
+
+
+We need to argue the preprocessing time for locality is valuable so that overall performance is significantly reduced.
 
 
 
