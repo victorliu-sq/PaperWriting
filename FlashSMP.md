@@ -1277,7 +1277,7 @@ This two-phase preprocessing algorithm processes 𝑂(𝑛2)*O*(*n*2) entries in
 
 
 
-# Conflict Resolution-atomicMin
+# Massive Parallelism
 
 ```
 As previously mentioned, in parallelized GS algorithms, each woman needs to select the best proposal with the minimum numerical value when multiple proposals are made simultaneously. However, traditional synchronization methods can be inefficient when updating \texttt{partnerRank} due to the high cost of coarse-grained synchronization and wasted work from \texttt{atomicCAS} failures under high memory contention.
@@ -1340,7 +1340,9 @@ A straightforward solution is to use barrier synchronization. In parallel comput
 
 
 
-# Embrace Complementary Strengths - GPU and CPU
+# Bamboo-SMP
+
+## Overview
 
 while `atomicMin` on a GPU is effective at handling contention by ensuring minimal retries and efficient updates, it remains an expensive operation due to the high overhead associated with atomic transactions.
 
@@ -1360,41 +1362,81 @@ In that way, strengths of both GPU and CPU can be harnessed by employing an effi
 
 
 
-The key idea behind this switch is to detect when there is only one proposer left, indicating that only one thread remains active. 
+As show in Figure-5, Bamboo-SMP operates in three main stages:
+
+
+
+Initialization of PRNodes on GPU1: Bamboo-SMP begins by initializing PRNodes on the first GPU (GPU1). These nodes contain the  information to perform the SMP computations in a regular access pattern.
+
+
+
+Main Procedure of thread1: 
+
+After initialization, thread1 starts execution of MIN Locality Unified CUDA Kernel on GPU1: Bamboo-SMP then launches the MIN Locality Unified CUDA Kernel on GPU1. This kernel processes the PRNodes in parallel, leveraging the GPU's computational power to handle the locality constraints and perform initial matching operations efficiently.
+
+
+
+Main Procedure of thread2: 
+
+The main procedure of thread2 involves the use of both the second GPU (GPU2) and the CPU to finalize the matching process. At the beginning, GPU2 is used to continuously check whether only one free man is left by launching the `CheckLessThanNUnified` kernel, which processes each woman in parallel and updates the ranks. When it is determined that only one free man remains, the algorithm transitions to the CPU. The CPU then handles the final stage of the matching process, utilizing its low latency to speed up the completion of the remaining tasks without the need for synchronization, ensuring a rapid convergence to a stable matching.
+
+
+
+
+
+## Principle
+
+In order to tranfer from GPU to CPU,
+
+we need to answer 2 questions: (1) when to switch (2) how to switch
+
+(1)
+
+The  first principle is that we should swtich to CPU to execute from GPU when the active thread is one such that we can use proper hardware to execute propoer GS algorithm
+
+This should come in a straightforward way: if there is only one active thread executing on GPU with atomic function, both synthronization overhead and the high latency brought about by GPU will be bottlenecks.
+
+In this way, we can handle high paralleism where number of active threads remain high and the possible high contention efficiently while avoid the problems from GPUs.
+
+Therefore, the key idea behind this switch is to detect when there is only one proposer left, indicating that only one thread remains active. 
 
 This scenario signals the transition from the massively parallel GPU execution to the more suitable sequential execution on the CPU.
 
 
 
-In order to use proper hardware to execute propoer GS algorithm, Bamboo-SMP proposes a rule to determine when to switch from GPU to CPU mode.
+(2)
 
-Basically, this is to check `partnerRank`. Since each woman's partner rank is initialized to n+1, the rank value smaller than n+1 indicates that the woman is paired. 
+In order to switch to CPU, we also need to answer 2 subquestions:
 
-Throughout the execution, each woman's partner rank is updated with the rank of her partner if she is paired. The algorithm reads the partner rank of each woman to determine if only one woman remains unpaired. If exactly one woman's partner rank is n+1, it indicates that only one proposer remains free.
+(1) how to juedge whether there is only one man remaining unpaired 
 
+(2) how to find the free man so as to run sequential algorithm starting from that free man
 
+Now we talk about in what approach can we know whether there is only one thread remaining active with `partnerRank`, which is the only data structure we use during the exeuction of parallel implementation of locality-aware the GS algorithm.  
 
-To find the free man, the algorithm performs additional computations. First, it reads the partner ranks of all women to ensure only one woman is unpaired. Next, it uses the preference lists of the men to identify the paired men for each woman. 
+Since each woman's partner rank is initialized to n+1, the rank value smaller than n+1 indicates that the woman is paired, meaning there will be also man paired.
 
-
-
-This step involves reading the indices of the paired men from the preference lists. The algorithm calculates the total sum of indices of all men, which is 1+2+…+𝑛=𝑛(𝑛+1)21+2+…+*n*=2*n*(*n*+1). By subtracting the indices of the paired men from this total sum, the algorithm identifies the index of the free man.
-
-To illustrate, consider the following match ranks for the women:
-
-- W1: 3 (paired with M3)
-- W2: 𝑛+1*n*+1 (unpaired)
-- W3: 1 (paired with M1)
-
-In this example, the partner rank of W2 is 𝑛+1*n*+1, indicating that W2 is unpaired. We need to determine which man is free. First, read the partner ranks of all women: W1 is 3, W2 is 𝑛+1*n*+1 (unpaired), and W3 is 1. Confirm that only one woman is unpaired by checking that only one rank equals 𝑛+1*n*+1. Identify the indices of the paired men from the partner ranks of the women: W1 is paired with M3, so M3 is paired; W2 is unpaired; W3 is paired with M1, so M1 is paired. Calculate the total sum of indices of all men, which is 1+2+3=3(3+1)2=61+2+3=23(3+1)=6. Subtract the indices of the paired men from the total sum: Paired men indices are 1 (M1) + 3 (M3) = 4. The free man index is 6−4=26−4=2. Therefore, the free man is M2, whose index is 2.
-
-Once the free man is identified and it is confirmed that only one proposer remains active, FlashSMP transitions the computation from the GPU to the CPU. The CPU handles the remaining sequential steps efficiently, ensuring optimal performance for the final part of the algorithm. This transition leverages the CPU's strengths in handling tasks with limited parallelism and more complex control flow, thus maintaining the overall efficiency of the GS algorithm execution.
+So, If exactly one woman's partner rank is n+1, it indicates that only one proposer remains free.
 
 
 
+To find the free man, the algorithm performs additional computations in Algorithm 6. 
+
+First, it reads the partner ranks of all women to ensure only one woman is unpaired. 
+
+Next, The algorithm calculates the total sum of indices of all men, which is 1+2+…+𝑛=𝑛(𝑛+1)/2. Then it uses the preference lists of the men to identify the paired men for each woman, By subtracting the indices of the paired men from this total sum, the algorithm identifies the index of the free man.
 
 
-### Description of Algorithm
+
+Once it is confirmed that only one proposer remains active and the free man is identified , Bamboo-SMP transitions the computation from the GPU to the CPU. 
+
+The CPU handles the remaining sequential steps efficiently, ensuring optimal performance for the final part of the algorithm. 
+
+This transition leverages the CPU's strengths in handling tasks with limited parallelism and more complex control flow, thus maintaining the overall efficiency of the GS algorithm execution.
+
+
+
+## Description of Algorithm
 
 The main procedure of this algorithm involves using both GPU and CPU to efficiently solve the Stable Marriage Problem (SMP) with a hybrid approach.
 
@@ -1408,7 +1450,15 @@ This hybrid approach ensures that the initial parallel processing on the GPU eff
 
 
 
+## Unused
 
+To illustrate, consider the following match ranks for the women:
+
+- W1: 3 (paired with M3)
+- W2: 𝑛+1*n*+1 (unpaired)
+- W3: 1 (paired with M1)
+
+In this example, the partner rank of W2 is 𝑛+1*n*+1, indicating that W2 is unpaired. We need to determine which man is free. First, read the partner ranks of all women: W1 is 3, W2 is 𝑛+1*n*+1 (unpaired), and W3 is 1. Confirm that only one woman is unpaired by checking that only one rank equals 𝑛+1*n*+1. Identify the indices of the paired men from the partner ranks of the women: W1 is paired with M3, so M3 is paired; W2 is unpaired; W3 is paired with M1, so M1 is paired. Calculate the total sum of indices of all men, which is 1+2+3=3(3+1)2=61+2+3=23(3+1)=6. Subtract the indices of the paired men from the total sum: Paired men indices are 1 (M1) + 3 (M3) = 4. The free man index is 6−4=26−4=2. Therefore, the free man is M2.
 
 
 
