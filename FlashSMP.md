@@ -934,6 +934,8 @@ As presented in Figure 6, we conducted a performance comparison between the sequ
 
 **Figure 5: SMP Instance with 10,000 Participants Highlighting Sequential Dependency**
 
+
+
 **Figure 6: Performance Comparison of Sequential and Parallel GS and MW Algorithms on CPU and GPU**
 
 
@@ -944,7 +946,7 @@ As presented in Figure 6, we conducted a performance comparison between the sequ
 
 ## Overview
 
-Balanced-SMP is a parallel framework designed to enhance the performance of algorithms on modern heterogeneous computing systems by addressing common challenges such as memory access patterns and contention. 
+Bamboo-SMP is a parallel framework designed to enhance the performance of algorithms on modern heterogeneous computing systems by addressing common challenges such as memory access patterns and contention. 
 
 we introduce a data structure called PRNodes and present a new sequential algorithm that enhances performance by optimizing memory access patterns.
 
@@ -1277,21 +1279,18 @@ This two-phase preprocessing algorithm processes 𝑂(𝑛2)*O*(*n*2) entries in
 
 # Conflict Resolution-atomicMin
 
-As previously mentioned, in parallelized Gale-Shapley (GS) algorithms, each woman needs to select the best proposal with the minimum numerical value when multiple proposals are made simultaneously. However, traditional synchronization methods can be inefficient when updating `partnerRank` due to the high cost of coarse-grained synchronization and wasted work from atomicCAS failures under high memory contention.
+```
+As previously mentioned, in parallelized GS algorithms, each woman needs to select the best proposal with the minimum numerical value when multiple proposals are made simultaneously. However, traditional synchronization methods can be inefficient when updating \texttt{partnerRank} due to the high cost of coarse-grained synchronization and wasted work from \texttt{atomicCAS} failures under high memory contention.
+
+To overcome this problem, we need a fine-grained hardware primitive that handles high memory contention efficiently. Modern CPUs still rely on \texttt{atomicCAS} implementations to perform specific arithmetic functions. In contrast, modern GPU architectures, such as NVIDIA's CUDA, offer a comprehensive set of atomic functions for arithmetic operations. Among these, \texttt{atomicMin} effectively addresses the challenges of synchronization and high contention in parallelized GS algorithms.
+
+The \texttt{atomicMin} function in CUDA reads the 32-bit or 64-bit word \texttt{old} at the address in global or shared memory, computes the minimum of \texttt{old} and \texttt{val}, stores the result back to memory at the same address—all in one atomic transaction. The function then returns \texttt{old} so the caller can determine whether the value has been updated. If \texttt{old} is larger, the caller knows the value has been updated to \texttt{val}; otherwise, no update has occurred.
+
+By leveraging the atomic functions provided by modern GPU architectures, a parallel version of the Locality-Aware \texttt{GS} algorithm in Algorithm can efficiently solve \texttt{SMP} instances associated with high contention. The parallel algorithm inherits most of the logic from its sequential version to exploit locality using \texttt{PRMatrix}, but the key difference lies in how it ensures mutual exclusion and prevents race conditions by using \texttt{atomicMin} to update the shared data structure \texttt{partnerRank}.
+
+```
 
 
-
-To overcome this problem, we need a fine-grained hardware primitive that handles high memory contention efficiently. Modern CPUs still rely on atomicCAS implementations to perform specific arithmetic functions using a read-modify-write (RMW) process. In contrast, modern GPU architectures, such as NVIDIA's CUDA, offer a comprehensive set of atomic functions for arithmetic operations. Among these, `atomicMin` effectively addresses the challenges of synchronization and high contention in parallelized Gale-Shapley (GS) algorithms.
-
-
-
-The `atomicMin` function in CUDA reads the 32-bit or 64-bit word `old` at the address in global or shared memory, computes the minimum of `old` and `val`, stores the result back to memory at the same address—all in one atomic transaction. The function then returns `old` so the caller can determine whether the value has been updated. If `old` is larger, the caller knows the value has been updated to `val`; otherwise, no update has occurred.
-
-By leveraging the atomic functions provided by modern GPU architectures, a parallel version of the Locality-Aware GS algorithm can efficiently solve SMP instances associated with high contention. The parallel algorithm inherits most of the logic from its sequential version to exploit locality using PRMatrix, but the key difference lies in how it ensures mutual exclusion and prevents race conditions by using `atomicMin` to update the shared data structure `partnerRank`.
-
-
-
-### Descrition of Algorithm
 
 ```
 Each thread, representing a man \(m\), starts by proposing to the highest-ranked woman on his preference list that he has not yet proposed to. After retrieving the current partner's rank \(p\_rank\) for woman \(w\) from \texttt{partnerRank[w]}, the algorithm checks if \(p\_rank\) is greater than \(m\_rank\). If \(p\_rank > m\_rank\), meaning the woman \(w\) prefers the current proposer \(m\) over her current partner, we attempt to update \texttt{partnerRank[w]} to \(m\_rank\) using \texttt{atomicMin(\&partnerRank[w], m\_rank)}. 
@@ -1343,13 +1342,43 @@ A straightforward solution is to use barrier synchronization. In parallel comput
 
 # Embrace Complementary Strengths - GPU and CPU
 
-GPUs can accelerate performance over CPUs due to their massively parallel architecture and high-bandwidth memory. However, while `atomicMin` on a GPU is effective at handling contention by ensuring minimal retries and efficient updates, it remains an expensive operation due to the high overhead associated with atomic transactions. This overhead becomes particularly pronounced when the workload reduces to only one active thread, which is a common scenario for the Stable Marriage Problem (SMP) when preference lists are randomized. In such cases, the benefits of parallel execution diminish, and the costs associated with atomic operations can outweigh their advantages, leading to inefficiencies.
+while `atomicMin` on a GPU is effective at handling contention by ensuring minimal retries and efficient updates, it remains an expensive operation due to the high overhead associated with atomic transactions.
 
-To overcome this shortcoming, FlashSMP employs an efficient strategy to switch between GPU and CPU modes to optimize performance. The key idea behind this switch is to detect when there is only one proposer left, indicating that only one thread remains active. This scenario signals the transition from the massively parallel GPU execution to the more suitable sequential execution on the CPU.
 
-FlashSMP determines when to switch from GPU to CPU mode by checking the pairing status of the recipients (women). Each woman's partner rank is initialized to 𝑛+1*n*+1, where 𝑛*n* is the size of the preference list. A rank value smaller than 𝑛+1*n*+1 indicates that the woman is paired. Throughout the execution, each woman's partner rank is updated with the rank of her partner if she is paired. The algorithm reads the partner rank of each woman to determine if only one woman remains unpaired. If exactly one woman's partner rank is 𝑛+1*n*+1, it indicates that only one proposer remains free.
 
-To find the free man, the algorithm performs additional computations. First, it reads the partner ranks of all women to ensure only one woman is unpaired. Next, it uses the preference lists of the men to identify the paired men for each woman. This step involves reading the indices of the paired men from the preference lists. The algorithm calculates the total sum of indices of all men, which is 1+2+…+𝑛=𝑛(𝑛+1)21+2+…+*n*=2*n*(*n*+1). By subtracting the indices of the paired men from this total sum, the algorithm identifies the index of the free man.
+As discussed in section 3.3, the overhead of atomic function becomes particularly pronounced, which is a common scenario for the SMP when preference lists look like Figure 5 and the workload reduces to only one active thread. 
+
+In such cases, the benefits of parallel execution diminish, and the costs associated with atomic operations can outweigh their advantages, leading to inefficiencies. 
+
+
+
+To overcome this shortcoming, we introduce a parallel framework on modern heterogeneous computing systems that leverages a hybrid CPU-GPU execution model to run proper locality-aware algorithms to achieve significant improvements in efficiency and scalability.
+
+
+
+In that way, strengths of both GPU and CPU can be harnessed by employing an efficient strategy to switch between GPU and CPU modes to optimize performance. 
+
+
+
+The key idea behind this switch is to detect when there is only one proposer left, indicating that only one thread remains active. 
+
+This scenario signals the transition from the massively parallel GPU execution to the more suitable sequential execution on the CPU.
+
+
+
+In order to use proper hardware to execute propoer GS algorithm, Bamboo-SMP proposes a rule to determine when to switch from GPU to CPU mode.
+
+Basically, this is to check `partnerRank`. Since each woman's partner rank is initialized to n+1, the rank value smaller than n+1 indicates that the woman is paired. 
+
+Throughout the execution, each woman's partner rank is updated with the rank of her partner if she is paired. The algorithm reads the partner rank of each woman to determine if only one woman remains unpaired. If exactly one woman's partner rank is n+1, it indicates that only one proposer remains free.
+
+
+
+To find the free man, the algorithm performs additional computations. First, it reads the partner ranks of all women to ensure only one woman is unpaired. Next, it uses the preference lists of the men to identify the paired men for each woman. 
+
+
+
+This step involves reading the indices of the paired men from the preference lists. The algorithm calculates the total sum of indices of all men, which is 1+2+…+𝑛=𝑛(𝑛+1)21+2+…+*n*=2*n*(*n*+1). By subtracting the indices of the paired men from this total sum, the algorithm identifies the index of the free man.
 
 To illustrate, consider the following match ranks for the women:
 
@@ -1376,6 +1405,14 @@ After launching the `CheckMatchStatus` kernel, the algorithm copies the number o
 In Phase 2, the algorithm transitions to the CPU to handle the remaining tasks using a normal sequential Gale-Shapley algorithm. It identifies the free man and initializes the proposal rank.
 
 This hybrid approach ensures that the initial parallel processing on the GPU efficiently handles the bulk of proposals, while any remaining complex decisions are managed on the CPU. This balance of workload leads to efficient computation and optimal performance.
+
+
+
+
+
+
+
+
 
 
 
