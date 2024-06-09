@@ -1344,21 +1344,65 @@ A straightforward solution is to use barrier synchronization. In parallel comput
 
 ## Overview
 
-while `atomicMin` on a GPU is effective at handling contention by ensuring minimal retries and efficient updates, it remains an expensive operation due to the high overhead associated with atomic transactions.
+While `atomicMin` on a GPU is effective at handling contention by ensuring minimal retries and efficient updates, it remains an expensive operation due to the high overhead associated with atomic transactions. As discussed in Section 3.3, this overhead becomes particularly pronounced in scenarios with high contention, such as when the preference lists resemble those in Figure 5. In such cases, the benefits of parallel execution diminish, and the costs associated with atomic operations can outweigh their advantages, leading to inefficiencies.
 
 
 
-As discussed in section 3.3, the overhead of atomic function becomes particularly pronounced, which is a common scenario for the SMP when preference lists look like Figure 5 and the workload reduces to only one active thread. 
-
-In such cases, the benefits of parallel execution diminish, and the costs associated with atomic operations can outweigh their advantages, leading to inefficiencies. 
+To overcome this shortcoming, we introduce a parallel framework that leverages a hybrid CPU-GPU execution model. This model runs locality-aware algorithms to achieve significant improvements in efficiency and scalability by utilizing the strengths of both GPU and CPU.
 
 
 
-To overcome this shortcoming, we introduce a parallel framework on modern heterogeneous computing systems that leverages a hybrid CPU-GPU execution model to run proper locality-aware algorithms to achieve significant improvements in efficiency and scalability.
+
+
+## Principle
+
+To effectively transfer execution from the GPU to the CPU, we need to address two key questions: (1) when to switch, and (2) how to switch.
 
 
 
-In that way, strengths of both GPU and CPU can be harnessed by employing an efficient strategy to switch between GPU and CPU modes to optimize performance. 
+**When to Switch:** 
+
+The first principle is to switch from GPU to CPU execution when the number of active threads drops to one. If there is only one active thread executing on the GPU with atomic functions, both the synchronization overhead and the high latency of the GPU become bottlenecks. This switch allows us to handle high parallelism with many active threads efficiently while avoiding the inefficiencies of the GPU when parallelism decreases. The key idea behind this switch is to detect when there is only one proposer left, indicating that only one thread remains active. This scenario signals the transition from massively parallel GPU execution to more suitable sequential execution on the CPU.
+
+
+
+**How to Switch:** 
+
+To switch to the CPU, we need to answer two sub-questions: (1) how to determine if there is only one man remaining unpaired, and (2) how to find ID of the free man to continue the sequential algorithm with it.
+
+To determine if there is only one thread remaining active, we rely on `partnerRank`, the data structure used during the execution of the parallel locality-aware GS algorithm. Since each woman's partner rank is initialized to n+1n+1n+1, any rank value smaller than n+1n+1n+1 indicates that the woman is paired, meaning there is a paired man. If exactly one woman's partner rank is n+1n+1n+1, it indicates that only one proposer remains free.
+
+To find ID of the free man, the algorithm performs additional computations. After reading the partner ranks of all women to ensure only one woman is unpaired, it initializes the total sum of indices of all men, which is 1+2+…+n=n(n+1)21 + 2 + \ldots + n = \frac{n(n+1)}{2}1+2+…+n=2n(n+1). By subtracting the indices of the paired men from this total sum, the algorithm identifies the index of the free man.
+
+The calculation above will be performed over and over again until it is confirmed that only one proposer remains active and the free man is identified. Then the computation transitions from the GPU to the CPU to handle the remaining sequential steps efficiently. This is done by copying the `partnerRank` from device memory to host memory and calling the procedure in Algorithm 5 on the only free man to make  further proposals based on existing `partnerRank` . 
+
+
+
+This transition leverages the CPU's strengths in handling tasks with limited parallelism and more complex control flow, thus maintaining the overall efficiency of the GS algorithm execution.
+
+
+
+## Description of Framework
+
+The main procedure of this algorithm involves using both GPU and CPU to efficiently solve the Stable Marriage Problem (SMP) with a hybrid approach.
+
+In Phase 1, the algorithm begins by initializing the number of unpaired women to nnn and the free man ID to the sum of all men's IDs. It then launches a kernel named `CheckMatchStatus` on GPU2. This kernel processes each woman in parallel. For each woman, it fetches the current match rank from GPU1 and stores it in another array on GPU2. If the woman's match rank is equal to n+1n+1n+1, indicating that she is unpaired, an atomic operation decrements a counter for unpaired women, which was initialized to nnn. Otherwise, the ID of the matched man is subtracted from the free man ID using an atomic subtraction based on the woman’s preference list.
+
+After launching the `CheckMatchStatus` kernel, the algorithm copies the number of paired men, which is the same as the number of paired women, from the device to the host. If there is exactly one free man, the algorithm proceeds to copy the ID of the free man from the device to the host and then enters Phase 2. If not, the algorithm reinitializes the number of unpaired women and the free man ID, and launches the `CheckMatchStatus` kernel again to check if only one free man remains.
+
+In Phase 2, the algorithm transitions to the CPU to handle the remaining tasks using a normal sequential Gale-Shapley algorithm. It identifies the free man and initializes the proposal rank.
+
+This hybrid approach ensures that the initial parallel processing on the GPU efficiently handles the bulk of proposals, while any remaining complex decisions are managed on the CPU. This balance of workload leads to efficient computation and optimal performance.
+
+## Unused
+
+To illustrate, consider the following match ranks for the women:
+
+- W1: 3 (paired with M3)
+- W2: 𝑛+1*n*+1 (unpaired)
+- W3: 1 (paired with M1)
+
+In this example, the partner rank of W2 is 𝑛+1*n*+1, indicating that W2 is unpaired. We need to determine which man is free. First, read the partner ranks of all women: W1 is 3, W2 is 𝑛+1*n*+1 (unpaired), and W3 is 1. Confirm that only one woman is unpaired by checking that only one rank equals 𝑛+1*n*+1. Identify the indices of the paired men from the partner ranks of the women: W1 is paired with M3, so M3 is paired; W2 is unpaired; W3 is paired with M1, so M1 is paired. Calculate the total sum of indices of all men, which is 1+2+3=3(3+1)2=61+2+3=23(3+1)=6. Subtract the indices of the paired men from the total sum: Paired men indices are 1 (M1) + 3 (M3) = 4. The free man index is 6−4=26−4=2. Therefore, the free man is M2.
 
 
 
@@ -1379,90 +1423,6 @@ After initialization, thread1 starts execution of MIN Locality Unified CUDA Kern
 Main Procedure of thread2: 
 
 The main procedure of thread2 involves the use of both the second GPU (GPU2) and the CPU to finalize the matching process. At the beginning, GPU2 is used to continuously check whether only one free man is left by launching the `CheckLessThanNUnified` kernel, which processes each woman in parallel and updates the ranks. When it is determined that only one free man remains, the algorithm transitions to the CPU. The CPU then handles the final stage of the matching process, utilizing its low latency to speed up the completion of the remaining tasks without the need for synchronization, ensuring a rapid convergence to a stable matching.
-
-
-
-
-
-## Principle
-
-In order to tranfer from GPU to CPU,
-
-we need to answer 2 questions: (1) when to switch (2) how to switch
-
-(1)
-
-The  first principle is that we should swtich to CPU to execute from GPU when the active thread is one such that we can use proper hardware to execute propoer GS algorithm
-
-This should come in a straightforward way: if there is only one active thread executing on GPU with atomic function, both synthronization overhead and the high latency brought about by GPU will be bottlenecks.
-
-In this way, we can handle high paralleism where number of active threads remain high and the possible high contention efficiently while avoid the problems from GPUs.
-
-Therefore, the key idea behind this switch is to detect when there is only one proposer left, indicating that only one thread remains active. 
-
-This scenario signals the transition from the massively parallel GPU execution to the more suitable sequential execution on the CPU.
-
-
-
-(2)
-
-In order to switch to CPU, we also need to answer 2 subquestions:
-
-(1) how to juedge whether there is only one man remaining unpaired 
-
-(2) how to find the free man so as to run sequential algorithm starting from that free man
-
-Now we talk about in what approach can we know whether there is only one thread remaining active with `partnerRank`, which is the only data structure we use during the exeuction of parallel implementation of locality-aware the GS algorithm.  
-
-Since each woman's partner rank is initialized to n+1, the rank value smaller than n+1 indicates that the woman is paired, meaning there will be also man paired.
-
-So, If exactly one woman's partner rank is n+1, it indicates that only one proposer remains free.
-
-
-
-To find the free man, the algorithm performs additional computations in Algorithm 6. 
-
-First, it reads the partner ranks of all women to ensure only one woman is unpaired. 
-
-Next, The algorithm calculates the total sum of indices of all men, which is 1+2+…+𝑛=𝑛(𝑛+1)/2. Then it uses the preference lists of the men to identify the paired men for each woman, By subtracting the indices of the paired men from this total sum, the algorithm identifies the index of the free man.
-
-
-
-Once it is confirmed that only one proposer remains active and the free man is identified , Bamboo-SMP transitions the computation from the GPU to the CPU. 
-
-The CPU handles the remaining sequential steps efficiently, ensuring optimal performance for the final part of the algorithm. 
-
-This transition leverages the CPU's strengths in handling tasks with limited parallelism and more complex control flow, thus maintaining the overall efficiency of the GS algorithm execution.
-
-
-
-## Description of Algorithm
-
-The main procedure of this algorithm involves using both GPU and CPU to efficiently solve the Stable Marriage Problem (SMP) with a hybrid approach.
-
-In Phase 1, the algorithm begins by initializing the number of unpaired women to 𝑛*n* and the free man ID to the sum of all men's IDs. It then launches a kernel named `CheckMatchStatus` on GPU2. This kernel processes each woman in parallel. For each woman, it fetches the current match rank from GPU1 and stores it in another array on GPU2. If the woman's match rank is equal to `n+1`, indicating that she is unpaired, an atomic operation decrements a counter for unpaired women, which was initialized to 𝑛*n*. Otherwise, the ID of the matched man is subtracted from the free man ID using an atomic subtraction based on the woman’s preference list.
-
-After launching the `CheckMatchStatus` kernel, the algorithm copies the number of paired men, which is the same as the number of paired women, from the device to the host. If there is exactly one free man, the algorithm proceeds to copy the ID of the free man from the device to the host and then enters Phase 2. If not, the algorithm reinitializes the number of unpaired women and the free man ID, and launches the `CheckMatchStatus` kernel again to check if only one free man remains.
-
-In Phase 2, the algorithm transitions to the CPU to handle the remaining tasks using a normal sequential Gale-Shapley algorithm. It identifies the free man and initializes the proposal rank.
-
-This hybrid approach ensures that the initial parallel processing on the GPU efficiently handles the bulk of proposals, while any remaining complex decisions are managed on the CPU. This balance of workload leads to efficient computation and optimal performance.
-
-
-
-## Unused
-
-To illustrate, consider the following match ranks for the women:
-
-- W1: 3 (paired with M3)
-- W2: 𝑛+1*n*+1 (unpaired)
-- W3: 1 (paired with M1)
-
-In this example, the partner rank of W2 is 𝑛+1*n*+1, indicating that W2 is unpaired. We need to determine which man is free. First, read the partner ranks of all women: W1 is 3, W2 is 𝑛+1*n*+1 (unpaired), and W3 is 1. Confirm that only one woman is unpaired by checking that only one rank equals 𝑛+1*n*+1. Identify the indices of the paired men from the partner ranks of the women: W1 is paired with M3, so M3 is paired; W2 is unpaired; W3 is paired with M1, so M1 is paired. Calculate the total sum of indices of all men, which is 1+2+3=3(3+1)2=61+2+3=23(3+1)=6. Subtract the indices of the paired men from the total sum: Paired men indices are 1 (M1) + 3 (M3) = 4. The free man index is 6−4=26−4=2. Therefore, the free man is M2.
-
-
-
-
 
 
 
