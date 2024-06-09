@@ -1344,24 +1344,11 @@ A straightforward solution is to use barrier synchronization. In parallel comput
 
 ## Overview
 
-While `atomicMin` on a GPU is effective at handling contention by ensuring minimal retries and efficient updates, it remains an expensive operation due to the high overhead associated with atomic transactions. As discussed in Section 3.3, this overhead becomes particularly pronounced in scenarios with high contention, such as when the preference lists resemble those in Figure 5. In such cases, the benefits of parallel execution diminish, and the costs associated with atomic operations can outweigh their advantages, leading to inefficiencies. To overcome this shortcoming, we introduce a parallel framework that leverages a hybrid CPU-GPU execution model. This model runs locality-aware algorithms, achieving significant improvements in efficiency and scalability by utilizing the strengths of both GPU and CPU.
-
-
-
 While \texttt{atomicMin} on a GPU is effective at managing contention by minimizing retries and ensuring efficient updates, it remains an expensive operation due to the high overhead associated with atomic transactions. As discussed in Section 3.3, this overhead becomes particularly pronounced in scenarios with high contention, such as when the preference lists resemble those depicted in Figure 5. In such cases, the advantages of parallel execution diminish, and the costs associated with atomic operations can outweigh their benefits, leading to inefficiencies.
 
 
 
-To address this limitation, we propose a parallel framework that leverages a hybrid CPU-GPU execution model. This model employs locality-aware algorithms to achieve significant improvements in efficiency and scalability by capitalizing on the strengths of both GPU and CPU. By integrating the complementary capabilities of GPUs and CPUs, the framework aims to optimize performance under varying conditions of parallelism and contention.
-
-A crucial aspect of this hybrid model is the effective transfer of execution from the GPU to the CPU. Ensuring a seamless transition between these processing units is essential for maintaining overall efficiency. This transfer requires addressing two fundamental questions:
-
-```
-\begin{enumerate}
-    \item When to switch.
-    \item How to switch.
-\end{enumerate}
-```
+To address this limitation, we propose a parallel framework that leverages a hybrid CPU-GPU execution model. This model employs locality-aware algorithms to achieve significant improvements in efficiency and scalability by capitalizing on the strengths of both GPU and CPU. By integrating the complementary capabilities of GPUs and CPUs, the framework aims to optimize performance under varying conditions of parallelism and contention. A crucial aspect of this hybrid model is the effective transfer of execution from the GPU to the CPU. Ensuring a seamless transition between these processing units is essential for maintaining overall efficiency. This transfer requires addressing two fundamental questions: (1) when to switch and (2) how to switch.
 
 
 
@@ -1376,8 +1363,8 @@ The guiding principle for switching from GPU to CPU execution is when the number
 ```
 To effectively switch to the CPU, two key sub-questions must be addressed to determine the appropriate timing and method:
 \begin{enumerate}
-    \item How to determine if there is only one man remaining unpaired.
-    \item How to identify the ID of the free man to continue the sequential algorithm.
+    \item How to ascertain if only one man remains unpaired.
+    \item How to identify the free man's ID to proceed with the sequential algorithm.
 \end{enumerate}
 
 Determining if only one thread remains active relies on the \texttt{partnerRank} data structure, which is used during the execution of the parallel locality-aware GS algorithm. Since each woman's partner rank is initialized to \(n+1\), any rank value smaller than \(n+1\) indicates that the woman is paired, implying the presence of a paired man. If exactly one woman's partner rank is \(n+1\), it signifies that only one proposer remains free.
