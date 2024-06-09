@@ -1,4 +1,4 @@
-Can you rewrite these sentences in your words? 
+Can you rewrite these sentences to make it more academical? 
 
 You can insert sentences, deleted sentences and reorder sentences, (also for words) to strengthen the connections between sentences.
 
@@ -942,15 +942,15 @@ As presented in Figure 6, we conducted a performance comparison between the sequ
 
 
 
-# Section-FlashSMP
+# Section-Bamboo
 
 ## Overview
 
-Bamboo-SMP is a parallel framework designed to enhance the performance of algorithms on modern heterogeneous computing systems by addressing common challenges such as memory access patterns and contention. 
+Bamboo-SMP is a parallel framework developed to optimize the performance of algorithms on modern heterogeneous computing systems by effectively addressing prevalent challenges such as memory access patterns and contention. This framework employs a combination of advanced data structures, atomic operations, and a hybrid CPU-GPU execution model to achieve notable improvements in both efficiency and scalability.
 
-we introduce a data structure called PRNodes and present a new sequential algorithm that enhances performance by optimizing memory access patterns.
+The core principles of Bamboo-SMP involve several innovative strategies. Firstly, the use of PRNodes optimizes memory access by ensuring that related data elements are stored together, thereby reducing latency and enhancing data locality. Secondly, the framework utilizes the \texttt{atomicMin} operation in CUDA to efficiently resolve contention, minimizing the need for repeated retries and reducing overhead associated with atomic transactions. Lastly, Bamboo-SMP leverages a hybrid CPU-GPU approach, enabling it to capitalize on the complementary strengths of GPUs and CPUs. This hybrid execution model ensures that high parallelism and complex control flows are handled optimally, further contributing to the framework's scalability and efficiency.
 
-The framework leverages a combination of innovative data structures, atomic operations, and a hybrid CPU-GPU execution model to achieve significant improvements in efficiency and scalability. The core ideas behind FlashSMP include the use of PRNodes to optimize memory access, atomicMin in CUDA for contention resolution, and a hybrid approach to harness the strengths of both GPU and CPU.
+Through these strategies, Bamboo-SMP demonstrates a significant advancement in the performance of parallel algorithms on heterogeneous computing systems.
 
 ![FlashSMP-Overview-2](/Users/jiaxinliu/Desktop/FlashSMPEvaluation/Figures/FlashSMP-Overview-2.jpg)
 
@@ -973,6 +973,10 @@ Main Procedure of thread2:
 The main procedure of thread2 involves the use of both the second GPU (GPU2) and the CPU to finalize the matching process. At the beginning, GPU2 is used to continuously check whether only one free man is left by launching the `CheckLessThanNUnified` kernel, which processes each woman in parallel and updates the ranks. When it is determined that only one free man remains, the algorithm transitions to the CPU. The CPU then handles the final stage of the matching process, utilizing its low latency to speed up the completion of the remaining tasks without the need for synchronization, ensuring a rapid convergence to a stable matching.
 
 
+
+### Unused
+
+we introduce a data structure called PRMatrix and present a new sequential algorithm that enhances performance by optimizing memory access patterns.
 
 
 
@@ -1640,13 +1644,55 @@ Salary
 
 
 
-# Mark
+# TODOs
 
-This example has an education purpose. The best case is n proposal times to end. The worst case is n^2 times. Your case is in the middle. If we use an example to cover all these cases, it would be nice. You don’t need to go over the worst case, but just give the preference ranks for man and each woman.  
+*You need to label every figure/table/section as a variable so that you will connect to that variable instead of calling Figure X.*
 
 
 
-We need to argue the preprocessing time for locality is valuable so that overall performance is significantly reduced.
+*The latex file needs to be separated by sections instead of a single file.*
+
+
+
+**Can you convert all the figures to standard ones without drawing?**
+
+
+
+**GS algorithm is very intuitive to reach to the stable situation. In the last 60 years, are there any improved GS algorithms available. If so, readers may ask why don’t you parallelize the improved algorithms?**
+
+
+
+**In your example explanation in 2.2., the concept of iterations is not very clear. You start from “first iteration”, but not other iterations are mentioned. In the GS algorithm continue until the last free man is matched. In the example of Figure 1, the number of iterations is 3 + 2is my understanding correct?**
+
+
+
+**This example has an education purpose. The best case is n proposal times to end. The worst case is n^2 times. Your case is in the middle. If we use an example to cover all these cases, it would be nice. You don’t need to go over the worst case, but just give the preference ranks for man and each woman.**  
+
+
+
+**In the paper we state that we will have a pre-processing step. This is a serious claim. Is this workload dependent? If so, for a given workload, we preprocess the sequential GS algorithm to determine data dependencies.**
+
+
+
+**How much time do you need for this preprocessing on a single processor, what is the complexity for a group of n men and n woman. If n is one million.**
+
+**What is the percentage of time of this preprocessing in the total execution time.**
+
+**If we spend x seconds for preprocessing, and y seconds for parallel processing, what is x/(x+y)? Is it trivial?**
+
+
+
+**If you add the parallel preprocessing and execution times together, what is the performance improvement percentage over the existing ones? We need to consider this preprocessing cost. Exploiting locality is a vehicle, not the goal. The goal is to significantly reduce the execution time.**  
+
+
+
+**We need to argue the preprocessing time for locality is valuable so that overall performance is significantly reduced.**
+
+
+
+
+
+**Each figure is an n*n array, it is easy to explain. For example, in the initiation stage, the first column of the matrix is accessed for each free man to propose to his top choice. You don’t need circles and squares with different colors to trace.**
 
 
 
