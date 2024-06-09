@@ -1344,41 +1344,53 @@ A straightforward solution is to use barrier synchronization. In parallel comput
 
 ## Overview
 
-While `atomicMin` on a GPU is effective at handling contention by ensuring minimal retries and efficient updates, it remains an expensive operation due to the high overhead associated with atomic transactions. As discussed in Section 3.3, this overhead becomes particularly pronounced in scenarios with high contention, such as when the preference lists resemble those in Figure 5. In such cases, the benefits of parallel execution diminish, and the costs associated with atomic operations can outweigh their advantages, leading to inefficiencies.
+While `atomicMin` on a GPU is effective at handling contention by ensuring minimal retries and efficient updates, it remains an expensive operation due to the high overhead associated with atomic transactions. As discussed in Section 3.3, this overhead becomes particularly pronounced in scenarios with high contention, such as when the preference lists resemble those in Figure 5. In such cases, the benefits of parallel execution diminish, and the costs associated with atomic operations can outweigh their advantages, leading to inefficiencies. To overcome this shortcoming, we introduce a parallel framework that leverages a hybrid CPU-GPU execution model. This model runs locality-aware algorithms, achieving significant improvements in efficiency and scalability by utilizing the strengths of both GPU and CPU.
 
 
 
-To overcome this shortcoming, we introduce a parallel framework that leverages a hybrid CPU-GPU execution model. This model runs locality-aware algorithms to achieve significant improvements in efficiency and scalability by utilizing the strengths of both GPU and CPU.
+While \texttt{atomicMin} on a GPU is effective at managing contention by minimizing retries and ensuring efficient updates, it remains an expensive operation due to the high overhead associated with atomic transactions. As discussed in Section 3.3, this overhead becomes particularly pronounced in scenarios with high contention, such as when the preference lists resemble those depicted in Figure 5. In such cases, the advantages of parallel execution diminish, and the costs associated with atomic operations can outweigh their benefits, leading to inefficiencies.
 
 
 
+To address this limitation, we propose a parallel framework that leverages a hybrid CPU-GPU execution model. This model employs locality-aware algorithms to achieve significant improvements in efficiency and scalability by capitalizing on the strengths of both GPU and CPU. By integrating the complementary capabilities of GPUs and CPUs, the framework aims to optimize performance under varying conditions of parallelism and contention.
 
+A crucial aspect of this hybrid model is the effective transfer of execution from the GPU to the CPU. Ensuring a seamless transition between these processing units is essential for maintaining overall efficiency. This transfer requires addressing two fundamental questions:
 
-## Principle
-
-To effectively transfer execution from the GPU to the CPU, we need to address two key questions: (1) when to switch, and (2) how to switch.
+```
+\begin{enumerate}
+    \item When to switch.
+    \item How to switch.
+\end{enumerate}
+```
 
 
 
 **When to Switch:** 
 
-The first principle is to switch from GPU to CPU execution when the number of active threads drops to one. If there is only one active thread executing on the GPU with atomic functions, both the synchronization overhead and the high latency of the GPU become bottlenecks. This switch allows us to handle high parallelism with many active threads efficiently while avoiding the inefficiencies of the GPU when parallelism decreases. The key idea behind this switch is to detect when there is only one proposer left, indicating that only one thread remains active. This scenario signals the transition from massively parallel GPU execution to more suitable sequential execution on the CPU.
+The guiding principle for switching from GPU to CPU execution is when the number of active threads reduces to one. In scenarios where only a single thread remains active on the GPU, the synchronization overhead and high latency inherent to GPU operations become significant bottlenecks. Transitioning to CPU execution at this point allows for efficient handling of high parallelism when many threads are active, while avoiding the inefficiencies associated with reduced parallelism on the GPU. The critical aspect of this switch is detecting when there is only one proposer left, signifying that only one thread remains active. This situation marks the transition from massively parallel GPU execution to more suitable sequential execution on the CPU.
 
 
 
 **How to Switch:** 
 
-To switch to the CPU, we need to answer two sub-questions: (1) how to determine if there is only one man remaining unpaired, and (2) how to find ID of the free man to continue the sequential algorithm with it.
+```
+To effectively switch to the CPU, two key sub-questions must be addressed to determine the appropriate timing and method:
+\begin{enumerate}
+    \item How to determine if there is only one man remaining unpaired.
+    \item How to identify the ID of the free man to continue the sequential algorithm.
+\end{enumerate}
 
-To determine if there is only one thread remaining active, we rely on `partnerRank`, the data structure used during the execution of the parallel locality-aware GS algorithm. Since each woman's partner rank is initialized to n+1n+1n+1, any rank value smaller than n+1n+1n+1 indicates that the woman is paired, meaning there is a paired man. If exactly one woman's partner rank is n+1n+1n+1, it indicates that only one proposer remains free.
+Determining if only one thread remains active relies on the \texttt{partnerRank} data structure, which is used during the execution of the parallel locality-aware GS algorithm. Since each woman's partner rank is initialized to \(n+1\), any rank value smaller than \(n+1\) indicates that the woman is paired, implying the presence of a paired man. If exactly one woman's partner rank is \(n+1\), it signifies that only one proposer remains free.
 
-To find ID of the free man, the algorithm performs additional computations. After reading the partner ranks of all women to ensure only one woman is unpaired, it initializes the total sum of indices of all men, which is 1+2+…+n=n(n+1)21 + 2 + \ldots + n = \frac{n(n+1)}{2}1+2+…+n=2n(n+1). By subtracting the indices of the paired men from this total sum, the algorithm identifies the index of the free man.
+Identifying the ID of the free man involves additional computations. After reading the partner ranks of all women to confirm that only one woman is unpaired, the algorithm calculates the total sum of IDs of all men, which is \(1+2+\ldots+n=\frac{n(n+1)}{2}\). By subtracting the IDs of the paired men from this total sum, the algorithm determines the ID of the free man.
 
-The calculation above will be performed over and over again until it is confirmed that only one proposer remains active and the free man is identified. Then the computation transitions from the GPU to the CPU to handle the remaining sequential steps efficiently. This is done by copying the `partnerRank` from device memory to host memory and calling the procedure in Algorithm 5 on the only free man to make  further proposals based on existing `partnerRank` . 
+```
+
+The above calculations are repeated until it is confirmed that only one proposer remains active and the free man is identified. At this point, the computation transitions from the GPU to the CPU to efficiently handle the remaining sequential steps. This is accomplished by copying the \texttt{partnerRank} from device memory to host memory and invoking the procedure in Algorithm 5 for the free man to make further proposals based on the existing \texttt{partnerRank}.
 
 
 
-This transition leverages the CPU's strengths in handling tasks with limited parallelism and more complex control flow, thus maintaining the overall efficiency of the GS algorithm execution.
+This transition leverages the CPU's strengths in managing tasks with limited parallelism and more complex control flow, thereby maintaining the overall efficiency of the GS algorithm execution.
 
 
 
@@ -1386,13 +1398,15 @@ This transition leverages the CPU's strengths in handling tasks with limited par
 
 The main procedure of this algorithm involves using both GPU and CPU to efficiently solve the Stable Marriage Problem (SMP) with a hybrid approach.
 
-In Phase 1, the algorithm begins by initializing the number of unpaired women to nnn and the free man ID to the sum of all men's IDs. It then launches a kernel named `CheckMatchStatus` on GPU2. This kernel processes each woman in parallel. For each woman, it fetches the current match rank from GPU1 and stores it in another array on GPU2. If the woman's match rank is equal to n+1n+1n+1, indicating that she is unpaired, an atomic operation decrements a counter for unpaired women, which was initialized to nnn. Otherwise, the ID of the matched man is subtracted from the free man ID using an atomic subtraction based on the woman’s preference list.
+In Phase 1, the algorithm begins by initializing the number of unpaired women to \(n\) and the free man ID to the sum of all men's IDs. It then launches a kernel named \texttt{CheckMatchStatus} on GPU2. This kernel processes each woman in parallel. For each woman, it fetches the current match rank from GPU1 and stores it in another array on GPU2. If the woman's match rank is equal to \(n+1\), indicating that she is unpaired, an atomic operation decrements a counter for unpaired women, which was initialized to \(n\). Otherwise, the ID of the matched man is subtracted from the free man ID using an atomic subtraction based on the woman’s preference list.
 
-After launching the `CheckMatchStatus` kernel, the algorithm copies the number of paired men, which is the same as the number of paired women, from the device to the host. If there is exactly one free man, the algorithm proceeds to copy the ID of the free man from the device to the host and then enters Phase 2. If not, the algorithm reinitializes the number of unpaired women and the free man ID, and launches the `CheckMatchStatus` kernel again to check if only one free man remains.
+After launching the \texttt{CheckMatchStatus} kernel, the algorithm copies the number of paired men, which is the same as the number of paired women, from the device to the host. If there is exactly one free man, the algorithm proceeds to copy the ID of the free man from the device to the host and then enters Phase 2. If not, the algorithm reinitializes the number of unpaired women and the free man ID, and launches the \texttt{CheckMatchStatus} kernel again to check if only one free man remains.
 
 In Phase 2, the algorithm transitions to the CPU to handle the remaining tasks using a normal sequential Gale-Shapley algorithm. It identifies the free man and initializes the proposal rank.
 
 This hybrid approach ensures that the initial parallel processing on the GPU efficiently handles the bulk of proposals, while any remaining complex decisions are managed on the CPU. This balance of workload leads to efficient computation and optimal performance.
+
+
 
 ## Unused
 
@@ -1423,6 +1437,128 @@ After initialization, thread1 starts execution of MIN Locality Unified CUDA Kern
 Main Procedure of thread2: 
 
 The main procedure of thread2 involves the use of both the second GPU (GPU2) and the CPU to finalize the matching process. At the beginning, GPU2 is used to continuously check whether only one free man is left by launching the `CheckLessThanNUnified` kernel, which processes each woman in parallel and updates the ranks. When it is determined that only one free man remains, the algorithm transitions to the CPU. The CPU then handles the final stage of the matching process, utilizing its low latency to speed up the completion of the remaining tasks without the need for synchronization, ensuring a rapid convergence to a stable matching.
+
+
+
+```
+\begin{algorithm}
+\caption{Hybrid GPU-CPU Algorithm for SMP}
+\begin{algorithmic}[1]
+\State \textbf{Input:} PRNodes, Preference lists for women, Rank matrix for men
+\State \textbf{Output:} Women's Match Ranks, an array with $n$ entries, all initialized to $n+1$, indicating unpaired women
+
+\State Initialize: number of unpaired women $\gets n$, free man ID $\gets \sum_{i=1}^{n} i$
+
+\Repeat
+    \State Launch `CheckMatchStatus` kernel on GPU2
+
+    \For{each woman $w$ in parallel}
+        \State Fetch the current match rank from GPU1
+        \State Store the match rank in an array on GPU2
+        \If{woman's match rank == $n+1$}
+            \State Atomic decrement: unpaired women counter
+        \Else
+            \State Atomic subtraction: update free man ID based on woman’s preference list
+        \EndIf
+    \EndFor
+
+    \State Copy the number of paired men from the device to the host
+\Until{number of unpaired women == 1}
+
+\State Copy the free man ID from the device to the host
+
+
+\State \textbf{Phase 2: Sequential CPU Processing}
+
+\State Identify the free man
+\State Initialize proposal rank
+
+\While{there are unpaired women}
+    \State Free man proposes to the next woman on his list
+    \State Increment current proposal rank
+    \State Check the rank of the woman's current match
+    \If{woman's current match has a better (lower) rank}
+        \State Update node information for the next proposal
+    \Else
+        \If{woman's current match == $n+1$}
+            \State Woman is paired, exit loop
+        \Else
+            \State Update current man ID to the woman's previous match
+            \State Set the rank index for the new man
+            \State Continue the while loop with the new man's preference list
+        \EndIf
+    \EndIf
+\EndWhile
+
+\end{algorithmic}
+\end{algorithm}
+
+% \begin{algorithm}[H]
+% \caption{Main Procedure for Hybrid Relay Tailing with GPU to CPU Transition}
+% \begin{algorithmic}[1]
+% \State \textbf{Input:} $husband\_rank, cur\_p\_rank, n, split\_device\_pref\_list\_w$
+% \State \textbf{Output:} Identify the free man and switch to CPU for remaining tasks
+
+% \While{true}
+%     \State Launch kernel \Call{CheckLessThanNUnified}{...}
+%     \State Copy $temp\_result\_host$ from device to host
+
+%     \If{$temp\_result\_host == 1$}
+%         \State Copy $free\_man\_host$ from $free\_man\_device$ to host
+%         \State \Call{HybridRelayTailingCPU}{$free\_man\_host$}
+%         \State \textbf{break}
+%     \EndIf
+% \EndWhile
+
+% \Procedure{CheckLessThanNUnified}{$husband\_rank, cur\_p\_rank, n, split\_husband\_rank, split\_cur\_p\_rank, free\_man\_idx, split\_device\_pref\_list\_w$}
+%     \For{each woman $wi$ in parallel}
+%         \State $hr \gets husband\_rank[wi]$
+%         \State $split\_husband\_rank[wi] \gets hr$
+%         \If{$hr == n$}
+%             \State $atomicAdd(num\_unproposed, 1)$
+%         \Else
+%             \State $atomicSub(free\_man\_idx, split\_device\_pref\_list\_w[wi \cdot n + hr])$
+%         \EndIf
+%     \EndFor
+% \EndProcedure
+
+% \Procedure{HybridRelayTailingCPU}{$free\_man$}
+%     \State $mi \gets free\_man$
+%     \State Initialize $w\_rank \gets 0$
+%     \State $node \gets split\_host\_node\_vector[mi \cdot n + w\_rank].node$
+%     \State $w\_idx \gets node.w\_idx0$
+%     \State $mi\_rank \gets node.m\_rank0$
+
+%     \While{true}
+%         \State $w\_rank \gets w\_rank + 1$
+%         \State $mj\_rank \gets split\_husband\_rank[w\_idx]$
+        
+%         \If{$mj\_rank < mi\_rank$}
+%             \State $node \gets split\_host\_node\_vector[mi \cdot n + w\_rank].node$
+%             \State $w\_idx \gets node.w\_idx0$
+%             \State $mi\_rank \gets node.m\_rank0$
+%             \State \textbf{continue}
+%         \EndIf
+        
+%         \State $split\_husband\_rank[w\_idx] \gets mi\_rank$
+        
+%         \If{$mj\_rank == n$}
+%             \State \textbf{return}
+%         \EndIf
+        
+%         \State $mj \gets split\_host\_pref\_list\_w[w\_idx \cdot n + mj\_rank]$
+%         \State $mi \gets mj$
+%         \State $w\_rank \gets smp.rank\_matrix\_m[mi][w\_idx] + 1$
+        
+%         \State $node \gets split\_host\_node\_vector[mi \cdot n + w\_rank].node$
+%         \State $w\_idx \gets node.w\_idx0$
+%         \State $mi\_rank \gets node.m\_rank0$
+%     \EndWhile
+% \EndProcedure
+% \end{algorithmic}
+% \end{algorithm}
+
+```
 
 
 
