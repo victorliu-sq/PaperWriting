@@ -654,6 +654,28 @@ This results in a stable matching identical to the man-optimal stable marriage p
 
 
 
+# Bottleneck
+
+To illustrate the bottlenecks in GS computation, we characterize 4 type of SMP workloads that are:
+
+**Sequential Case**
+
+- Almost every man gets paired at first, only one man gets rejected and remains free for all subsequent proposals.
+
+**Congetsed Case**
+
+- All men have exactly the same preference lists.
+
+**Best Case**
+
+- All men have distinct first choices.
+
+**Clustered Case**
+
+- The preferences are clustered into groups, and groups are preferred in the same order.
+
+
+
 # Issues with Data Movement
 
 In this section, we explore the various bottlenecks encountered in GS computation. We first provide an in-depth look at the implementation of the GS algorithm, analyzing its inefficient memory access patterns and identifying the bottlenecks caused by frequent and costly data movements. 
@@ -1654,7 +1676,7 @@ Salary
 
 
 
-**Can you convert all the figures to standard ones without drawing?**
+*Can you convert all the figures to standard ones without drawing?*
 
 
 
@@ -1709,4 +1731,3 @@ Newest Lu
 
 
 # Drafts
-
