@@ -1577,13 +1577,45 @@ The main procedure of thread2 involves the use of both the second GPU (GPU2) and
 
 # Section-Experiment
 
-if preference lists divide the members on the opposite side into groups and rank groups in the same way while randomize the people inside each group, which we call the mixed instance, then the number of proposing men will not dramatically decrease to a single man to make peoposal
+
+
+## Platforms / Experimental Environment
+
+All implementations are evaluated on a Desktop environment Node in OSC  with 10 cores and 2 GPUs.
+
+
+
+The node includes and 2 NVIDIA Tesla A100 GPUs and 1TB memory allowing for CUDA computation
+
+All implementations are evaluated on a workstation with 2 AMD EPYC 7643 CPUs, totaling 96 cores.
 
 
 
 
 
-## Bike
+## Implementation / Baseline
+
+We have implemented sequential in C++ and parallel versions of Locality-Aware GS implementation in both C++ and CUDA.
+
+
+
+To compare the performance and illustrate the functionality of data movements, atomicMin and Hybrid, we have implemented the basic GS algorithm as sequential baseline of CPU-based sequential algorithm, The state-of-the-art parallel MW algorithm on both CPU using C++ and GPU using CUDA as baselines.
+
+
+
+CUDA version is 12.2
+
+All code is compiled using O3 optimizations and the cmake version is 3.25.
+
+
+
+## Data Sets
+
+
+
+
+
+### Bike
 
 We use bike sharing data2 to calculate distances from a start point to an end point as agent preferences on the 𝑋 side.
 Agent preferences on the 𝑌 side are the values of orders for a bike on its start point; order values of follow a uniform distribution.
@@ -1610,7 +1642,7 @@ Those groups will randomize ranks and all nodes inside Each group for distances 
 
 
 
-## TAXI
+### TAXI
 
 TAXI/TAXI+. As with the BIKE dataset, we construct a two-sided market from taxi and user data in the NYC Taxi dataset3.
 
@@ -1620,7 +1652,7 @@ https://kaggle.com/datasets/marcusrb/uber-peru-dataset
 
 
 
-## ADM
+### ADM
 
 University admission forms a classic scenario for the stable
 marriage problem [2, 43]. We obtain university ranking data5
@@ -1646,7 +1678,7 @@ https://www.kaggle.com/datasets/mohansacharya/graduate-admissions
 
 
 
-## JOB
+### JOB
 
 Person-fit is the core task in online recruitment platforms [11,
 56]. We construct a two-sided market using work experience7
