@@ -696,6 +696,12 @@ The GS algorithm is memory-intensive because it requires frequent and repeated a
 
 Figure 2 shows the access patterns of the men's preference lists and the women's rank matrix. The access pattern for the men's preference lists can be optimized by using an additional while-loop to allow the proposer to immediately propose to the next woman instead of being pushed back into the queue on line 18.
 
+
+
+In the GS algorithm, dependencies are hidden in logic programs and data structures due to the dynamic nature of the matchmaking process, where the specific interactions and preferences are only revealed during execution. These dependencies, such as which proposals will be made and which rejections will occur, are not known until the algorithm runs with a specific set of inputs. This runtime detection is crucial because the memory accesses to the men's preference lists ($MenPref$) and the women's rank matrix ($WomanRank$) depend on the current state of the matching process, which evolves as proposals are made and accepted or rejected. The workload dependency arises because different sets of preference lists result in different memory access patterns and dependencies. For instance, the order and frequency with which the $WomanRank$ matrix and the $Next$ array are accessed vary based on the input data, causing non-sequential and unpredictable memory jumps that disrupt efficient caching. These dynamic and input-dependent behaviors make the dependencies inherent in the GS algorithm detectable only during runtime, highlighting the challenge of optimizing memory access patterns for efficient execution.
+
+
+
 However, optimizing memory access patterns of women's rank matrix remains challenging. The $WomanRank$ matrix is accessed in a non-linear order because the IDs of the men proposing and the women being proposed to are dynamically determined. Even with optimized access patterns for the men's preference lists, the randomization of the proposed women's IDs results in non-sequential accesses to the $WomanRank$ matrix. When the number of participants (n) is very large, this non-sequential nature of access causes significant memory jumps, disrupting efficient caching and prefetching mechanisms. These scattered and unpredictable accesses lead to poor memory usage and slower access times.
 
 To illustrate the importance of optimizing memory access, we tested the GS algorithm across diverse workloads to measure the impact of memory accesses to the $WomanRank$ matrix and the $Next$ array. As shown in Figure 3, the combined time to access the $WomanRank$ matrix to get a man's rank in a woman's preference list and the $Next$ array to get the rank of the next woman to propose to accounts for over 50% of the total execution time in all workloads. (The specific details of these workloads will be explained in Section 6; for now, just note this fact.)
@@ -1577,25 +1583,41 @@ The main procedure of thread2 involves the use of both the second GPU (GPU2) and
 
 # Section-Experiment
 
+In this section, we made a series of experiments to show off the performance of Bamboo-SMP and verify that it outperforms all existing algorithms 
+
 
 
 ## Platforms / Experimental Environment
 
-All implementations are evaluated on a Desktop environment Node in OSC  with 10 cores and 2 GPUs.
+All implementations are evaluated on a Desktop environment Node in OSC  with2 AMD EPYC 7643 CPUs, totaling 96 cores, 2 NVIDIA Tesla A100 GPUs, and 1TB memory allowing for CUDA computation.
 
+The version of C++ is 
 
+The verion of cmake is 
 
-The node includes and 2 NVIDIA Tesla A100 GPUs and 1TB memory allowing for CUDA computation
-
-All implementations are evaluated on a workstation with 2 AMD EPYC 7643 CPUs, totaling 96 cores.
-
-
+The verion of CUDA is 
 
 
 
 ## Implementation / Baseline
 
-We have implemented sequential in C++ and parallel versions of Locality-Aware GS implementation in both C++ and CUDA.
+To compare the performance and illustrate the functionality of data movements, atomicMin and Hybrid, we have implemented the sequential GS algorithm, sequential MW algorithm to contrast our locality-aware implementation of GS algorithm.
+
+
+
+to show the effectiveness of atomicMin:
+
+we implemented 
+
+
+
+Hybrid:
+
+And parallel GS algorithm on CPU using thread library, parallel MW on CPU using C++ using thread library and parallel MW on GPU on GPU using thread library.
+
+
+
+We have implemented sequential in C++ and parallel versions of Locality-Aware GS implementation in CUDA.
 
 
 
@@ -1609,13 +1631,47 @@ All code is compiled using O3 optimizations and the cmake version is 3.25.
 
 
 
-## Data Sets
+## Workloads
+
+In order to make it convincing that Bamboo-SMP outperforms all existing solutions across all types of workloads
+
+we test BambooSMP and baseline algorithm in the following 3 cases, which have been discussed in the section 3.1
+
+We will not include the base case since it is too trivial to say  
+
+
+
+### Sequential Case
+
+We test algorithms on Sequential cases, as the same pattern as showed in Figure 3,  of size with participants from 5000 to 30000.
+
+The preference lists of men and the preference lists of women are arranged in such a way that:
+
+Assume the number of participants is n, there will be n^2 - (n - 1) proposals in total and only n of them can be made in parallel, and all rest of proposals must be made in serial. 
+
+
+
+### Congested Case
+
+We test algorithms on Congested cases , as the same pattern as showed in Figure 3, of size with participants from 5000 to 30000.
+
+All men have the exactly the same preference lists and no preference lists of woman are randomized.
+
+And each preference lists is a randomly shifted list with all integers from 1 to n
+
+
+
+### Clustered Cases
+
+We evaluated all implementations on real-world datasets from four distinct domains.
+
+We process them into 4 kinds of SMP instances in type of clustered cases to simulate real-world SMP handling.
 
 
 
 
 
-### Bike
+#### Bike
 
 We use bike sharing data2 to calculate distances from a start point to an end point as agent preferences on the 𝑋 side.
 Agent preferences on the 𝑌 side are the values of orders for a bike on its start point; order values of follow a uniform distribution.
@@ -1642,7 +1698,7 @@ Those groups will randomize ranks and all nodes inside Each group for distances 
 
 
 
-### TAXI
+#### TAXI
 
 TAXI/TAXI+. As with the BIKE dataset, we construct a two-sided market from taxi and user data in the NYC Taxi dataset3.
 
@@ -1652,7 +1708,7 @@ https://kaggle.com/datasets/marcusrb/uber-peru-dataset
 
 
 
-### ADM
+#### ADM
 
 University admission forms a classic scenario for the stable
 marriage problem [2, 43]. We obtain university ranking data5
@@ -1678,7 +1734,7 @@ https://www.kaggle.com/datasets/mohansacharya/graduate-admissions
 
 
 
-### JOB
+#### JOB
 
 Person-fit is the core task in online recruitment platforms [11,
 56]. We construct a two-sided market using work experience7
@@ -1762,4 +1818,40 @@ Newest Lu
 
 
 
-# Drafts
+# Preprocessing
+
+You need to answer the following questions for the preprocessing step:
+
+1.Why the dependencies are hidden in logic programs and data structures, and can only be detected at the runtime execution, and why is it workload dependent?
+
+"For efficient implementation of the basic Gale-Shapely algorithm", we need to be able to determine, in constant time, whether or  not woman prefers m to m' for arbitrary w, m and m'""
+
+This can be achieved by using rank Matrix
+
+
+
+2.After then, how is the new data structure created to exploit locality for parallel SMP execution?
+
+Section-4.1
+
+
+
+3.How much you can gain by this approach (speedup, latency reduction)?
+
+2.5x -> experimental
+
+
+
+4.The preprocessing can also be done in parallel, what is the speedup?
+
+
+
+
+
+5.are the preprocessing and parallel processing done one by one without reloading programs?
+
+Yes
+
+
+
+# Draft
