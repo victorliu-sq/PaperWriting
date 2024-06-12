@@ -1662,37 +1662,27 @@ In all three scenarios, the locality-aware implementation demonstrates over 50% 
 
 # Parallel Results
 
+The following sections present the results of our parallel algorithm implementations across different scenarios. These results highlight the performance benefits and trade-offs associated with the Locality-Aware GS implementation and underscore the robustness of Bamboo-SMP.
+
+Bamboo-SMP’s intelligent switching mechanism and efficient utilization of both CPU and GPU resources ensure it maintains high performance across various scenarios, demonstrating its superiority as a comprehensive solution.
+
+
+
 ## Sequential Case
 
-Parallel and sequential Locality-Aware GS on CPU and Bamboo-SMP work best.
-
-Parallel Locality-Aware GS on CPU outperforms Parallel Locality-Aware GS on GPU because of the low-latency provided by CPU
-
-In this case, paralleism does not have any advantage and Parallel and sequential Locality-Aware GS  have the similar performance.
-
-They perform better than other algorithms because of efficient data movements  
-
-And Bamboo-SMP has a comparable performance because it will switch to CPU when the threshold is reached
+In the sequential case, the sequential Locality-Aware GS on the CPU, as well as Bamboo-SMP, show the best performance. The parallel Locality-Aware GS on the CPU outperforms its GPU counterpart due to the CPU's low latency. In this scenario, parallelism does not offer a significant advantage; in fact, the synchronization method used by the parallel algorithm incurs additional overhead, causing the sequential Locality-Aware GS to outperform the parallel version. Its superior performance compared to other algorithms is attributed to efficient data movements. Bamboo-SMP maintains comparable performance by intelligently switching to the CPU when a certain threshold is reached, leveraging the strengths of both the CPU and GPU to optimize performance.
 
 
 
 ## Congested Case
 
-Locality-Aware GS with atomicMin on GPU  and Bamboo-SMP work best.
-
-parallel MW on GPU work bettter than other parallel algorithms because of the high bandwidth of GPU
-
-Locality-Aware GS with atomicCAS outperforms parallel MW on GPU because of more efficient data movements 
-
-Locality-Aware GS with atomicMin outperforms parallel MW on GPU because of atomicMIN handling the contention
+For the congested case, the Locality-Aware GS using `atomicMin` on the GPU and Bamboo-SMP achieve the best results. The parallel MW algorithm on the GPU performs better than other parallel algorithms due to the GPU's high bandwidth. However, the Locality-Aware GS utilizing `atomicCAS` on the GPU outperforms the parallel MW algorithm because of more efficient data movements. The Locality-Aware GS with `atomicMin` further surpasses its `atomicCAS` counterpart by effectively eliminating wasted work. In this scenario, Bamboo-SMP's adaptive switching mechanism ensures that the GPU is always used for proposals in high-bandwidth environments, potentially avoiding switches when the thread count decreases gradually, thus maintaining optimal performance.
 
 
 
+## Clustered Case
 
-
-## Mixed Case
-
-Locality-Aware GS on GPU  and Bamboo-SMP work best.
+In the clustered case, the Locality-Aware GS using `atomicCAS` on the GPU, the Locality-Aware GS using `atomicMin` on the GPU, and Bamboo-SMP deliver the best performance. Although the degree of parallelism decreases, bandwidth remains critical, allowing the GPU to have a significant impact. Thanks to more efficient data movements, these implementations outperform the parallel MW algorithm on the GPU. Bamboo-SMP's ability to adaptively leverage both CPU and GPU resources ensures consistently high performance even as parallelism decreases, highlighting its robustness and flexibility across varying workloads.
 
 
 
