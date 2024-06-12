@@ -676,6 +676,12 @@ To illustrate the bottlenecks in GS computation, we characterize 4 type of SMP w
 
 
 
+To elucidate the bottlenecks in GS computation, we characterize four types of SMP workloads reflected real-world applications and included different configurations of participants and preference lists. that in Figure \ref{fig:4Workloads}:
+
+These scenarios were designed to reflect real-world applications and included different configurations of participants and preference lists.
+
+
+
 # Issues with Data Movement
 
 In this section, we explore the various bottlenecks encountered in GS computation. We first provide an in-depth look at the implementation of the GS algorithm, analyzing its inefficient memory access patterns and identifying the bottlenecks caused by frequent and costly data movements. 
@@ -1583,77 +1589,38 @@ The main procedure of thread2 involves the use of both the second GPU (GPU2) and
 
 # Section-Experiment
 
-In this section, we made a series of experiments to show off the performance of Bamboo-SMP and verify that it outperforms all existing algorithms 
+This section presents a series of experiments conducted to demonstrate the performance of Bamboo-SMP and verify its superiority over existing algorithms. 
 
 
 
 ## Platforms / Experimental Environment
 
-All implementations are evaluated on a Desktop environment Node in OSC  with2 AMD EPYC 7643 CPUs, totaling 96 cores, 2 NVIDIA Tesla A100 GPUs, and 1TB memory allowing for CUDA computation.
-
-The version of C++ is 
-
-The verion of cmake is 
-
-The verion of CUDA is 
+All implementations were evaluated on a desktop node at the Ohio Supercomputer Center (OSC), equipped with 2 AMD EPYC 7643 CPUs totaling 96 cores, 2 NVIDIA Tesla A100 GPUs, and 1TB of memory. The software environment included g++ version 11.2.0, cmake version 3.25.2, and nvcc version 12.3.52.
 
 
 
 ## Implementation / Baseline
 
-To compare the performance and illustrate the functionality of data movements, atomicMin and Hybrid, we have implemented the sequential GS algorithm, sequential MW algorithm to contrast our locality-aware implementation of GS algorithm.
+Firstly, to assess performance and illustrate the advantages of our locality-aware implementation of the GS algorithm, we used the sequential GS algorithm and the MW algorithm in C++ as baselines. This comparison highlights the optimization of data access patterns in our locality-aware GS implementation.
 
+Then, we implemented a bunch of parallel verions of GS and MW algorithms to demonstrate Bamboo-SMP's high performance and its superioty over existing algorithms across different scenarios.
 
+Specifically the parallel MW algorithm was developed for both the CPU using the C++ thread library and the GPU using CUDA. Similarly, the parallel GS algorithm was implemented on the CPU. These implementations serve as parallel baselines.
 
-to show the effectiveness of atomicMin:
-
-we implemented 
-
-
-
-Hybrid:
-
-And parallel GS algorithm on CPU using thread library, parallel MW on CPU using C++ using thread library and parallel MW on GPU on GPU using thread library.
-
-
-
-We have implemented sequential in C++ and parallel versions of Locality-Aware GS implementation in CUDA.
-
-
-
-To compare the performance and illustrate the functionality of data movements, atomicMin and Hybrid, we have implemented the basic GS algorithm as sequential baseline of CPU-based sequential algorithm, The state-of-the-art parallel MW algorithm on both CPU using C++ and GPU using CUDA as baselines.
-
-
-
-CUDA version is 12.2
-
-All code is compiled using O3 optimizations and the cmake version is 3.25.
+Additionally, we implemented the Locality-Aware GS algorithm on both the CPU and GPU. This was done to specifically illustrate the effectiveness of the `atomicMin` function and the CPU-GPU hybrid computing system. These techniques are integral to the Bamboo System and emphasize its overall performance.
 
 
 
 ## Workloads
 
-In order to make it convincing that Bamboo-SMP outperforms all existing solutions across all types of workloads
-
-we test BambooSMP and baseline algorithm in the following 3 cases, which have been discussed in the section 3.1
-
-We will not include the base case since it is too trivial to say  
+To convincingly demonstrate the robustness of Bamboo-SMP and the effectiveness of the techniques employed, we tested it against baseline algorithms in various scenarios discussed in Section 3.1. By focusing on more complex and representative scenarios, we highlighted significant performance improvements and the versatility of Bamboo-SMP across different types of workloads. The best-case scenario was excluded due to its trivial nature, ensuring that our evaluations remained rigorous and meaningful.
 
 
 
 ### Sequential Case
 
-We test algorithms on Sequential cases, as the same pattern as showed in Figure 3,  of size with participants from 5000 to 30000.
-
-The preference lists of men and the preference lists of women are arranged in such a way that:
-
-Assume the number of participants is n, there will be n^2 - (n - 1) proposals in total and only n of them can be made in parallel, and all rest of proposals must be made in serial. 
-
-
-
-### Congested Case
-
-We test algorithms on Congested cases , as the same pattern as showed in Figure 3, of size with participants from 5000 to 30000.
+In the sequential case, we tested algorithms with participant sizes ranging from 5,000 to 30,000, following the pattern shown in Figure 3. The preference lists for men and women were arranged such that, given n participants, there would be 
+n^2−(n−1) proposals in total, with only n proposals made in parallel while the rest must be made serially.We test algorithms on Congested cases , as the same pattern as showed in Figure 3, of size with participants from 5000 to 30000.
 
 All men have the exactly the same preference lists and no preference lists of woman are randomized.
 
@@ -1661,96 +1628,167 @@ And each preference lists is a randomly shifted list with all integers from 1 to
 
 
 
+### Congested Case
+
+For the congested case, we also tested algorithms with participant sizes from 5,000 to 30,000, as shown in Figure 3. In this scenario, all men had identical preference lists, and the preference lists of women were randomized, with each list being a randomly shifted sequence of integers from 1 to n.
+
+
+
 ### Clustered Cases
 
-We evaluated all implementations on real-world datasets from four distinct domains.
-
-We process them into 4 kinds of SMP instances in type of clustered cases to simulate real-world SMP handling.
-
-
-
-
-
-#### Bike
-
-We use bike sharing data2 to calculate distances from a start point to an end point as agent preferences on the 𝑋 side.
-Agent preferences on the 𝑌 side are the values of orders for a bike on its start point; order values of follow a uniform distribution.
-
-
-
-values of orders must range from the highest to lowest.
-
-Due to the uniform distribution, there can be duplicate value of orders. Especially for those values that are quite similar.
-
-
-
-We can randomize ranks that correspond to order with those similar values.
-
-
-
-calculate distances from a start point to an end point as agent preferences on the 𝑋 side.
-
-(1) Divide into Groups: criteria for vehicle types
-
-(2) Distance: each group is further divided into groups for distances.
-
-Those groups will randomize ranks and all nodes inside Each group for distances will randomize the rank
+In the clustered cases, we evaluated all implementations using real-world datasets from three distinct domains, processing them into three types of SMP instances: TAXI, ADM, and JOB. To simulate real-world SMP handling, agents were ordered by one main factor and divided into fixed groups, with the ranks of agents within each group randomized to reflect other factors influencing their judgments. The specific methods for generating clustered preference lists with these groups are detailed in Table 1.
 
 
 
 #### TAXI
 
-TAXI/TAXI+. As with the BIKE dataset, we construct a two-sided market from taxi and user data in the NYC Taxi dataset3.
+TAXI/TAXI+. As with the BIKE dataset, we construct a two-sided market from taxi and user data in the NYC Taxi dataset3
 
 
+
+Matching agents with drivers is also a classical matching problem.
+
+Here we use the data  taxi and user data in the NYC Taxi dataset3 and Uber PERU dataset.
+
+
+
+Driver Data:
+
+This dataset coming from mobility startup that lets any user to book a ride to from any point A to any point B within the city using a smartphone.
 
 https://kaggle.com/datasets/marcusrb/uber-peru-dataset
 
 
 
+User data: 
+
+data generated by The New York City Taxi and Limousine Commission (TLC)'s licensees to observe changing trends in the industry and inform decisions made by our agency and the City
+
+https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page
+
+
+
+(1) User Side
+
+The user will rank all drivers from highest rate to lowest rate. They will create a group for every 0.2 score interval.
+
+all drivers that fall into the same interval will be considered as a group.
+
+
+
+(2) Driver Side
+
+The driver will rank all users from highest amount of order to lowest one.
+
+They will create group for every 5 amount.
+
+All users will fall into the same interval will be considered as a group.
+
+
+
+
+
 #### ADM
 
-University admission forms a classic scenario for the stable
-marriage problem [2, 43]. We obtain university ranking data5
-and GRE and TOEFL score from anonymous admission data6.
-We construct preference lists by a two-order sort, first by type
-of institute, then by rank within each type.
+University admission forms a classic scenario for the stable marriage problem [2, 43]. 
+
+We obtain university ranking data5 and GRE and TOEFL score from anonymous admission data6. We construct preference lists by a two-order sort, first by type of institute, then by rank within each type.
 
 
 
-(1) University Side:
+Student Data:
 
-Rank by TOEFL and GRE
-
-
-
-(2) Student Side:
-
-Institution Type and Rank
-
-
+The dataset contains several parameters which are considered important during the application for Masters Programs.
 
 https://www.kaggle.com/datasets/mohansacharya/graduate-admissions
 
 
 
+(1) University Side:
+
+Since the number of students (500) provided in this data set is quite limited, we use Machine Learning technique to expand the number of students to 20000,
+
+then students will be ranked by their GPA, every 0.5 will form a group. 
+
+Inside each group with close GPA, the ranks of students will be randomized to simulate other factor that affect the 
+
+
+
+(2) Student Side:
+
+We only choose top50 schools, and give each school 400 quotas, one quota for one student.
+
+so the top school will have id from 1 to 400, which form a group. all students that matched with id from 1 to 400 will get enrolled in the first top school.
+
+and second will have 401 to 800
+
+The school will be listed from highest rank to lowest rank and students will randomize the ids inside each groups. Since all of them are the same, randomize the order won't affect which school to choose.
+
+
+
 #### JOB
 
-Person-fit is the core task in online recruitment platforms [11,
-56]. We construct a two-sided market using work experience7
-and salary8 as the preferences of recruiters and job hunters.
+Person-fit is the core task in online recruitment platforms [11, 56]. We construct a two-sided market using work experience7 and salary8 as the preferences of recruiters and job hunters.
+
+
+
+Job Data:
+
+This dataset was created by picklesueat and contains more than 3900 job listing for data scientist positions, with features such as Salary Estimate
+
+https://www.kaggle.com/datasets/andrewmvd/data-scientist-jobs
+
+
+
+Applicant Data:
+
+Information related to education, experience are in hands from candidates signup and enrollment.
+
+https://www.kaggle.com/datasets/arashnic/hr-analytics-job-change-of-data-scientists
+
+
 
 
 
 (1) Recruiter Side:
 
-Work Experience
+Group the applicants into categories by 3-order: major-degree-work experience, that are:     group_order = [
+        "STEM - Phd - Has relevent experience",
+        "STEM - Phd - No relevent experience",
+        "STEM - Masters - Has relevent experience",
+        "STEM - Masters - No relevent experience",
+        "STEM - Graduate - Has relevent experience",
+        "STEM - Graduate - No relevent experience",
+        "Non-STEM Group"
+    ]
 
 
 
 (2) Worker Side:
 
-Salary
+Jobs will be ranked by Salary, every 10000 dollars will form a group
+
+
+
+# Sequential Results
+
+## All 3 Cases
+
+
+
+
+
+# Parallel
+
+## Congested Case
+
+
+
+## Sequential Case
+
+
+
+## Mixed Case
 
 
 
@@ -1803,6 +1841,97 @@ Salary
 
 
 **Each figure is an n*n array, it is easy to explain. For example, in the initiation stage, the first column of the matrix is accessed for each free man to propose to his top choice. You don’t need circles and squares with different colors to trace.**
+
+
+
+## Unused / Backup
+
+#### Bike
+
+We use bike sharing data2 to calculate distances from a start point to an end point as agent preferences on the 𝑋 side.
+Agent preferences on the 𝑌 side are the values of orders for a bike on its start point; order values of follow a uniform distribution.
+
+
+
+values of orders must range from the highest to lowest.
+
+Due to the uniform distribution, there can be duplicate value of orders. Especially for those values that are quite similar.
+
+
+
+We can randomize ranks that correspond to order with those similar values.
+
+
+
+calculate distances from a start point to an end point as agent preferences on the 𝑋 side.
+
+(1) Divide into Groups: criteria for vehicle types
+
+(2) Distance: each group is further divided into groups for distances.
+
+Those groups will randomize ranks and all nodes inside Each group for distances will randomize the rank
+
+
+
+#### TAXI
+
+TAXI/TAXI+. As with the BIKE dataset, we construct a two-sided market from taxi and user data in the NYC Taxi dataset3.
+
+
+
+
+
+https://kaggle.com/datasets/marcusrb/uber-peru-dataset
+
+
+
+#### ADM
+
+University admission forms a classic scenario for the stable marriage problem [2, 43]. 
+
+We obtain university ranking data5 and GRE and TOEFL score from anonymous admission data6. We construct preference lists by a two-order sort, first by type of institute, then by rank within each type.
+
+
+
+
+
+(1) University Side:
+
+Since the number of students (500) provided in this data set is quite limited, we use Machine Learning technique to expand the number of students to 20000,
+
+then students will be ranked by their GPA, every 0.5 will form a group. 
+
+Inside each group with close GPA, the ranks of students will be randomized to simulate other factor that affect the 
+
+
+
+(2) Student Side:
+
+We only choose top50 schools Rank
+
+
+
+https://www.kaggle.com/datasets/mohansacharya/graduate-admissions
+
+
+
+#### JOB
+
+Person-fit is the core task in online recruitment platforms [11,
+56]. We construct a two-sided market using work experience7
+and salary8 as the preferences of recruiters and job hunters.
+
+
+
+(1) Recruiter Side:
+
+Work Experience
+
+
+
+(2) Worker Side:
+
+Salary
 
 
 
