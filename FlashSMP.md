@@ -1642,13 +1642,7 @@ In the clustered cases, we evaluated all implementations using real-world datase
 
 #### TAXI
 
-TAXI/TAXI+. As with the BIKE dataset, we construct a two-sided market from taxi and user data in the NYC Taxi dataset3
-
-
-
 Matching agents with drivers is also a classical matching problem.
-
-Here we use the data  taxi and user data in the NYC Taxi dataset3 and Uber PERU dataset.
 
 
 
@@ -1690,9 +1684,7 @@ All users will fall into the same interval will be considered as a group.
 
 #### ADM
 
-University admission forms a classic scenario for the stable marriage problem [2, 43]. 
-
-We obtain university ranking data5 and GRE and TOEFL score from anonymous admission data6. We construct preference lists by a two-order sort, first by type of institute, then by rank within each type.
+Matching students with universities is also a classical matching problem.
 
 
 
@@ -1728,7 +1720,7 @@ The school will be listed from highest rank to lowest rank and students will ran
 
 #### JOB
 
-Person-fit is the core task in online recruitment platforms [11, 56]. We construct a two-sided market using work experience7 and salary8 as the preferences of recruiters and job hunters.
+Matching candidates with jobs
 
 
 
@@ -1752,7 +1744,7 @@ https://www.kaggle.com/datasets/arashnic/hr-analytics-job-change-of-data-scienti
 
 (1) Recruiter Side:
 
-Group the applicants into categories by 3-order: major-degree-work experience, that are:     group_order = [
+Group the applicants into categories by a three-order sort: major-degree-work experience, that are:     group_order = [
         "STEM - Phd - Has relevent experience",
         "STEM - Phd - No relevent experience",
         "STEM - Masters - Has relevent experience",
@@ -1824,7 +1816,11 @@ Jobs will be ranked by Salary, every 10000 dollars will form a group
 
 **How much time do you need for this preprocessing on a single processor, what is the complexity for a group of n men and n woman. If n is one million.**
 
+
+
 **What is the percentage of time of this preprocessing in the total execution time.**
+
+
 
 **If we spend x seconds for preprocessing, and y seconds for parallel processing, what is x/(x+y)? Is it trivial?**
 
