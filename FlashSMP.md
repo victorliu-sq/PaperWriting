@@ -1601,19 +1601,13 @@ All implementations were evaluated on a desktop node at the Ohio Supercomputer C
 
 ## Implementation / Baseline
 
-To assess performance and illustrate the advantages of our locality-aware implementation of the GS algorithm, we used the state of the art, the sequential GS algorithm and the MW algorithm, as baselines. 
+To assess performance and illustrate the advantages of our locality-aware implementation of the GS algorithm, we used state-of-the-art algorithms, specifically the sequential GS algorithm and the MW algorithm, as baselines. Both were implemented in C++. This comparison highlights the optimization of data access patterns in our locality-aware GS implementation.
 
-All of them are implemented in in C++. 
+Next, we developed several parallel versions of the GS and MW algorithms to demonstrate Bamboo-SMP's high performance and superiority over existing algorithms across different scenarios. Specifically, the parallel MW algorithm was implemented for both the CPU using the C++ thread library and the GPU using CUDA. Similarly, the parallel GS algorithm was implemented on the CPU. These implementations serve as parallel baselines, providing a robust foundation for comparison.
 
-This comparison highlights the optimization of data access patterns in our locality-aware GS implementation.
+In addition to the hybrid system used by Bamboo-SMP, we also implemented the Locality-Aware GS algorithm on both the CPU and GPU. For the GPU implementation, we created two versions of the Locality-Aware GS algorithm: one using `atomicCAS` as a contrast, and the other using `atomicMin`. This was done to specifically illustrate the effectiveness of the `atomicMin` function in resolving contention and enhancing efficiency.
 
-
-
-Then, we implemented a bunch of parallel verions of GS and MW algorithms to demonstrate Bamboo-SMP's high performance and its superioty over existing algorithms across different scenarios.
-
-Specifically the parallel MW algorithm was developed for both the CPU using the C++ thread library and the GPU using CUDA. Similarly, the parallel GS algorithm was implemented on the CPU. These implementations serve as parallel baselines.
-
-Additionally, we implemented the Locality-Aware GS algorithm on both the CPU and GPU. This was done to specifically illustrate the effectiveness of the `atomicMin` function and the CPU-GPU hybrid computing system. These techniques are integral to the Bamboo System and emphasize its overall performance.
+By incorporating these techniques, we demonstrate that they are essential to Bamboo-SMP and significantly enhance its overall performance. The results confirm that the combination of locality-aware optimizations, advanced synchronization methods, and a heterogeneous computing system greatly improves the algorithm's efficiency, showcasing the robustness and superiority of Bamboo-SMP as a comprehensive solution.
 
 
 
