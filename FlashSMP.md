@@ -1945,4 +1945,24 @@ Yes
 
 
 
-# Draft
+# Meeting
+
+Problem: use the figure that we draw
+
+Goal; give a question: Can we eliminate the time
+
+Identify: talk about the dependency
+
+New data structure: How to 
+
+For reader: does this new data structure takes more overhead?
+
+No free lunch
+
+Space: constant increasement
+
+Preprocessing Time: overhead is slow, why?
+
+Totally independent + GPU => so super fast
+
+And the best case is rarex.
