@@ -1648,7 +1648,7 @@ All original datasets have been expanded to 20,000 participants using machine le
 
 
 
-# Sequential Results
+# Sequential Results(X1)
 
 Figure 5 illustrates the overall performance of the three sequential algorithm implementations.
 
@@ -1657,6 +1657,53 @@ A key factor in this performance is that the preprocessing steps for initializin
 The Locality-Aware GS implementation includes an additional preprocessing step for PRMatrix initialization, resulting in extra overhead. Despite this slight increase in preprocessing time, the Locality-Aware GS consistently outperforms all other solutions. This minor overhead is negligible when compared to the substantial performance gains achieved.
 
 In all three scenarios, the locality-aware implementation demonstrates over 50% faster execution times than the locality-unaware version. This significant improvement underscores the importance of optimizing data movement, as discussed in Section 3. These results confirm that addressing inefficient data movement can lead to remarkable enhancements in overall algorithm performance. Thus, the Locality-Aware GS implementation not only compensates for its initial overhead but also provides substantial runtime benefits.
+
+
+
+**X1**
+
+```
+1: [ RUN      ] X1.X1SerialWorkloadTest1
+1: atomicLocality Init Memcpy spends 351.627 ms Initialization: Launch 7031250 blocks
+1: GS InitNode spends 24.4521 ms
+1: Total number of threads is 12
+1: atomicLocality Init Memcpy spends 459.638 ms Initialization: Launch 7031250 blocks
+1: MW InitNode spends 21.6942 ms
+1: Total number of threads is 12
+1: atomicLocality Init Memcpy spends 354.971 ms Initialization: Launch 7031250 blocks
+1: cohabitation InitNode spends 217.594 ms
+1: GS time is 13665.608398, MW time is 13876.213867, Coh time is 3224.459961, Coh Speedup is 4.238108[       OK ] X1.X1SerialWorkloadTest1 (66187 ms)
+1: [ RUN      ] X1.X1ClusteredWorkloadTest
+1: atomicLocality Init Memcpy spends 350.603 ms Initialization: Launch 7031250 blocks
+1: GS InitNode spends 21.6925 ms
+1: Total number of threads is 12
+1: atomicLocality Init Memcpy spends 442.94 ms Initialization: Launch 7031250 blocks
+1: MW InitNode spends 21.6968 ms
+1: Total number of threads is 12
+1: atomicLocality Init Memcpy spends 351.577 ms Initialization: Launch 7031250 blocks
+1: cohabitation InitNode spends 217.886 ms
+1: GS time is 23379.951172, MW time is 17344.433594, Coh time is 3228.890625, Coh Speedup is 7.240862[       OK ] X1.X1ClusteredWorkloadTest (89050 ms)
+1: [ RUN      ] X1.X1CongestedWorkloadTest
+1: atomicLocality Init Memcpy spends 350.918 ms Initialization: Launch 7031250 blocks
+1: GS InitNode spends 21.6616 ms
+1: Total number of threads is 12
+1: atomicLocality Init Memcpy spends 446.659 ms Initialization: Launch 7031250 blocks
+1: MW InitNode spends 21.6717 ms
+1: Total number of threads is 12
+1: atomicLocality Init Memcpy spends 351.564 ms Initialization: Launch 7031250 blocks
+1: cohabitation InitNode spends 217.707 ms
+1: GS time is 56856.000000, MW time is 39450.289062, Coh time is 18050.191406, Coh Speedup is 3.149884[       OK ] X1.X1CongestedWorkloadTest (132004 ms)
+1: [ RUN      ] X1.X1RandomWorkloadTest
+1: atomicLocality Init Memcpy spends 352.368 ms Initialization: Launch 7031250 blocks
+1: GS InitNode spends 21.6924 ms
+1: Total number of threads is 12
+1: atomicLocality Init Memcpy spends 433.351 ms Initialization: Launch 7031250 blocks
+1: MW InitNode spends 21.6808 ms
+1: Total number of threads is 12
+1: atomicLocality Init Memcpy spends 351.691 ms Initialization: Launch 7031250 blocks
+1: cohabitation InitNode spends 217.639 ms
+1: GS time is 40.916836, MW time is 38.617702, Coh time is 13.427902, Coh Speedup is 3.047150[       OK ] X1.X1RandomWorkloadTest (30705 ms)
+```
 
 
 
@@ -1937,8 +1984,6 @@ Section-4.1
 
 
 
-
-
 5.are the preprocessing and parallel processing done one by one without reloading programs?
 
 Yes
@@ -1965,4 +2010,4 @@ Preprocessing Time: overhead is slow, why?
 
 Totally independent + GPU => so super fast
 
-And the best case is rarex.
+And the best case is rare.
