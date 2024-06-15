@@ -672,7 +672,11 @@ To illustrate the bottlenecks in GS computation, we characterize 4 type of SMP w
 
 **Clustered Case**
 
-- The preferences are clustered into groups, and groups are preferred in the same order.
+- The preferences are clustered into groups, and groups are preferred in the same order whereas members in the same group will order randomized.
+
+**Randomized Case**
+
+- All men have completely randomized  preference lists
 
 
 
@@ -710,7 +714,17 @@ In the GS algorithm, dependencies are hidden in logic programs and data structur
 
 However, optimizing memory access patterns of women's rank matrix remains challenging. The $WomanRank$ matrix is accessed in a non-linear order because the IDs of the men proposing and the women being proposed to are dynamically determined. Even with optimized access patterns for the men's preference lists, the randomization of the proposed women's IDs results in non-sequential accesses to the $WomanRank$ matrix. When the number of participants (n) is very large, this non-sequential nature of access causes significant memory jumps, disrupting efficient caching and prefetching mechanisms. These scattered and unpredictable accesses lead to poor memory usage and slower access times.
 
-To illustrate the importance of optimizing memory access, we tested the GS algorithm across diverse workloads to measure the impact of memory accesses to the $WomanRank$ matrix and the $Next$ array. As shown in Figure 3, the combined time to access the $WomanRank$ matrix to get a man's rank in a woman's preference list and the $Next$ array to get the rank of the next woman to propose to accounts for over 50% of the total execution time in all workloads. (The specific details of these workloads will be explained in Section 6; for now, just note this fact.)
+
+
+### Workload
+
+##### To illustrate the importance of optimizing memory access, we tested the GS algorithm across diverse workloads to measure the impact of memory accesses to the $WomanRank$ matrix and the $Next$ array. 
+
+As shown in Figure 3, the most significant portion of the execution time is attributed to accessing the $WomanRank$ matrix to retrieve a man’s rank in a woman’s preference list and the $Next$ array to get the rank of the next woman to propose to.
+
+On average, these accesses account for over 60% of the total execution time across all workloads. 
+
+(The specific details of these workloads will be explained in Section 6; for now, just note this fact.)”
 
 
 
@@ -1667,40 +1681,42 @@ In all three scenarios, the locality-aware implementation demonstrates over 50% 
 1: atomicLocality Init Memcpy spends 351.627 ms Initialization: Launch 7031250 blocks
 1: GS InitNode spends 24.4521 ms
 1: Total number of threads is 12
-1: atomicLocality Init Memcpy spends 459.638 ms Initialization: Launch 7031250 blocks
 1: MW InitNode spends 21.6942 ms
 1: Total number of threads is 12
-1: atomicLocality Init Memcpy spends 354.971 ms Initialization: Launch 7031250 blocks
+
 1: cohabitation InitNode spends 217.594 ms
 1: GS time is 13665.608398, MW time is 13876.213867, Coh time is 3224.459961, Coh Speedup is 4.238108[       OK ] X1.X1SerialWorkloadTest1 (66187 ms)
+
 1: [ RUN      ] X1.X1ClusteredWorkloadTest
-1: atomicLocality Init Memcpy spends 350.603 ms Initialization: Launch 7031250 blocks
+
 1: GS InitNode spends 21.6925 ms
 1: Total number of threads is 12
-1: atomicLocality Init Memcpy spends 442.94 ms Initialization: Launch 7031250 blocks
+
 1: MW InitNode spends 21.6968 ms
 1: Total number of threads is 12
-1: atomicLocality Init Memcpy spends 351.577 ms Initialization: Launch 7031250 blocks
+
 1: cohabitation InitNode spends 217.886 ms
 1: GS time is 23379.951172, MW time is 17344.433594, Coh time is 3228.890625, Coh Speedup is 7.240862[       OK ] X1.X1ClusteredWorkloadTest (89050 ms)
+
 1: [ RUN      ] X1.X1CongestedWorkloadTest
-1: atomicLocality Init Memcpy spends 350.918 ms Initialization: Launch 7031250 blocks
+
 1: GS InitNode spends 21.6616 ms
 1: Total number of threads is 12
-1: atomicLocality Init Memcpy spends 446.659 ms Initialization: Launch 7031250 blocks
+
 1: MW InitNode spends 21.6717 ms
 1: Total number of threads is 12
-1: atomicLocality Init Memcpy spends 351.564 ms Initialization: Launch 7031250 blocks
+
 1: cohabitation InitNode spends 217.707 ms
 1: GS time is 56856.000000, MW time is 39450.289062, Coh time is 18050.191406, Coh Speedup is 3.149884[       OK ] X1.X1CongestedWorkloadTest (132004 ms)
+
 1: [ RUN      ] X1.X1RandomWorkloadTest
-1: atomicLocality Init Memcpy spends 352.368 ms Initialization: Launch 7031250 blocks
+
 1: GS InitNode spends 21.6924 ms
 1: Total number of threads is 12
-1: atomicLocality Init Memcpy spends 433.351 ms Initialization: Launch 7031250 blocks
+
 1: MW InitNode spends 21.6808 ms
 1: Total number of threads is 12
-1: atomicLocality Init Memcpy spends 351.691 ms Initialization: Launch 7031250 blocks
+
 1: cohabitation InitNode spends 217.639 ms
 1: GS time is 40.916836, MW time is 38.617702, Coh time is 13.427902, Coh Speedup is 3.047150[       OK ] X1.X1RandomWorkloadTest (30705 ms)
 ```
@@ -1954,8 +1970,6 @@ Newest Lu
 
 
 
-
-
 # Preprocessing
 
 You need to answer the following questions for the preprocessing step:
@@ -1976,7 +1990,7 @@ Section-4.1
 
 3.How much you can gain by this approach (speedup, latency reduction)?
 
-2.5x -> experimental
+on average 2.5x -> experimental
 
 
 
