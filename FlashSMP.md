@@ -658,25 +658,29 @@ This results in a stable matching identical to the man-optimal stable marriage p
 
 To illustrate the bottlenecks in GS computation, we characterize 4 type of SMP workloads that are:
 
-**Sequential Case**
-
-- Almost every man gets paired at first, only one man gets rejected and remains free for all subsequent proposals.
-
-**Congetsed Case**
-
-- All men have exactly the same preference lists.
-
 **Best Case**
 
-- All men have distinct first choices.
+In the best case scenario, all men have distinct first choices, ensuring all of them will be paired at the first round of proposals.
+
+
+
+**Solo Case**
+
+In the singular case, almost every man is paired with a partner immediately, with only one man facing rejection and remaining unpaired for all subsequent proposals. This scenario highlights the inefficiency of parallism.
+
+
 
 **Clustered Case**
 
-- The preferences are clustered into groups, and groups are preferred in the same order whereas members in the same group will order randomized.
+The clustered case involves clustering preferences into groups, where groups are preferred in a specific order, but the preferences within each group are randomized. This case examines the algorithm’s performance when preferences are not entirely unique.
 
-**Randomized Case**
 
-- All men have completely randomized  preference lists
+
+There are two speical cases for clustered case: 
+
+(1) **Congetsed Case**: each group has only one woman, since groups are preferred in the same order, thus All men have exactly the same preference lists.
+
+(2) **Randomized Case**:  there is only one group containing all women, then  All men have completely randomized  preference lists
 
 
 
