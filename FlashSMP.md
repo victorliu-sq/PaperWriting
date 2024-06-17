@@ -1808,7 +1808,6 @@ GS time is 13307.696289, MW time is 14883.905273, Coh time is 3210.362305, Coh S
 2: [ RUN      ] X1.X1ClusteredWorkloadTest
 2: Copy PrefLists into GPU spends 176.338 ms GS Init RankMatrixW  in parallel on GPU spends 31.7599 ms
 2: Copy back RankMatrixW to CPU spends 441.489 ms Total GS preprocessing time is 649.587 ms
-2: 
 
 Copy PrefLists into GPU spends 176.669 ms MW Init RankMatrixW  in parallel on GPU spends 28.9298 ms
 2: Copy back RankMatrixW to CPU spends 461.683 ms Total MW preprocessing time is 667.282 ms 
@@ -1849,6 +1848,27 @@ GS time is 56317.199219, MW time is 39512.464844, Coh time is 17979.505859, Coh 
 
 GS time is 41.098839, MW time is 40.513981, Coh time is 13.991295, Coh Speedup is 2.937458[       OK ] X1.X1RandomWorkloadTest (40340 ms)
 
+```
+
+
+
+Table for X1
+
+```
+\begin{table*}[t]
+\centering
+\caption{Comparison of GS, MW, and LA for Different Workloads}
+\begin{tabular}{lrrr}
+\toprule
+   Workloads & GS (Preprocessing / Execution ms) & MW (Preprocessing / Execution ms) & LA (Preprocessing / Execution ms) \\
+\midrule
+      Serial & 659.003 / 13665.608 & 640.272 / 14883.905 & \textbf{2752.34} / \textbf{3224.460} \\
+   Clustered & 649.587 / 23379.951 & 667.282 / 17344.434 & \textbf{2690.61} / \textbf{3228.891} \\
+  Congested & 643.094 / 56856.000 & 653.406 / 39450.289 & \textbf{2743.58} / \textbf{18050.191} \\
+      Random & 404.188 / 40.917 & 404.344 / 38.618 & \textbf{2739.72} / \textbf{13.428} \\
+\bottomrule
+\end{tabular}
+\end{table*}
 ```
 
 
