@@ -1786,6 +1786,45 @@ we highlighted that the locality-aware implementation of GS algorithm achieves s
 
 
 
+Test Result
+
+```
+2: [ RUN      ] X1.X1SerialWorkloadTest1
+2: Copy PrefLists into GPU spends 179.581 ms GS Init RankMatrixW  in parallel on GPU spends 26.8757 ms
+2: Copy back RankMatrixW to CPU spends 452.546 ms Total GS preprocessing time is 659.003 ms
+2: Copy PrefLists into GPU spends 176.854 ms MW Init RankMatrixW  in parallel on GPU spends 23.4811 ms
+2: Copy back RankMatrixW to CPU spends 439.938 ms Total MW preprocessing time is 640.272 ms Copy PrefLists into GPU spends 356.737 ms
+2: LA Init PRMatrices in parallel on GPU spends 220.077 ms
+2: Copy back PRMatrices to CPU spends 2175.53 ms Total LA preprocessing time is 2752.34 ms GS time is 13307.696289, MW time is 14883.905273, Coh time is 3210.362305, Coh Speedup is 4.145232[       OK ] X1.X1SerialWorkloadTest1 (74576 ms)
+
+2: [ RUN      ] X1.X1ClusteredWorkloadTest
+2: Copy PrefLists into GPU spends 176.338 ms GS Init RankMatrixW  in parallel on GPU spends 31.7599 ms
+2: Copy back RankMatrixW to CPU spends 441.489 ms Total GS preprocessing time is 649.587 ms
+2: Copy PrefLists into GPU spends 176.669 ms MW Init RankMatrixW  in parallel on GPU spends 28.9298 ms
+2: Copy back RankMatrixW to CPU spends 461.683 ms Total MW preprocessing time is 667.282 ms Copy PrefLists into GPU spends 350.128 ms
+2: LA Init PRMatrices in parallel on GPU spends 219.876 ms
+2: Copy back PRMatrices to CPU spends 2120.6 ms Total LA preprocessing time is 2690.61 ms GS time is 22951.527344, MW time is 18215.650391, Coh time is 3177.784912, Coh Speedup is 7.222492[       OK ] X1.X1ClusteredWorkloadTest (112327 ms)
+
+2: [ RUN      ] X1.X1CongestedWorkloadTest
+2: Copy PrefLists into GPU spends 176.504 ms GS Init RankMatrixW  in parallel on GPU spends 28.5636 ms
+2: Copy back RankMatrixW to CPU spends 438.027 ms Total GS preprocessing time is 643.094 ms
+2: Copy PrefLists into GPU spends 176.484 ms MW Init RankMatrixW  in parallel on GPU spends 23.7838 ms
+2: Copy back RankMatrixW to CPU spends 453.139 ms Total MW preprocessing time is 653.406 ms Copy PrefLists into GPU spends 353.395 ms
+2: LA Init PRMatrices in parallel on GPU spends 219.744 ms
+2: Copy back PRMatrices to CPU spends 2170.44 ms Total LA preprocessing time is 2743.58 ms GS time is 56317.199219, MW time is 39512.464844, Coh time is 17979.505859, Coh Speedup is 3.132300[       OK ] X1.X1CongestedWorkloadTest (136101 ms)
+
+2: [ RUN      ] X1.X1RandomWorkloadTest
+2: Copy PrefLists into GPU spends 177.542 ms GS Init RankMatrixW  in parallel on GPU spends 23.8268 ms
+2: Copy back RankMatrixW to CPU spends 202.82 ms Total GS preprocessing time is 404.188 ms
+2: Copy PrefLists into GPU spends 177.784 ms MW Init RankMatrixW  in parallel on GPU spends 23.7689 ms
+2: Copy back RankMatrixW to CPU spends 202.791 ms Total MW preprocessing time is 404.344 ms Copy PrefLists into GPU spends 354.035 ms
+2: LA Init PRMatrices in parallel on GPU spends 219.95 ms
+2: Copy back PRMatrices to CPU spends 2165.73 ms Total LA preprocessing time is 2739.72 ms GS time is 41.098839, MW time is 40.513981, Coh time is 13.991295, Coh Speedup is 2.937458[       OK ] X1.X1RandomWorkloadTest (40340 ms)
+
+```
+
+
+
 # TODOs
 
 *You need to label every figure/table/section as a variable so that you will connect to that variable instead of calling Figure X.*
