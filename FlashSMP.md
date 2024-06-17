@@ -1708,6 +1708,10 @@ A key factor in this performance is that the preprocessing steps for initializin
 
 As shown in Figure 6, although executing the GS algorithm on the CPU requires data transfer from the GPU to the CPU, which incurs a transfer cost,  this method can still achieve up to a 1000x speedup, which is crucial; otherwise, the preprocessing overhead would overshadow the execution phase. 
 
+
+
+Init RankMatrixW
+
 ```
  current size is 100
 1: Time to preprocess PRMatrices is 0.417014
@@ -1747,6 +1751,41 @@ As shown in Figure 6, although executing the GS algorithm on the CPU requires da
 ```
 
 
+
+Init PRMatrix
+
+```
+ current size is 100
+1: Time to preprocess PRMatrices is 0.523815
+1: Copy PrefLists into GPU spends 0.052789 ms Initialization: Launch 79 blocks
+1: Init PRMatrices in parallel on GPU spends 1.56085 ms
+1: Copy back PRMatrices to CPU spends 0.112953 ms
+1:  current size is 500
+1: Time to preprocess PRMatrices is 9.658418
+1: Copy PrefLists into GPU spends 0.213492 ms Initialization: Launch 1954 blocks
+1: Init PRMatrices in parallel on GPU spends 0.060965 ms
+1: Copy back PRMatrices to CPU spends 0.452891 ms
+1:  current size is 1000
+1: Time to preprocess PRMatrices is 45.441368
+1: Copy PrefLists into GPU spends 0.545796 ms Initialization: Launch 7813 blocks
+1: Init PRMatrices in parallel on GPU spends 0.192692 ms
+1: Copy back PRMatrices to CPU spends 3.30245 ms
+1:  current size is 5000
+1: Time to preprocess PRMatrices is 1873.886559
+1: Copy PrefLists into GPU spends 10.342 ms Initialization: Launch 195313 blocks
+1: Init PRMatrices in parallel on GPU spends 6.07931 ms
+1: Copy back PRMatrices to CPU spends 57.2855 ms
+1:  current size is 10000
+1: Time to preprocess PRMatrices is 7847.279031
+1: Copy PrefLists into GPU spends 39.2986 ms Initialization: Launch 781250 blocks
+1: Init PRMatrices in parallel on GPU spends 24.8765 ms
+1: Copy back PRMatrices to CPU spends 227.401 ms
+1:  current size is 30000
+1: Time to preprocess PRMatrices is 97709.711523
+1: Copy PrefLists into GPU spends 352.747 ms Initialization: Launch 7031250 blocks
+1: Init PRMatrices in parallel on GPU spends 217.718 ms
+1: Copy back PRMatrices to CPU spends 2174.66 ms
+```
 
 
 
