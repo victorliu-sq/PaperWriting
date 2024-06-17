@@ -1713,41 +1713,36 @@ As shown in Figure 6, although executing the GS algorithm on the CPU requires da
 Init RankMatrixW
 
 ```
- current size is 100
-1: Time to preprocess PRMatrices is 0.417014
-1: Copy into GPU spends 0.035216 ms Initialization: Launch 79 blocks
-1: GS InitNode spends 1.57369 ms
-1: Copy back CPU spends 0.030678 ms Total number of threads is 12
+1:  current size is 100
+1: Time to preprocess PRMatrices is 0.367541
+1: Copy into GPU spends 0.020308 ms Init RankMatrixW in parallel spends 0.013014 ms
+1: Copy back CPU spends 0.016741 ms
 1:
 1:  current size is 500
-1: Time to preprocess PRMatrices is 9.301425
-1: Copy into GPU spends 0.121047 ms Initialization: Launch 1954 blocks
-1: GS InitNode spends 0.027452 ms
-1: Copy back CPU spends 0.115607 ms Total number of threads is 12
+1: Time to preprocess PRMatrices is 10.374562
+1: Copy into GPU spends 0.120657 ms Init RankMatrixW in parallel spends 0.022412 ms
+1: Copy back CPU spends 0.105117 ms
 1:
 1:  current size is 1000
-1: Time to preprocess PRMatrices is 45.535019
-1: Copy into GPU spends 0.30883 ms Initialization: Launch 7813 blocks
-1: GS InitNode spends 0.044604 ms
-1: Copy back CPU spends 0.826143 ms Total number of threads is 12
+1: Time to preprocess PRMatrices is 45.724253
+1: Copy into GPU spends 0.318388 ms Init RankMatrixW in parallel spends 0.044193 ms
+1: Copy back CPU spends 0.790376 ms
 1:
 1:  current size is 5000
-1: Time to preprocess PRMatrices is 1876.570338
-1: Copy into GPU spends 5.57246 ms Initialization: Launch 195313 blocks
-1: GS InitNode spends 0.668707 ms
-1: Copy back CPU spends 12.5789 ms Total number of threads is 12
+1: Time to preprocess PRMatrices is 1942.634044
+1: Copy into GPU spends 5.48993 ms Init RankMatrixW in parallel spends 0.665992 ms
+1: Copy back CPU spends 13.8987 ms
 1:
 1:  current size is 10000
-1: Time to preprocess PRMatrices is 7991.967678
-1: Copy into GPU spends 19.8625 ms Initialization: Launch 781250 blocks
-1: GS InitNode spends 2.65986 ms
-1: Copy back CPU spends 50.4556 ms Total number of threads is 12
+1: Time to preprocess PRMatrices is 7870.353065
+1: Copy into GPU spends 19.9606 ms Init RankMatrixW in parallel spends 2.65593 ms
+1: Copy back CPU spends 47.5448 ms
 1:
 1:  current size is 30000
-1: Time to preprocess PRMatrices is 95754.668630
-1: Copy into GPU spends 177.376 ms Initialization: Launch 7031250 blocks
-1: GS InitNode spends 23.9874 ms
-1: Copy back CPU spends 453.622 ms Total number of threads is 12
+1: Time to preprocess PRMatrices is 97806.860469
+1: Copy into GPU spends 177.554 ms Init RankMatrixW in parallel spends 21.6663 ms
+1: Copy back CPU spends 419.252 ms
+
 ```
 
 
@@ -1755,36 +1750,30 @@ Init RankMatrixW
 Init PRMatrix
 
 ```
- current size is 100
-1: Time to preprocess PRMatrices is 0.523815
-1: Copy PrefLists into GPU spends 0.052789 ms Initialization: Launch 79 blocks
-1: Init PRMatrices in parallel on GPU spends 1.56085 ms
-1: Copy back PRMatrices to CPU spends 0.112953 ms
+1:  current size is 100
+1: Time to preprocess PRMatrices is 0.374614
+1: Copy PrefLists into GPU spends 0.029416 ms Init PRMatrices in parallel on GPU spends 0.018245 ms
+1: Copy back PRMatrices to CPU spends 0.059683 ms
 1:  current size is 500
-1: Time to preprocess PRMatrices is 9.658418
-1: Copy PrefLists into GPU spends 0.213492 ms Initialization: Launch 1954 blocks
-1: Init PRMatrices in parallel on GPU spends 0.060965 ms
-1: Copy back PRMatrices to CPU spends 0.452891 ms
+1: Time to preprocess PRMatrices is 10.016820
+1: Copy PrefLists into GPU spends 0.190308 ms Init PRMatrices in parallel on GPU spends 0.052108 ms
+1: Copy back PRMatrices to CPU spends 0.730323 ms
 1:  current size is 1000
-1: Time to preprocess PRMatrices is 45.441368
-1: Copy PrefLists into GPU spends 0.545796 ms Initialization: Launch 7813 blocks
-1: Init PRMatrices in parallel on GPU spends 0.192692 ms
-1: Copy back PRMatrices to CPU spends 3.30245 ms
+1: Time to preprocess PRMatrices is 45.999811
+1: Copy PrefLists into GPU spends 0.578428 ms Init PRMatrices in parallel on GPU spends 0.17581 ms
+1: Copy back PRMatrices to CPU spends 2.52056 ms
 1:  current size is 5000
-1: Time to preprocess PRMatrices is 1873.886559
-1: Copy PrefLists into GPU spends 10.342 ms Initialization: Launch 195313 blocks
-1: Init PRMatrices in parallel on GPU spends 6.07931 ms
-1: Copy back PRMatrices to CPU spends 57.2855 ms
+1: Time to preprocess PRMatrices is 1862.290765
+1: Copy PrefLists into GPU spends 11.0654 ms Init PRMatrices in parallel on GPU spends 6.06928 ms
+1: Copy back PRMatrices to CPU spends 59.3692 ms
 1:  current size is 10000
-1: Time to preprocess PRMatrices is 7847.279031
-1: Copy PrefLists into GPU spends 39.2986 ms Initialization: Launch 781250 blocks
-1: Init PRMatrices in parallel on GPU spends 24.8765 ms
-1: Copy back PRMatrices to CPU spends 227.401 ms
+1: Time to preprocess PRMatrices is 8158.032778
+1: Copy PrefLists into GPU spends 42.3575 ms Init PRMatrices in parallel on GPU spends 24.8551 ms
+1: Copy back PRMatrices to CPU spends 221.318 ms
 1:  current size is 30000
-1: Time to preprocess PRMatrices is 97709.711523
-1: Copy PrefLists into GPU spends 352.747 ms Initialization: Launch 7031250 blocks
-1: Init PRMatrices in parallel on GPU spends 217.718 ms
-1: Copy back PRMatrices to CPU spends 2174.66 ms
+1: Time to preprocess PRMatrices is 104113.748283
+1: Copy PrefLists into GPU spends 356.188 ms Init PRMatrices in parallel on GPU spends 217.793 ms
+1: Copy back PRMatrices to CPU spends 2166.81 ms
 ```
 
 
