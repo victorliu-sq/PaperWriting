@@ -1619,10 +1619,6 @@ All implementations were evaluated on a desktop node at the Ohio Supercomputer C
 
 ## Implementation / Baseline
 
-To assess performance and illustrate the advantages of our locality-aware implementation of the GS algorithm, we implemented sequential versions of the GS algorithm and the MW algorithm in C++ as baselines. This comparison highlights the optimization of data access patterns in our locality-aware GS implementation.
-
-
-
 Next, we developed state-of-the-art parallel versions of the GS and MW algorithms to demonstrate Bamboo-SMP’s high performance and superiority over existing algorithms across different scenarios. Specifically, the parallel MW algorithm was implemented for both the CPU using the C++ thread library and the GPU using CUDA. Similarly, the parallel GS algorithm was implemented on the CPU. These implementations serve as parallel baselines, providing a robust foundation for comparison.
 
 In addition to the hybrid system used by Bamboo-SMP, we also implemented the Locality-Aware GS algorithm on both the CPU and GPU. For the GPU implementation, we created two versions of the Locality-Aware GS algorithm: one using `atomicCAS` as a contrast, and the other using `atomicMin`. This was done to specifically illustrate the effectiveness of the `atomicMin` function in resolving contention and enhancing efficiency.
@@ -1668,16 +1664,6 @@ All original datasets have been expanded to 20,000 participants using machine le
 
 
 
-# Solo Results(X1)
-
-Figure 5 illustrates the overall performance of the three sequential algorithm implementations across 4 types of workloads as mentioned in section 3.1.
-
-A key factor in this performance is that the preprocessing steps for initializing both the Rank Matrix and PRMatrix are completely independent and executed in GPU memory for optimal speedup. This independence allows for concurrent processing, significantly reducing time overhead. As shown in Figure 6, this method can achieve up to a 1000x speedup, which is crucial; otherwise, the preprocessing overhead would overshadow the execution phase. However, executing the GS algorithm on the CPU requires data transfer from the GPU to the CPU, which incurs a transfer cost.
-
-The Locality-Aware GS implementation includes an additional preprocessing step for PRMatrix initialization, resulting in extra overhead. Despite this slight increase in preprocessing time, the Locality-Aware GS consistently outperforms all other solutions. This minor overhead is negligible when compared to the substantial performance gains achieved.
-
-In all three scenarios, the locality-aware implementation demonstrates over 50% faster execution times than the locality-unaware version. This significant improvement underscores the importance of optimizing data movement, as discussed in Section 3. These results confirm that addressing inefficient data movement can lead to remarkable enhancements in overall algorithm performance. Thus, the Locality-Aware GS implementation not only compensates for its initial overhead but also provides substantial runtime benefits.
-
 
 
 # Parallel Results
@@ -1688,7 +1674,7 @@ Bamboo-SMP’s intelligent switching mechanism and efficient utilization of both
 
 
 
-## Sequential Case
+## Solo Case
 
 In the sequential case, the sequential Locality-Aware GS on the CPU, as well as Bamboo-SMP, show the best performance. The parallel Locality-Aware GS on the CPU outperforms its GPU counterpart due to the CPU's low latency. In this scenario, parallelism does not offer a significant advantage; in fact, the synchronization method used by the parallel algorithm incurs additional overhead, causing the sequential Locality-Aware GS to outperform the parallel version. Its superior performance compared to other algorithms is attributed to efficient data movements. Bamboo-SMP maintains comparable performance by intelligently switching to the CPU when a certain threshold is reached, leveraging the strengths of both the CPU and GPU to optimize performance.
 
@@ -1703,6 +1689,72 @@ For the congested case, the Locality-Aware GS using `atomicMin` on the GPU and B
 ## Clustered Case
 
 In the clustered case, the Locality-Aware GS using `atomicCAS` on the GPU, the Locality-Aware GS using `atomicMin` on the GPU, and Bamboo-SMP deliver the best performance. Although the degree of parallelism decreases, bandwidth remains critical, allowing the GPU to have a significant impact. Thanks to more efficient data movements, these implementations outperform the parallel MW algorithm on the GPU. Bamboo-SMP's ability to adaptively leverage both CPU and GPU resources ensures consistently high performance even as parallelism decreases, highlighting its robustness and flexibility across varying workloads.
+
+
+
+# Sequential Experiement
+
+To assess performance and illustrate the advantages of our locality-aware implementation of the GS algorithm, we implemented sequential versions of the GS algorithm and the MW algorithm in C++ as baselines. This comparison highlights the optimization of data access patterns in our locality-aware GS implementation.
+
+
+
+To convincingly demonstrate the effectiveness of PRMatrix to exploit locality, we tested it against baseline algorithms in various scenarios discussed in Section 3.1. The best-case scenario was excluded due to its trivial nature. 
+
+
+
+Figure 5 illustrates the overall performance of the three sequential algorithm implementations across 4 types of workloads as mentioned in section 3.1.
+
+A key factor in this performance is that the preprocessing steps for initializing both the Rank Matrix and PRMatrix are completely independent and executed in GPU memory to utilize the high bandwidth of GPU for optimal speedup. This independence allows for concurrent processing, significantly reducing time overhead. 
+
+As shown in Figure 6, although executing the GS algorithm on the CPU requires data transfer from the GPU to the CPU, which incurs a transfer cost,  this method can still achieve up to a 1000x speedup, which is crucial; otherwise, the preprocessing overhead would overshadow the execution phase. 
+
+```
+ current size is 100
+1: Time to preprocess PRMatrices is 0.417014
+1: Copy into GPU spends 0.035216 ms Initialization: Launch 79 blocks
+1: GS InitNode spends 1.57369 ms
+1: Copy back CPU spends 0.030678 ms Total number of threads is 12
+1:
+1:  current size is 500
+1: Time to preprocess PRMatrices is 9.301425
+1: Copy into GPU spends 0.121047 ms Initialization: Launch 1954 blocks
+1: GS InitNode spends 0.027452 ms
+1: Copy back CPU spends 0.115607 ms Total number of threads is 12
+1:
+1:  current size is 1000
+1: Time to preprocess PRMatrices is 45.535019
+1: Copy into GPU spends 0.30883 ms Initialization: Launch 7813 blocks
+1: GS InitNode spends 0.044604 ms
+1: Copy back CPU spends 0.826143 ms Total number of threads is 12
+1:
+1:  current size is 5000
+1: Time to preprocess PRMatrices is 1876.570338
+1: Copy into GPU spends 5.57246 ms Initialization: Launch 195313 blocks
+1: GS InitNode spends 0.668707 ms
+1: Copy back CPU spends 12.5789 ms Total number of threads is 12
+1:
+1:  current size is 10000
+1: Time to preprocess PRMatrices is 7991.967678
+1: Copy into GPU spends 19.8625 ms Initialization: Launch 781250 blocks
+1: GS InitNode spends 2.65986 ms
+1: Copy back CPU spends 50.4556 ms Total number of threads is 12
+1:
+1:  current size is 30000
+1: Time to preprocess PRMatrices is 95754.668630
+1: Copy into GPU spends 177.376 ms Initialization: Launch 7031250 blocks
+1: GS InitNode spends 23.9874 ms
+1: Copy back CPU spends 453.622 ms Total number of threads is 12
+```
+
+
+
+
+
+The Locality-Aware GS implementation includes an additional preprocessing step for PRMatrix initialization, resulting in extra overhead. Despite this slight increase in preprocessing time, the Locality-Aware GS consistently outperforms all other solutions. This minor overhead is negligible when compared to the substantial performance gains achieved.
+
+In all three scenarios, the locality-aware implementation demonstrates over 50% faster execution times than the locality-unaware version. This significant improvement underscores the importance of optimizing data movement, as discussed in Section 3. These results confirm that addressing inefficient data movement can lead to remarkable enhancements in overall algorithm performance. Thus, the Locality-Aware GS implementation not only compensates for its initial overhead but also provides substantial runtime benefits.
+
+we highlighted that the locality-aware implementation of GS algorithm achieves significant performance improvements in execution phase and that performance improvement outweighs the extra step to initialize PRMatrix in the preprocessing phase.   
 
 
 
