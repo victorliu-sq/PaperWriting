@@ -1,4 +1,4 @@
-Can you rewrite these sentences to make it more academical? 
+Can you rewrite these sentences to make it more native, and academical? 
 
 You can insert sentences, deleted sentences and reorder sentences, (also for words) to strengthen the connections between sentences.
 
@@ -1692,21 +1692,47 @@ In the clustered case, the Locality-Aware GS using `atomicCAS` on the GPU, the L
 
 
 
-# Sequential Experiement
+# Performance of Locality-Aware Implementation
 
-To assess performance and illustrate the advantages of our locality-aware implementation of the GS algorithm, we implemented sequential versions of the GS algorithm and the MW algorithm in C++ as baselines. This comparison highlights the optimization of data access patterns in our locality-aware GS implementation.
-
-
-
-To convincingly demonstrate the effectiveness of PRMatrix to exploit locality, we tested it against baseline algorithms in various scenarios discussed in Section 3.1. The best-case scenario was excluded due to its trivial nature. 
+To assess performance and illustrate the advantages of our locality-aware implementation of the GS algorithm (LA), we implemented sequential versions of the GS algorithm and the MW algorithm in C++ as baselines. 
 
 
 
-Figure 5 illustrates the overall performance of the three sequential algorithm implementations across 4 types of workloads as mentioned in section 3.1.
 
-A key factor in this performance is that the preprocessing steps for initializing both the Rank Matrix and PRMatrix are completely independent and executed in GPU memory to utilize the high bandwidth of GPU for optimal speedup. This independence allows for concurrent processing, significantly reducing time overhead. 
 
-As shown in Figure 6, although executing the GS algorithm on the CPU requires data transfer from the GPU to the CPU, which incurs a transfer cost,  this method can still achieve up to a 1000x speedup, which is crucial; otherwise, the preprocessing overhead would overshadow the execution phase. 
+First, we evaluated the performance of the preprocessing and execution phases of GS, MW, and LA to underscore the necessity of initializing RankMatrixM and PRMatrices in parallel on the GPU.
+
+The preprocessing step critically depends on the independent initialization of entries in both the Rank Matrix and PRMatrix. This independence enables each entry to be computed concurrently by separate processing units, leveraging the GPU’s high bandwidth for massive parallel processing. By distributing these independent tasks across the GPU, we achieve substantial speedup and optimize overall performance.
+
+To validate this approach, we compared the performance of initializing RankMatrixM and PRMatrices serially on the CPU and in parallel on the GPU, using instance sizes ranging from 500 to 30,000.
+
+As illustrated in Figure \cite{placeholder}, despite the additional data transfer costs incurred between the CPU and GPU, GPU initialization achieves speedups of up to 50x and 200x. Thus, executing the preprocessing step on the GPU is crucial for attaining optimal speedup.
+
+
+
+
+
+Then, we give a detailed analysis on preprocessing and execution phases to illustrate that the extra step in LA's preprocessing step won't overshadow its performance gain in the execution step.
+
+. Besides the postprocessing phase, locality-aware implementation has an extra step in preprocessing phase to exploit the locality in the execution phase from the sequential GS and MW algortihms.
+
+To convincingly demonstrate the effectiveness of PRMatrix to exploit locality , we tested it against baseline algorithms in various scenarios discussed in Section 3.1. The best-case scenario was excluded due to its trivial nature. 
+
+This comparison highlights the efficiency of optimization of data access patterns in our locality-aware GS implementation.
+
+Table1 illustrates the overall performance of the three sequential algorithm implementations across 4 types of workloads as mentioned in section 3.1 and only best case is excluded.
+
+As we can see in table 1,  that performance improvement in the execution phase greatly outweigh the extra overhead in the preprocessing step.
+
+Although preprocessing step may overshadow the performance enhancement in the random case where every man order women in completely random, this case is super rare because in real-world matching always obeys some criteria.
+
+
+
+The Locality-Aware GS implementation includes an additional preprocessing step for PRMatrix initialization, resulting in extra overhead. Despite this increase in preprocessing time, the Locality-Aware GS consistently outperforms all other solutions. This minor overhead is negligible when compared to the substantial performance gains achieved.
+
+In all three scenarios, the locality-aware implementation demonstrates on average 3 times speedup. This significant improvement underscores the importance of optimizing data movement, as discussed in Section 3. These results confirm that addressing inefficient data movement can lead to remarkable enhancements in overall algorithm performance. Thus, the Locality-Aware GS implementation not only compensates for its initial overhead but also provides substantial runtime benefits.
+
+we highlighted that the locality-aware implementation of GS algorithm achieves significant performance improvements in execution phase and that performance improvement outweighs the extra step to initialize PRMatrix in the preprocessing phase.   
 
 
 
@@ -1777,12 +1803,6 @@ Init PRMatrix
 ```
 
 
-
-The Locality-Aware GS implementation includes an additional preprocessing step for PRMatrix initialization, resulting in extra overhead. Despite this slight increase in preprocessing time, the Locality-Aware GS consistently outperforms all other solutions. This minor overhead is negligible when compared to the substantial performance gains achieved.
-
-In all three scenarios, the locality-aware implementation demonstrates over 50% faster execution times than the locality-unaware version. This significant improvement underscores the importance of optimizing data movement, as discussed in Section 3. These results confirm that addressing inefficient data movement can lead to remarkable enhancements in overall algorithm performance. Thus, the Locality-Aware GS implementation not only compensates for its initial overhead but also provides substantial runtime benefits.
-
-we highlighted that the locality-aware implementation of GS algorithm achieves significant performance improvements in execution phase and that performance improvement outweighs the extra step to initialize PRMatrix in the preprocessing phase.   
 
 
 
