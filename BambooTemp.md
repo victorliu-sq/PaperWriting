@@ -29,3 +29,7 @@ As a result, the need for a queue to manage free individuals is eliminated, ther
  
 
 https://dl.acm.org/doi/pdf/10.1145/360128.360134
+
+
+
+Thank you! The relative content in  Section 2.3 and Section 3.1 has been updated

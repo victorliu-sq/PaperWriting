@@ -1607,7 +1607,7 @@ The main procedure of thread2 involves the use of both the second GPU (GPU2) and
 
 # Section-Experiment
 
-This section presents a series of experiments conducted to demonstrate the performance of Bamboo-SMP and verify its superiority over existing algorithms. 
+This section presents a comprehensive set of experiments conducted to demonstrate the performance of Bamboo-SMP and verify its superiority over existing algorithms
 
 
 
@@ -1619,9 +1619,11 @@ All implementations were evaluated on a desktop node at the Ohio Supercomputer C
 
 ## Implementation / Baseline
 
-To assess performance and illustrate the advantages of our locality-aware implementation of the GS algorithm, we used state-of-the-art algorithms, specifically the sequential GS algorithm and the MW algorithm, as baselines. Both were implemented in C++. This comparison highlights the optimization of data access patterns in our locality-aware GS implementation.
+To assess performance and illustrate the advantages of our locality-aware implementation of the GS algorithm, we implemented sequential versions of the GS algorithm and the MW algorithm in C++ as baselines. This comparison highlights the optimization of data access patterns in our locality-aware GS implementation.
 
-Next, we developed several parallel versions of the GS and MW algorithms to demonstrate Bamboo-SMP's high performance and superiority over existing algorithms across different scenarios. Specifically, the parallel MW algorithm was implemented for both the CPU using the C++ thread library and the GPU using CUDA. Similarly, the parallel GS algorithm was implemented on the CPU. These implementations serve as parallel baselines, providing a robust foundation for comparison.
+
+
+Next, we developed state-of-the-art parallel versions of the GS and MW algorithms to demonstrate Bamboo-SMP’s high performance and superiority over existing algorithms across different scenarios. Specifically, the parallel MW algorithm was implemented for both the CPU using the C++ thread library and the GPU using CUDA. Similarly, the parallel GS algorithm was implemented on the CPU. These implementations serve as parallel baselines, providing a robust foundation for comparison.
 
 In addition to the hybrid system used by Bamboo-SMP, we also implemented the Locality-Aware GS algorithm on both the CPU and GPU. For the GPU implementation, we created two versions of the Locality-Aware GS algorithm: one using `atomicCAS` as a contrast, and the other using `atomicMin`. This was done to specifically illustrate the effectiveness of the `atomicMin` function in resolving contention and enhancing efficiency.
 
@@ -1635,9 +1637,9 @@ To convincingly demonstrate the robustness of Bamboo-SMP and the effectiveness o
 
 
 
-### Sequential Case
+### Solo Case
 
-In the sequential case, we tested algorithms with participant sizes ranging from 5,000 to 30,000, following the pattern shown in Figure 3. The preference lists for men and women were arranged such that, given n participants, there would be 
+In the solo case, we tested algorithms with participant sizes ranging from 5,000 to 30,000, following the pattern shown in Figure 3. The preference lists for men and women were arranged such that, given n participants, there would be 
 n^2−(n−1) proposals in total, with only n proposals made in parallel while the rest must be made serially.We test algorithms on Congested cases , as the same pattern as showed in Figure 3, of size with participants from 5000 to 30000.
 
 All men have the exactly the same preference lists and no preference lists of woman are randomized.
@@ -1666,64 +1668,15 @@ All original datasets have been expanded to 20,000 participants using machine le
 
 
 
-# Sequential Results(X1)
+# Solo Results(X1)
 
-Figure 5 illustrates the overall performance of the three sequential algorithm implementations.
+Figure 5 illustrates the overall performance of the three sequential algorithm implementations across 4 types of workloads as mentioned in section 3.1.
 
 A key factor in this performance is that the preprocessing steps for initializing both the Rank Matrix and PRMatrix are completely independent and executed in GPU memory for optimal speedup. This independence allows for concurrent processing, significantly reducing time overhead. As shown in Figure 6, this method can achieve up to a 1000x speedup, which is crucial; otherwise, the preprocessing overhead would overshadow the execution phase. However, executing the GS algorithm on the CPU requires data transfer from the GPU to the CPU, which incurs a transfer cost.
 
 The Locality-Aware GS implementation includes an additional preprocessing step for PRMatrix initialization, resulting in extra overhead. Despite this slight increase in preprocessing time, the Locality-Aware GS consistently outperforms all other solutions. This minor overhead is negligible when compared to the substantial performance gains achieved.
 
 In all three scenarios, the locality-aware implementation demonstrates over 50% faster execution times than the locality-unaware version. This significant improvement underscores the importance of optimizing data movement, as discussed in Section 3. These results confirm that addressing inefficient data movement can lead to remarkable enhancements in overall algorithm performance. Thus, the Locality-Aware GS implementation not only compensates for its initial overhead but also provides substantial runtime benefits.
-
-
-
-**X1**
-
-```
-1: [ RUN      ] X1.X1SerialWorkloadTest1
-1: atomicLocality Init Memcpy spends 351.627 ms Initialization: Launch 7031250 blocks
-1: GS InitNode spends 24.4521 ms
-1: Total number of threads is 12
-1: MW InitNode spends 21.6942 ms
-1: Total number of threads is 12
-
-1: cohabitation InitNode spends 217.594 ms
-1: GS time is 13665.608398, MW time is 13876.213867, Coh time is 3224.459961, Coh Speedup is 4.238108[       OK ] X1.X1SerialWorkloadTest1 (66187 ms)
-
-1: [ RUN      ] X1.X1ClusteredWorkloadTest
-
-1: GS InitNode spends 21.6925 ms
-1: Total number of threads is 12
-
-1: MW InitNode spends 21.6968 ms
-1: Total number of threads is 12
-
-1: cohabitation InitNode spends 217.886 ms
-1: GS time is 23379.951172, MW time is 17344.433594, Coh time is 3228.890625, Coh Speedup is 7.240862[       OK ] X1.X1ClusteredWorkloadTest (89050 ms)
-
-1: [ RUN      ] X1.X1CongestedWorkloadTest
-
-1: GS InitNode spends 21.6616 ms
-1: Total number of threads is 12
-
-1: MW InitNode spends 21.6717 ms
-1: Total number of threads is 12
-
-1: cohabitation InitNode spends 217.707 ms
-1: GS time is 56856.000000, MW time is 39450.289062, Coh time is 18050.191406, Coh Speedup is 3.149884[       OK ] X1.X1CongestedWorkloadTest (132004 ms)
-
-1: [ RUN      ] X1.X1RandomWorkloadTest
-
-1: GS InitNode spends 21.6924 ms
-1: Total number of threads is 12
-
-1: MW InitNode spends 21.6808 ms
-1: Total number of threads is 12
-
-1: cohabitation InitNode spends 217.639 ms
-1: GS time is 40.916836, MW time is 38.617702, Coh time is 13.427902, Coh Speedup is 3.047150[       OK ] X1.X1RandomWorkloadTest (30705 ms)
-```
 
 
 
