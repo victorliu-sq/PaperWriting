@@ -1617,79 +1617,6 @@ All implementations were evaluated on a desktop node at the Ohio Supercomputer C
 
 
 
-## Implementation / Baseline
-
-Next, we developed state-of-the-art parallel versions of the GS and MW algorithms to demonstrate Bamboo-SMP’s high performance and superiority over existing algorithms across different scenarios. Specifically, the parallel MW algorithm was implemented for both the CPU using the C++ thread library and the GPU using CUDA. Similarly, the parallel GS algorithm was implemented on the CPU. These implementations serve as parallel baselines, providing a robust foundation for comparison.
-
-In addition to the hybrid system used by Bamboo-SMP, we also implemented the Locality-Aware GS algorithm on both the CPU and GPU. For the GPU implementation, we created two versions of the Locality-Aware GS algorithm: one using `atomicCAS` as a contrast, and the other using `atomicMin`. This was done to specifically illustrate the effectiveness of the `atomicMin` function in resolving contention and enhancing efficiency.
-
-By incorporating these techniques, we demonstrate that they are essential to Bamboo-SMP and significantly enhance its overall performance. The results confirm that the combination of locality-aware optimizations, advanced synchronization methods, and a heterogeneous computing system greatly improves the algorithm's efficiency, showcasing the robustness and superiority of Bamboo-SMP as a comprehensive solution.
-
-
-
-## Workloads
-
-To convincingly demonstrate the robustness of Bamboo-SMP and the effectiveness of the techniques employed, we tested it against baseline algorithms in various scenarios discussed in Section 3.1. By focusing on more complex and representative scenarios, we highlighted significant performance improvements and the versatility of Bamboo-SMP across different types of workloads. The best-case scenario was excluded due to its trivial nature, ensuring that our evaluations remained rigorous and meaningful.
-
-
-
-### Solo Case
-
-In the solo case, we tested algorithms with participant sizes ranging from 5,000 to 30,000, following the pattern shown in Figure 3. The preference lists for men and women were arranged such that, given n participants, there would be 
-n^2−(n−1) proposals in total, with only n proposals made in parallel while the rest must be made serially.We test algorithms on Congested cases , as the same pattern as showed in Figure 3, of size with participants from 5000 to 30000.
-
-All men have the exactly the same preference lists and no preference lists of woman are randomized.
-
-And each preference lists is a randomly shifted list with all integers from 1 to n
-
-
-
-### Congested Case
-
-For the congested case, we also tested algorithms with participant sizes from 5,000 to 30,000, as shown in Figure 3. In this scenario, all men had identical preference lists, and the preference lists of women were randomized, with each list being a randomly shifted sequence of integers from 1 to n.
-
-
-
-### Clustered Cases
-
-In the clustered cases, we evaluated all implementations using real-world datasets from three distinct domains, processing them into three types of SMP instances: TAXI, ADM, and JOB. To simulate real-world SMP handling, agents were ordered by one main factor and divided into fixed groups, with the ranks of agents within each group randomized to reflect other factors influencing their judgments. 
-
-In the TAXI instance, we simulate a common matching problem using real-world data from a mobility startup that allows users to book rides and data from the New York City Taxi and Limousine Commission. On the user side, participants rank drivers based on their ratings, creating groups for every 0.2 score interval. Conversely, drivers rank users by the number of orders, forming groups for every five orders.
-
-For the ADM instance, we simulate the university admissions process using data about Indian applicants, which includes information on their education and experience gathered from candidate signups and enrollments.  Students are ranked by GPA, with groups formed for every 0.5 GPA interval. Universities are selected based on the top 50 rankings, each allotted 400 quotas. These quotas create groups of students, randomized within each group to simulate additional influencing factors.
-
-The JOB instance simulates the job matching process using a dataset for data scientist positions and a dataset for candidate information. In this scenario, recruiters group applicants based on a three-order sort: major, degree, and work experience. These categories include groups such as "STEM - PhD - Has relevant experience" and "Non-STEM." Jobs are then ranked by salary, forming groups for every $10,000 interval.
-
-All original datasets have been expanded to 20,000 participants using machine learning techniques (GAN model) or by proportional scaling. This expansion ensures the generality of the datasets and provides an extensive test environment to better reflect the performance of the algorithms.
-
-
-
-
-
-# Parallel Results
-
-The following sections present the results of our parallel algorithm implementations across different scenarios. These results highlight the performance benefits and trade-offs associated with the Locality-Aware GS implementation and underscore the robustness of Bamboo-SMP.
-
-Bamboo-SMP’s intelligent switching mechanism and efficient utilization of both CPU and GPU resources ensure it maintains high performance across various scenarios, demonstrating its superiority as a comprehensive solution.
-
-
-
-## Solo Case
-
-In the sequential case, the sequential Locality-Aware GS on the CPU, as well as Bamboo-SMP, show the best performance. The parallel Locality-Aware GS on the CPU outperforms its GPU counterpart due to the CPU's low latency. In this scenario, parallelism does not offer a significant advantage; in fact, the synchronization method used by the parallel algorithm incurs additional overhead, causing the sequential Locality-Aware GS to outperform the parallel version. Its superior performance compared to other algorithms is attributed to efficient data movements. Bamboo-SMP maintains comparable performance by intelligently switching to the CPU when a certain threshold is reached, leveraging the strengths of both the CPU and GPU to optimize performance.
-
-
-
-## Congested Case
-
-For the congested case, the Locality-Aware GS using `atomicMin` on the GPU and Bamboo-SMP achieve the best results. The parallel MW algorithm on the GPU performs better than other parallel algorithms due to the GPU's high bandwidth. However, the Locality-Aware GS utilizing `atomicCAS` on the GPU outperforms the parallel MW algorithm because of more efficient data movements. The Locality-Aware GS with `atomicMin` further surpasses its `atomicCAS` counterpart by effectively eliminating wasted work. In this scenario, Bamboo-SMP's adaptive switching mechanism ensures that the GPU is always used for proposals in high-bandwidth environments, potentially avoiding switches when the thread count decreases gradually, thus maintaining optimal performance.
-
-
-
-## Clustered Case
-
-In the clustered case, the Locality-Aware GS using `atomicCAS` on the GPU, the Locality-Aware GS using `atomicMin` on the GPU, and Bamboo-SMP deliver the best performance. Although the degree of parallelism decreases, bandwidth remains critical, allowing the GPU to have a significant impact. Thanks to more efficient data movements, these implementations outperform the parallel MW algorithm on the GPU. Bamboo-SMP's ability to adaptively leverage both CPU and GPU resources ensures consistently high performance even as parallelism decreases, highlighting its robustness and flexibility across varying workloads.
-
 
 
 # Performance of Locality-Aware Implementation
@@ -1882,6 +1809,79 @@ Table for X1
 \end{tabular}
 \end{table*}
 ```
+
+
+
+# Performance of Bamboo-SMP
+
+we developed state-of-the-art parallel versions of the GS and MW algorithms to demonstrate Bamboo-SMP’s high performance and superiority over existing algorithms across different scenarios. Specifically, the parallel MW algorithm was implemented for both the CPU using the C++ thread library and the GPU using CUDA. Similarly, the parallel GS algorithm was implemented on the CPU. These implementations serve as parallel baselines, providing a robust foundation for comparison.
+
+In addition to the hybrid system used by Bamboo-SMP, we also implemented the Locality-Aware GS algorithm on both the CPU and GPU. For the GPU implementation, we created two versions of the Locality-Aware GS algorithm: one using `atomicCAS` as a contrast, and the other using `atomicMin`. This was done to specifically illustrate the effectiveness of the `atomicMin` function in resolving contention and enhancing efficiency.
+
+By incorporating these techniques, we demonstrate that they are essential to Bamboo-SMP and significantly enhance its overall performance. The results confirm that the combination of locality-aware optimizations, advanced synchronization methods, and a heterogeneous computing system greatly improves the algorithm's efficiency, showcasing the robustness and superiority of Bamboo-SMP as a comprehensive solution.
+
+
+
+## Workloads
+
+To convincingly demonstrate the robustness of Bamboo-SMP and the effectiveness of the techniques employed, we tested it against baseline algorithms in various scenarios discussed in Section 3.1. By focusing on more complex and representative scenarios, we highlighted significant performance improvements and the versatility of Bamboo-SMP across different types of workloads. The best-case scenario was excluded due to its trivial nature, ensuring that our evaluations remained rigorous and meaningful.
+
+
+
+### Solo Case
+
+In the solo case, we tested algorithms with participant sizes ranging from 5,000 to 30,000, following the pattern shown in Figure 3. The preference lists for men and women were arranged such that, given n participants, there would be 
+n^2−(n−1) proposals in total, with only n proposals made in parallel while the rest must be made serially.We test algorithms on Congested cases , as the same pattern as showed in Figure 3, of size with participants from 5000 to 30000.
+
+All men have the exactly the same preference lists and no preference lists of woman are randomized.
+
+And each preference lists is a randomly shifted list with all integers from 1 to n
+
+
+
+### Congested Case
+
+For the congested case, we also tested algorithms with participant sizes from 5,000 to 30,000, as shown in Figure 3. In this scenario, all men had identical preference lists, and the preference lists of women were randomized, with each list being a randomly shifted sequence of integers from 1 to n.
+
+
+
+### Clustered Cases
+
+In the clustered cases, we evaluated all implementations using real-world datasets from three distinct domains, processing them into three types of SMP instances: TAXI, ADM, and JOB. To simulate real-world SMP handling, agents were ordered by one main factor and divided into fixed groups, with the ranks of agents within each group randomized to reflect other factors influencing their judgments. 
+
+In the TAXI instance, we simulate a common matching problem using real-world data from a mobility startup that allows users to book rides and data from the New York City Taxi and Limousine Commission. On the user side, participants rank drivers based on their ratings, creating groups for every 0.2 score interval. Conversely, drivers rank users by the number of orders, forming groups for every five orders.
+
+For the ADM instance, we simulate the university admissions process using data about Indian applicants, which includes information on their education and experience gathered from candidate signups and enrollments.  Students are ranked by GPA, with groups formed for every 0.5 GPA interval. Universities are selected based on the top 50 rankings, each allotted 400 quotas. These quotas create groups of students, randomized within each group to simulate additional influencing factors.
+
+The JOB instance simulates the job matching process using a dataset for data scientist positions and a dataset for candidate information. In this scenario, recruiters group applicants based on a three-order sort: major, degree, and work experience. These categories include groups such as "STEM - PhD - Has relevant experience" and "Non-STEM." Jobs are then ranked by salary, forming groups for every $10,000 interval.
+
+All original datasets have been expanded to 20,000 participants using machine learning techniques (GAN model) or by proportional scaling. This expansion ensures the generality of the datasets and provides an extensive test environment to better reflect the performance of the algorithms.
+
+
+
+### Parallel Results
+
+The following sections present the results of our parallel algorithm implementations across different scenarios. These results highlight the performance benefits and trade-offs associated with the Locality-Aware GS implementation and underscore the robustness of Bamboo-SMP.
+
+Bamboo-SMP’s intelligent switching mechanism and efficient utilization of both CPU and GPU resources ensure it maintains high performance across various scenarios, demonstrating its superiority as a comprehensive solution.
+
+
+
+## Solo Case
+
+In the sequential case, the sequential Locality-Aware GS on the CPU, as well as Bamboo-SMP, show the best performance. The parallel Locality-Aware GS on the CPU outperforms its GPU counterpart due to the CPU's low latency. In this scenario, parallelism does not offer a significant advantage; in fact, the synchronization method used by the parallel algorithm incurs additional overhead, causing the sequential Locality-Aware GS to outperform the parallel version. Its superior performance compared to other algorithms is attributed to efficient data movements. Bamboo-SMP maintains comparable performance by intelligently switching to the CPU when a certain threshold is reached, leveraging the strengths of both the CPU and GPU to optimize performance.
+
+
+
+## Congested Case
+
+For the congested case, the Locality-Aware GS using `atomicMin` on the GPU and Bamboo-SMP achieve the best results. The parallel MW algorithm on the GPU performs better than other parallel algorithms due to the GPU's high bandwidth. However, the Locality-Aware GS utilizing `atomicCAS` on the GPU outperforms the parallel MW algorithm because of more efficient data movements. The Locality-Aware GS with `atomicMin` further surpasses its `atomicCAS` counterpart by effectively eliminating wasted work. In this scenario, Bamboo-SMP's adaptive switching mechanism ensures that the GPU is always used for proposals in high-bandwidth environments, potentially avoiding switches when the thread count decreases gradually, thus maintaining optimal performance.
+
+
+
+## Clustered Case
+
+In the clustered case, the Locality-Aware GS using `atomicCAS` on the GPU, the Locality-Aware GS using `atomicMin` on the GPU, and Bamboo-SMP deliver the best performance. Although the degree of parallelism decreases, bandwidth remains critical, allowing the GPU to have a significant impact. Thanks to more efficient data movements, these implementations outperform the parallel MW algorithm on the GPU. Bamboo-SMP's ability to adaptively leverage both CPU and GPU resources ensures consistently high performance even as parallelism decreases, highlighting its robustness and flexibility across varying workloads.
 
 
 
