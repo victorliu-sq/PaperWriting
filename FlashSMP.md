@@ -722,7 +722,7 @@ However, optimizing memory access patterns of women's rank matrix remains challe
 
 ### Workload
 
-##### To illustrate the importance of optimizing memory access, we tested the GS algorithm across diverse workloads to measure the impact of memory accesses to the $WomanRank$ matrix and the $Next$ array. 
+To illustrate the importance of optimizing memory access, we tested the GS algorithm across diverse workloads to measure the impact of memory accesses to the $WomanRank$ matrix and the $Next$ array. 
 
 As shown in Figure 3, the most significant portion of the execution time is attributed to accessing the $WomanRank$ matrix to retrieve a man’s rank in a woman’s preference list and the $Next$ array to get the rank of the next woman to propose to.
 
@@ -1658,35 +1658,65 @@ While the preprocessing step may overshadow performance improvements in the rand
 Init RankMatrixW
 
 ```
+1:  current size is 50
+1: Time to preprocess RankMatrixW is 0.034265
+1: Time to preprocess RankMatrixW on CPU in parallel is 2.690148 ms
+1: GS Copy PrefLists into GPU spends 0.029746 ms
+1: GS Init RankMatrixW  in parallel on GPU spends 1.42839 ms
+1: GS Copy back RankMatrixW to CPU spends 0.022282 ms
+1: Total GS preprocessing time is 1.48042 ms
+1:
 1:  current size is 100
-1: Time to preprocess PRMatrices is 0.367541
-1: Copy into GPU spends 0.020308 ms Init RankMatrixW in parallel spends 0.013014 ms
-1: Copy back CPU spends 0.016741 ms
+1: Time to preprocess RankMatrixW is 0.111700
+1: Time to preprocess RankMatrixW on CPU in parallel is 2.680590 ms
+1: GS Copy PrefLists into GPU spends 0.027011 ms
+1: GS Init RankMatrixW  in parallel on GPU spends 1.40096 ms
+1: GS Copy back RankMatrixW to CPU spends 0.03228 ms
+1: Total GS preprocessing time is 1.46025 ms
 1:
 1:  current size is 500
-1: Time to preprocess PRMatrices is 10.374562
-1: Copy into GPU spends 0.120657 ms Init RankMatrixW in parallel spends 0.022412 ms
-1: Copy back CPU spends 0.105117 ms
+1: Time to preprocess RankMatrixW is 2.798091
+1: Time to preprocess RankMatrixW on CPU in parallel is 2.906165 ms
+1: GS Copy PrefLists into GPU spends 0.114255 ms
+1: GS Init RankMatrixW  in parallel on GPU spends 1.39086 ms
+1: GS Copy back RankMatrixW to CPU spends 0.373143 ms
+1: Total GS preprocessing time is 1.87826 ms
 1:
 1:  current size is 1000
-1: Time to preprocess PRMatrices is 45.724253
-1: Copy into GPU spends 0.318388 ms Init RankMatrixW in parallel spends 0.044193 ms
-1: Copy back CPU spends 0.790376 ms
+1: Time to preprocess RankMatrixW is 11.123737
+1: Time to preprocess RankMatrixW on CPU in parallel is 3.762579 ms
+1: GS Copy PrefLists into GPU spends 0.29747 ms
+1: GS Init RankMatrixW  in parallel on GPU spends 1.42338 ms
+1: GS Copy back RankMatrixW to CPU spends 1.38305 ms
+1: Total GS preprocessing time is 3.1039 ms
 1:
 1:  current size is 5000
-1: Time to preprocess PRMatrices is 1942.634044
-1: Copy into GPU spends 5.48993 ms Init RankMatrixW in parallel spends 0.665992 ms
-1: Copy back CPU spends 13.8987 ms
+1: Time to preprocess RankMatrixW is 294.723171
+1: Time to preprocess RankMatrixW on CPU in parallel is 40.355961 ms
+1: GS Copy PrefLists into GPU spends 5.447 ms
+1: GS Init RankMatrixW  in parallel on GPU spends 2.50432 ms
+1: GS Copy back RankMatrixW to CPU spends 13.8646 ms
+1: Total GS preprocessing time is 21.8159 ms
 1:
 1:  current size is 10000
-1: Time to preprocess PRMatrices is 7870.353065
-1: Copy into GPU spends 19.9606 ms Init RankMatrixW in parallel spends 2.65593 ms
-1: Copy back CPU spends 47.5448 ms
+1: Time to preprocess RankMatrixW is 1196.184382
+1: Time to preprocess RankMatrixW on CPU in parallel is 156.686740 ms
+1: GS Copy PrefLists into GPU spends 20.2025 ms
+1: GS Init RankMatrixW  in parallel on GPU spends 4.56022 ms
+1: GS Copy back RankMatrixW to CPU spends 50.5707 ms
+1: Total GS preprocessing time is 75.3334 ms
 1:
 1:  current size is 30000
-1: Time to preprocess PRMatrices is 97806.860469
-1: Copy into GPU spends 177.554 ms Init RankMatrixW in parallel spends 21.6663 ms
-1: Copy back CPU spends 419.252 ms
+1: Time to preprocess RankMatrixW is 10727.882791
+1: Time to preprocess RankMatrixW on CPU in parallel is 1358.281504 ms
+1: GS Copy PrefLists into GPU spends 176.356 ms
+1: GS Init RankMatrixW  in parallel on GPU spends 23.5308 ms
+1: GS Copy back RankMatrixW to CPU spends 443.884 ms
+1: Total GS preprocessing time is 643.771 ms
+1: [       OK ] X1.X1SerialWorkloadTest1 (49082 ms)
+1: [ RUN      ] X1.X1SerialWorkloadTest2
+1:
+
 
 ```
 
@@ -1695,30 +1725,75 @@ Init RankMatrixW
 Init PRMatrix
 
 ```
+1:  current size is 50
+1: Time to preprocess PRMatrices is 0.068569
+1: Time to preprocess PRMatrices on CPU in parallel is 5.437494 ms
+1: Copy PrefLists into GPU spends 0.030126 ms
+1: LA Init RankMatrix takes 1.45488
+1: LA Init PRMatrix takes 0.086553
+1: LA Init PRMatrices in parallel on GPU spends 1.56227 ms
+1: Copy back PRMatrices to CPU spends 0.019817 ms
+1: Total LA preprocessing time is 1.61222 ms
+1:
 1:  current size is 100
-1: Time to preprocess PRMatrices is 0.374614
-1: Copy PrefLists into GPU spends 0.029416 ms Init PRMatrices in parallel on GPU spends 0.018245 ms
-1: Copy back PRMatrices to CPU spends 0.059683 ms
+1: Time to preprocess PRMatrices is 0.267605
+1: Time to preprocess PRMatrices on CPU in parallel is 5.274277 ms
+1: Copy PrefLists into GPU spends 0.037931 ms
+1: LA Init RankMatrix takes 1.46201
+1: LA Init PRMatrix takes 0.048061
+1: LA Init PRMatrices in parallel on GPU spends 1.52543 ms
+1: Copy back PRMatrices to CPU spends 0.027281 ms
+1: Total LA preprocessing time is 1.59064 ms
+1:
 1:  current size is 500
-1: Time to preprocess PRMatrices is 10.016820
-1: Copy PrefLists into GPU spends 0.190308 ms Init PRMatrices in parallel on GPU spends 0.052108 ms
-1: Copy back PRMatrices to CPU spends 0.730323 ms
+1: Time to preprocess PRMatrices is 7.015888
+1: Time to preprocess PRMatrices on CPU in parallel is 5.941684 ms
+1: Copy PrefLists into GPU spends 0.225325 ms
+1: LA Init RankMatrix takes 1.48605
+1: LA Init PRMatrix takes 0.052699
+1: LA Init PRMatrices in parallel on GPU spends 1.55263 ms
+1: Copy back PRMatrices to CPU spends 0.178717 ms
+1: Total LA preprocessing time is 1.95667 ms
+1:
 1:  current size is 1000
-1: Time to preprocess PRMatrices is 45.999811
-1: Copy PrefLists into GPU spends 0.578428 ms Init PRMatrices in parallel on GPU spends 0.17581 ms
-1: Copy back PRMatrices to CPU spends 2.52056 ms
+1: Time to preprocess PRMatrices is 28.445321
+1: Time to preprocess PRMatrices on CPU in parallel is 8.613357 ms
+1: Copy PrefLists into GPU spends 0.656798 ms
+1: LA Init RankMatrix takes 1.47408
+1: LA Init PRMatrix takes 0.065653
+1: LA Init PRMatrices in parallel on GPU spends 1.55062 ms
+1: Copy back PRMatrices to CPU spends 0.527774 ms
+1: Total LA preprocessing time is 2.73519 ms
+1:
 1:  current size is 5000
-1: Time to preprocess PRMatrices is 1862.290765
-1: Copy PrefLists into GPU spends 11.0654 ms Init PRMatrices in parallel on GPU spends 6.06928 ms
-1: Copy back PRMatrices to CPU spends 59.3692 ms
+1: Time to preprocess PRMatrices is 1300.676245
+1: Time to preprocess PRMatrices on CPU in parallel is 161.916462 ms
+1: Copy PrefLists into GPU spends 10.8301 ms
+1: LA Init RankMatrix takes 2.74681
+1: LA Init PRMatrix takes 1.2264
+1: LA Init PRMatrices in parallel on GPU spends 3.99265 ms
+1: Copy back PRMatrices to CPU spends 11.4464 ms
+1: Total LA preprocessing time is 26.2692 ms
+1:
 1:  current size is 10000
-1: Time to preprocess PRMatrices is 8158.032778
-1: Copy PrefLists into GPU spends 42.3575 ms Init PRMatrices in parallel on GPU spends 24.8551 ms
-1: Copy back PRMatrices to CPU spends 221.318 ms
+1: Time to preprocess PRMatrices is 6118.616615
+1: Time to preprocess PRMatrices on CPU in parallel is 750.138517 ms
+1: Copy PrefLists into GPU spends 41.9056 ms
+1: LA Init RankMatrix takes 4.69515
+1: LA Init PRMatrix takes 5.59333
+1: LA Init PRMatrices in parallel on GPU spends 10.3049 ms
+1: Copy back PRMatrices to CPU spends 46.4118 ms
+1: Total LA preprocessing time is 98.6224 ms
+1:
 1:  current size is 30000
-1: Time to preprocess PRMatrices is 104113.748283
-1: Copy PrefLists into GPU spends 356.188 ms Init PRMatrices in parallel on GPU spends 217.793 ms
-1: Copy back PRMatrices to CPU spends 2166.81 ms
+1: Time to preprocess PRMatrices is 62228.592830
+1: Time to preprocess PRMatrices on CPU in parallel is 12216.294120 ms
+1: Copy PrefLists into GPU spends 352.355 ms
+1: LA Init RankMatrix takes 23.6569
+1: LA Init PRMatrix takes 47.7683
+1: LA Init PRMatrices in parallel on GPU spends 71.4371 ms
+1: Copy back PRMatrices to CPU spends 913.805 ms
+1: Total LA preprocessing time is 1337.6 ms
 ```
 
 
@@ -1873,15 +1948,236 @@ In the sequential case, the sequential Locality-Aware GS on the CPU, as well as 
 
 
 
+n = 30k
+
+```
+3: Preprocessing Time:
+3: GS:
+3: Copy PrefLists into GPU spends 177.009 ms GS Init RankMatrixW  in parallel on GPU spends 26.2757 ms
+3: Copy back RankMatrixW to CPU spends 453.189 ms Total GS preprocessing time is 656.474 ms
+
+3: PGS:
+3: Copy PrefLists into GPU spends 177.37 ms GS Init RankMatrixW  in parallel on GPU spends 23.7187 ms
+3: Copy back RankMatrixW to CPU spends 440.325 ms Total GS preprocessing time is 641.414 ms
+
+3: MW:
+3: Copy PrefLists into GPU spends 178.93 ms
+3: MW Init RankMatrixW  in parallel on GPU spends 29.0513 ms
+3: Copy back RankMatrixW to CPU spends 468.717 ms
+3: Total MW preprocessing time is 676.698 ms
+
+3: PMW on CPU:
+3: Copy PrefLists into GPU spends 178.317 ms
+3: MW Init RankMatrixW  in parallel on GPU spends 23.5856 ms
+3: Copy back RankMatrixW to CPU spends 455.224 ms
+3: Total MW preprocessing time is 657.126 ms
+3: Time to emplace all threads is 0.318861
+
+3: PMW on GPU:
+3: Copy PrefLists into GPU spends 354.632 ms
+3: MW Init RankMatrixW  in parallel on GPU spends 23.6192 ms
+3: Copy back RankMatrixW to CPU spends 7.1e-05 ms
+3: Total MW preprocessing time is 378.252 ms
+
+3: LA:
+3: Copy PrefLists into GPU spends 356.143 ms
+3: LA Init PRMatrices in parallel on GPU spends 219.899 ms
+3: Copy back PRMatrices to CPU spends 2181.45 ms Total LA preprocessing time is 2757.49 ms
+
+3: PLA on CPU:
+3: Copy PrefLists into GPU spends 353.471 ms
+3: LA Init PRMatrices in parallel on GPU spends 219.768 ms
+3: Copy back PRMatrices to CPU spends 2237.78 ms Total LA preprocessing time is 2811.02 ms
+3: Total number of threads is 12
+3: Time to emplace all threads is 0.286470
+
+3: PLA on GPU:
+3: Copy PrefLists into GPU spends 354.235 ms
+3: LA Init PRMatrices in parallel on GPU spends 219.811 ms
+3: Total LA preprocessing time is 574.047 ms
+
+3: PLA on GPU w/ CAS:
+3: Copy PrefLists into GPU spends 357.72 ms
+3: LA Init PRMatrices in parallel on GPU spends 219.999 ms
+3: Total LA preprocessing time is 577.719 ms
+
+3: Bamboo:
+3: Copy PrefLists into GPU spends 357.164 ms
+3: LA Init PRMatrices in parallel on GPU spends 219.886 ms
+3: Total LA preprocessing time is 577.05 ms
+3: Run CheckerKernel on Device 1
+3: After 0 iterations and 0.146716 ms , only 1 woman are unmarried
+3: BambooSMP Copy back PRMatrices to CPU spends 1836.24 ms CheckerKernel has finished after 1 iterations.
+3: Thread CPU is done
+3: LAHybrid GPU is done
+
+3: Exeuction Time:
+3: GS time is: 13511.931641
+3:  MW time is: 14921.944336
+3:  LA time is: 3206.718994
+3: PGS on CPU time is: 17055.726562
+3:  PMW on CPU time is: 17410.070312
+3:  PMW on GPU time is: 265448.000000
+3:  PLA on CPU time is: 4082.764404
+3:  PLA on GPU w/ CAS time is: 146198.343750
+3:  PLA on GPU time is: 160993.593750
+3:  Bamboo time is: 5030.182129 - 1836.24
+```
+
+
+
 ## Congested Case
 
 For the congested case, the Locality-Aware GS using `atomicMin` on the GPU and Bamboo-SMP achieve the best results. The parallel MW algorithm on the GPU performs better than other parallel algorithms due to the GPU's high bandwidth. However, the Locality-Aware GS utilizing `atomicCAS` on the GPU outperforms the parallel MW algorithm because of more efficient data movements. The Locality-Aware GS with `atomicMin` further surpasses its `atomicCAS` counterpart by effectively eliminating wasted work. In this scenario, Bamboo-SMP's adaptive switching mechanism ensures that the GPU is always used for proposals in high-bandwidth environments, potentially avoiding switches when the thread count decreases gradually, thus maintaining optimal performance.
 
 
 
+```
+3: Preprocessing Time:
+3: GS:
+3: Copy PrefLists into GPU spends 179.148 ms GS Init RankMatrixW  in parallel on GPU spends 26.0504 ms
+3: Copy back RankMatrixW to CPU spends 460.07 ms Total GS preprocessing time is 665.269 ms
+
+3: PGS:
+3: Copy PrefLists into GPU spends 176.749 ms GS Init RankMatrixW  in parallel on GPU spends 23.4868 ms
+3: Copy back RankMatrixW to CPU spends 433.783 ms Total GS preprocessing time is 634.019 ms
+
+
+3: MW:
+3: Copy PrefLists into GPU spends 178.917 ms
+3: MW Init RankMatrixW  in parallel on GPU spends 23.5098 ms
+3: Copy back RankMatrixW to CPU spends 482.596 ms
+3: Total MW preprocessing time is 685.022 ms
+
+3: PMW on CPU:
+3: Copy PrefLists into GPU spends 177.988 ms
+3: MW Init RankMatrixW  in parallel on GPU spends 23.5251 ms
+3: Copy back RankMatrixW to CPU spends 471.664 ms
+3: Total MW preprocessing time is 673.177 ms
+3: Time to emplace all threads is 0.278875
+
+3: PMW on GPU:
+3: Copy PrefLists into GPU spends 359.078 ms
+3: MW Init RankMatrixW  in parallel on GPU spends 23.5112 ms
+3: Copy back RankMatrixW to CPU spends 6e-05 ms
+3: Total MW preprocessing time is 382.589 ms
+
+3: LA:
+3: Copy PrefLists into GPU spends 358.056 ms
+3: LA Init PRMatrices in parallel on GPU spends 219.786 ms
+3: Copy back PRMatrices to CPU spends 2182.36 ms Total LA preprocessing time is 2760.21 ms
+
+3: PLA on CPU:
+3: Copy PrefLists into GPU spends 357.856 ms
+3: LA Init PRMatrices in parallel on GPU spends 219.677 ms
+3: Copy back PRMatrices to CPU spends 2118.12 ms Total LA preprocessing time is 2695.65 ms
+
+
+3: PLA on GPU:
+3: Copy PrefLists into GPU spends 352.959 ms
+3: LA Init PRMatrices in parallel on GPU spends 219.645 ms
+3: Total LA preprocessing time is 572.604 ms
+
+3: PLA on GPU w/ CAS:
+3: Copy PrefLists into GPU spends 353.817 ms
+3: LA Init PRMatrices in parallel on GPU spends 219.655 ms
+3: Total LA preprocessing time is 573.472 ms
+
+3: Bamboo:
+3: Copy PrefLists into GPU spends 353.714 ms
+3: LA Init PRMatrices in parallel on GPU spends 219.669 ms
+3: Total LA preprocessing time is 573.383 ms
+
+3: Exeuction Time:
+3: GS time is: 56294.519531
+3:  MW time is: 39363.195312
+3:  LA time is: 17613.269531
+3: PGS on CPU time is: 13051.909180
+3:  PMW on CPU time is: 10195.846680
+3:  PMW on GPU time is: 360.968170
+3:  PLA on CPU time is: 6579.715820
+3:  PLA on GPU w/ CAS time is: 261.960846
+3:  Bamboo time is: 63.575165
+
+```
+
+
+
 ## Clustered Case
 
 In the clustered case, the Locality-Aware GS using `atomicCAS` on the GPU, the Locality-Aware GS using `atomicMin` on the GPU, and Bamboo-SMP deliver the best performance. Although the degree of parallelism decreases, bandwidth remains critical, allowing the GPU to have a significant impact. Thanks to more efficient data movements, these implementations outperform the parallel MW algorithm on the GPU. Bamboo-SMP's ability to adaptively leverage both CPU and GPU resources ensures consistently high performance even as parallelism decreases, highlighting its robustness and flexibility across varying workloads.
+
+
+
+```
+3: Preprocessing Time:
+3: GS:
+3: Copy PrefLists into GPU spends 178.726 ms GS Init RankMatrixW  in parallel on GPU spends 26.0252 ms
+3: Copy back RankMatrixW to CPU spends 463.883 ms Total GS preprocessing time is 668.633 ms
+
+3: PGS:
+3: Copy PrefLists into GPU spends 177.888 ms GS Init RankMatrixW  in parallel on GPU spends 23.5793 ms
+3: Copy back RankMatrixW to CPU spends 441.174 ms Total GS preprocessing time is 642.641 ms
+
+3: MW:
+3: Copy PrefLists into GPU spends 177.899 ms
+3: MW Init RankMatrixW  in parallel on GPU spends 23.5782 ms
+3: Copy back RankMatrixW to CPU spends 461.859 ms
+3: Total MW preprocessing time is 663.337 ms
+
+3: PMW on CPU:
+3: Copy PrefLists into GPU spends 177.471 ms
+3: MW Init RankMatrixW  in parallel on GPU spends 23.5467 ms
+3: Copy back RankMatrixW to CPU spends 441.932 ms
+3: Total MW preprocessing time is 642.95 ms
+3: Time to emplace all threads is 0.283975
+
+3: PMW on GPU:
+3: Copy PrefLists into GPU spends 356.753 ms
+3: MW Init RankMatrixW  in parallel on GPU spends 23.5021 ms
+3: Copy back RankMatrixW to CPU spends 5e-05 ms
+3: Total MW preprocessing time is 380.255 ms
+
+3: LA:
+3: Copy PrefLists into GPU spends 357.173 ms
+3: LA Init PRMatrices in parallel on GPU spends 219.822 ms
+3: Copy back PRMatrices to CPU spends 2279.36 ms Total LA preprocessing time is 2856.36 ms
+
+3: PLA on CPU:
+3: Copy PrefLists into GPU spends 353.778 ms
+3: LA Init PRMatrices in parallel on GPU spends 219.624 ms
+3: Copy back PRMatrices to CPU spends 2181.87 ms Total LA preprocessing time is 2755.27 ms
+
+3: PLA on GPU:
+3: Copy PrefLists into GPU spends 355.222 ms
+3: LA Init PRMatrices in parallel on GPU spends 219.765 ms
+3: Total LA preprocessing time is 574.987 ms
+
+3: PLA on GPU w/ CAS:
+3: Copy PrefLists into GPU spends 356.856 ms
+3: LA Init PRMatrices in parallel on GPU spends 219.811 ms
+3: Total LA preprocessing time is 576.668 ms
+
+3: Bamboo:
+3: Copy PrefLists into GPU spends 355.697 ms
+3: LA Init PRMatrices in parallel on GPU spends 219.801 ms
+3: Total LA preprocessing time is 575.497 ms
+
+
+3: Exeuction Time:
+3: GS time is: 23496.460938
+3:  MW time is: 18131.132812
+3:  LA time is: 3193.474365
+3: PGS on CPU time is: 5230.739258
+3:  PMW on CPU time is: 4161.291992
+3:  PMW on GPU time is: 79.512733
+3:  PLA on CPU time is: 903.444824
+3:  PLA on GPU w/ CAS time is: 63.458366
+3:  PLA on GPU time is: 50.159264
+3:  Bamboo time is: 46.585423
+```
+
+
 
 
 
