@@ -1,3 +1,5 @@
+# REQ
+
 Can you rewrite these sentences to make it more native, and academical? 
 
 You can insert sentences, deleted sentences and reorder sentences, (also for words) to strengthen the connections between sentences.
@@ -28,7 +30,7 @@ To address these 3 challenges, in this paper, we introduce FlashSMP, an efficien
 
 FlashSMP's high performance stems from three key development efforts. 
 
-First, we effectively exploit the data accessing locality with a new data structure called PRNodes to "cohabitate".
+First, we effectively exploit the data accessing locality with an effective data structure to maximize the “shared residence” space for locality.
 
 Second, FlashSMP employs a more advanced atomic operation called "atomicMin" provided by CUDA to reduce the inefficiencies caused by atomicCAS under high memory contention, an effort we term "resolving conflicts." 
 
@@ -2110,71 +2112,63 @@ In the clustered case, the Locality-Aware GS using `atomicCAS` on the GPU, the L
 
 
 ```
-3: Preprocessing Time:
+Preprocessing Time:
 3: GS:
-3: Copy PrefLists into GPU spends 178.726 ms GS Init RankMatrixW  in parallel on GPU spends 26.0252 ms
-3: Copy back RankMatrixW to CPU spends 463.883 ms Total GS preprocessing time is 668.633 ms
+3: GS Copy PrefLists into GPU spends 244.266 ms
+3: GS Init RankMatrixW  in parallel on GPU spends 38.3948 ms
+3: GS Copy back RankMatrixW to CPU spends 496.281 ms
+3: Total GS preprocessing time is 778.942 ms
+3: GS init other data structures require 0.772992 ms
+3: number of iterations: 799895259
 
 3: PGS:
-3: Copy PrefLists into GPU spends 177.888 ms GS Init RankMatrixW  in parallel on GPU spends 23.5793 ms
-3: Copy back RankMatrixW to CPU spends 441.174 ms Total GS preprocessing time is 642.641 ms
+3: GS Copy PrefLists into GPU spends 243.801 ms
+3: GS Init RankMatrixW  in parallel on GPU spends 38.4143 ms
+3: GS Copy back RankMatrixW to CPU spends 496.358 ms
+3: Total GS preprocessing time is 778.574 ms
+3: GS init other data structures require 0.816043 ms
+3: StartGSParallel
+3: Time to emplace all threads is 2.065421
 
 3: MW:
-3: Copy PrefLists into GPU spends 177.899 ms
-3: MW Init RankMatrixW  in parallel on GPU spends 23.5782 ms
-3: Copy back RankMatrixW to CPU spends 461.859 ms
-3: Total MW preprocessing time is 663.337 ms
+3: MW Copy PrefLists into GPU spends 244.354 ms
+3: MW Init RankMatrixW  in parallel on GPU spends 38.4099 ms
+3: Copy back RankMatrixW to CPU spends 496.284 ms
+3: Total MW preprocessing time is 779.049 ms
 
 3: PMW on CPU:
-3: Copy PrefLists into GPU spends 177.471 ms
-3: MW Init RankMatrixW  in parallel on GPU spends 23.5467 ms
-3: Copy back RankMatrixW to CPU spends 441.932 ms
-3: Total MW preprocessing time is 642.95 ms
-3: Time to emplace all threads is 0.283975
+3: MW Copy PrefLists into GPU spends 244.63 ms
+3: MW Init RankMatrixW  in parallel on GPU spends 38.4003 ms
+3: Copy back RankMatrixW to CPU spends 496.768 ms
+3: Total MW preprocessing time is 779.799 ms
+3: Time to emplace all threads is 2.034213
 
 3: PMW on GPU:
-3: Copy PrefLists into GPU spends 356.753 ms
-3: MW Init RankMatrixW  in parallel on GPU spends 23.5021 ms
-3: Copy back RankMatrixW to CPU spends 5e-05 ms
-3: Total MW preprocessing time is 380.255 ms
-
-3: LA:
-3: Copy PrefLists into GPU spends 357.173 ms
-3: LA Init PRMatrices in parallel on GPU spends 219.822 ms
-3: Copy back PRMatrices to CPU spends 2279.36 ms Total LA preprocessing time is 2856.36 ms
-
-3: PLA on CPU:
-3: Copy PrefLists into GPU spends 353.778 ms
-3: LA Init PRMatrices in parallel on GPU spends 219.624 ms
-3: Copy back PRMatrices to CPU spends 2181.87 ms Total LA preprocessing time is 2755.27 ms
-
-3: PLA on GPU:
-3: Copy PrefLists into GPU spends 355.222 ms
-3: LA Init PRMatrices in parallel on GPU spends 219.765 ms
-3: Total LA preprocessing time is 574.987 ms
-
-3: PLA on GPU w/ CAS:
-3: Copy PrefLists into GPU spends 356.856 ms
-3: LA Init PRMatrices in parallel on GPU spends 219.811 ms
-3: Total LA preprocessing time is 576.668 ms
+3: MW Copy PrefLists into GPU spends 484.348 ms
+3: MW Init RankMatrixW  in parallel on GPU spends 38.3929 ms
+3: Copy back RankMatrixW to CPU spends 0 ms
+3: Total MW preprocessing time is 522.74 ms
 
 3: Bamboo:
-3: Copy PrefLists into GPU spends 355.697 ms
-3: LA Init PRMatrices in parallel on GPU spends 219.801 ms
-3: Total LA preprocessing time is 575.497 ms
-
+3: Start to Init LAZ
+3: LA Copy PrefLists into GPU spends 483.673 ms
+3: LA Init RankMatrix takes 81.4252
+3: LA Init PRMatrix takes 27.1967
+3: LA Init PRMatrices in parallel on GPU spends 108.641 ms
+3: Total LA preprocessing time is 592.315 ms
+3: Run CheckerKernel on Device 1
+3: After 2661 iterations and 120.784 ms , only 1 woman are unmarried
+3: LAHybrid GPU is done
+3: Thread GPU is done
 
 3: Exeuction Time:
-3: GS time is: 23496.460938
-3:  MW time is: 18131.132812
-3:  LA time is: 3193.474365
-3: PGS on CPU time is: 5230.739258
-3:  PMW on CPU time is: 4161.291992
-3:  PMW on GPU time is: 79.512733
-3:  PLA on CPU time is: 903.444824
-3:  PLA on GPU w/ CAS time is: 63.458366
-3:  PLA on GPU time is: 50.159264
-3:  Bamboo time is: 46.585423
+3: GS time is: 62830.906250
+3:  MW time is: 64503.496094
+3:  PGS on CPU time is: 13864.692383
+3:  PMW on CPU time is: 15514.514648
+3:  PMW on GPU time is: 232.835007
+3:  Bamboo time is: 123.144867
+
 ```
 
 
@@ -2457,3 +2451,32 @@ Preprocessing Time: overhead is slow, why?
 Totally independent + GPU => so super fast
 
 And the best case is rare.
+
+
+
+# Prof Xia's Comments
+
+I’ve revised our paper based on Professor Xia’s comments, but I have a few questions:
+
+1.	In the 3rd paragraph of the Introduction, what does Professor Xia mean by commenting “Its”?
+2.	In the 4th paragraph of the Introduction, can we keep the phrase “To our best knowledge”?
+3.	In section 2.1, Professor Xia provided revisions to the sentences we used to describe the stable matching. We’ve commented on these sentences in our LaTeX file. Should we add them back?
+
+
+
+In addition, I’ve made some revisions to our data movement optimization, and the preprocessing time has significantly decreased. Previously, I created two PRMatrices to optimize data access to the woman’s RankMatrix and the Next array to improve execution time. Now, I only created one PRMatrix for the woman’s RankMatrix, without optimizing the execution time of the Next array. As a result, the preprocessing time has decreased to an acceptable level. I’ll rewrite section 3.1 and the related parts this weekend before we send the most updated version to Professor Xia.
+
+
+
+
+
+Acutually I still have one question on the workload that we discussed in our paper when writing code to generate these workloads to classify.
+
+I am a little afriad that out workloads are not diverse enoutgh, thereby resulting in less convincing.
+
+In fact, Solo case is also quite generated by design, so it is also not that general either.
+
+Do we only consider how to resolve congested and solo case without affecting the efficiency of random case using Bamboo?
+
+Do we need to consider more types of workloads? For instance, it is possible a workload is a mixture of congested case and random case, or a mixture of congested and solo case. 
+
