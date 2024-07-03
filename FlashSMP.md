@@ -1805,65 +1805,52 @@ Init PRMatrix
 Test Result
 
 ```
-==================================================
-2: [ RUN      ] X1.X1SerialWorkloadTest1
-2: Copy PrefLists into GPU spends 179.581 ms GS Init RankMatrixW  in parallel on GPU spends 26.8757 ms
-2: Copy back RankMatrixW to CPU spends 452.546 ms 
-Total GS preprocessing time is 659.003 ms
+2: GS Copy PrefLists into GPU spends 146.875 ms
+2: GS Init RankMatrixW  in parallel on GPU spends 24.6319 ms
+2: GS Copy back RankMatrixW to CPU spends 261.189 ms
+2: Total GS preprocessing time is 432.696 ms
+2: GS init other data structures require 0.772061 ms
+2: number of iterations: 899970001
+2: Start to Init LAZ
+2: LA Copy PrefLists into GPU spends 269.35 ms
+2: LA Init RankMatrix takes 45.8047
+2: LA Init PRMatrix takes 15.7446
+2: LA Init PRMatrices in parallel on GPU spends 61.5651 ms
+2: Copy back PRMatrices to CPU spends 566.158 ms
+2: Total LA preprocessing time is 897.073 ms
+2: GS time is 19935.238281,  LA time is 3455.072510, LA Speedup is 5.769846[       OK ] X1.X1SerialWorkloadTest1 (59662 ms)
 
-2: Copy PrefLists into GPU spends 176.854 ms MW Init RankMatrixW  in parallel on GPU spends 23.4811 ms
-2: Copy back RankMatrixW to CPU spends 439.938 ms Total MW preprocessing time is 640.272 ms 
-
-Copy PrefLists into GPU spends 356.737 ms
-2: LA Init PRMatrices in parallel on GPU spends 220.077 ms
-2: Copy back PRMatrices to CPU spends 2175.53 ms Total LA preprocessing time is 2752.34 ms 
-
-GS time is 13307.696289, MW time is 14883.905273, Coh time is 3210.362305, Coh Speedup is 4.145232[       OK ] X1.X1SerialWorkloadTest1 (74576 ms)
-
-==================================================
 2: [ RUN      ] X1.X1ClusteredWorkloadTest
-2: Copy PrefLists into GPU spends 176.338 ms GS Init RankMatrixW  in parallel on GPU spends 31.7599 ms
-2: Copy back RankMatrixW to CPU spends 441.489 ms Total GS preprocessing time is 649.587 ms
+2: GS Copy PrefLists into GPU spends 134.706 ms
+2: GS Init RankMatrixW  in parallel on GPU spends 24.0211 ms
+2: GS Copy back RankMatrixW to CPU spends 262.103 ms
+2: Total GS preprocessing time is 420.829 ms
+2: GS init other data structures require 0.716606 ms
+2: number of iterations: 449921857
+2: Start to Init LAZ
+2: LA Copy PrefLists into GPU spends 273.488 ms
+2: LA Init RankMatrix takes 45.71
+2: LA Init PRMatrix takes 15.5277
+2: LA Init PRMatrices in parallel on GPU spends 61.2428 ms
+2: Copy back PRMatrices to CPU spends 564.73 ms
+2: Total LA preprocessing time is 899.462 ms
+2: GS time is 36213.968750,  LA time is 14544.111328, LA Speedup is 2.489940[       OK ] X1.X1ClusteredWorkloadTest (315738 ms)
 
-Copy PrefLists into GPU spends 176.669 ms MW Init RankMatrixW  in parallel on GPU spends 28.9298 ms
-2: Copy back RankMatrixW to CPU spends 461.683 ms Total MW preprocessing time is 667.282 ms 
-
-Copy PrefLists into GPU spends 350.128 ms
-2: LA Init PRMatrices in parallel on GPU spends 219.876 ms
-2: Copy back PRMatrices to CPU spends 2120.6 ms Total LA preprocessing time is 2690.61 ms 
-
-GS time is 22951.527344, MW time is 18215.650391, Coh time is 3177.784912, Coh Speedup is 7.222492[       OK ] X1.X1ClusteredWorkloadTest (112327 ms)
-
-==================================================
 2: [ RUN      ] X1.X1CongestedWorkloadTest
-2: Copy PrefLists into GPU spends 176.504 ms GS Init RankMatrixW  in parallel on GPU spends 28.5636 ms
-2: Copy back RankMatrixW to CPU spends 438.027 ms Total GS preprocessing time is 643.094 ms
-2: 
-
-Copy PrefLists into GPU spends 176.484 ms MW Init RankMatrixW  in parallel on GPU spends 23.7838 ms
-2: Copy back RankMatrixW to CPU spends 453.139 ms Total MW preprocessing time is 653.406 ms 
-
-Copy PrefLists into GPU spends 353.395 ms
-2: LA Init PRMatrices in parallel on GPU spends 219.744 ms
-2: Copy back PRMatrices to CPU spends 2170.44 ms Total LA preprocessing time is 2743.58 ms 
-
-GS time is 56317.199219, MW time is 39512.464844, Coh time is 17979.505859, Coh Speedup is 3.132300[       OK ] X1.X1CongestedWorkloadTest (136101 ms)
-
-==================================================
-2: [ RUN      ] X1.X1RandomWorkloadTest
-2: Copy PrefLists into GPU spends 177.542 ms GS Init RankMatrixW  in parallel on GPU spends 23.8268 ms
-2: Copy back RankMatrixW to CPU spends 202.82 ms Total GS preprocessing time is 404.188 ms
-
-
-2: Copy PrefLists into GPU spends 177.784 ms MW Init RankMatrixW  in parallel on GPU spends 23.7689 ms
-2: Copy back RankMatrixW to CPU spends 202.791 ms Total MW preprocessing time is 404.344 ms 
-
-2: Copy PrefLists into GPU spends 354.035 ms
-2: LA Init PRMatrices in parallel on GPU spends 219.95 ms
-2: Copy back PRMatrices to CPU spends 2165.73 ms Total LA preprocessing time is 2739.72 ms 
-
-GS time is 41.098839, MW time is 40.513981, Coh time is 13.991295, Coh Speedup is 2.937458[       OK ] X1.X1RandomWorkloadTest (40340 ms)
-
+2: GS Copy PrefLists into GPU spends 139.008 ms
+2: GS Init RankMatrixW  in parallel on GPU spends 23.9903 ms
+2: GS Copy back RankMatrixW to CPU spends 262.237 ms
+2: Total GS preprocessing time is 425.236 ms
+2: GS init other data structures require 0.700616 ms
+2: number of iterations: 450015000
+2: Start to Init LAZ
+2: LA Copy PrefLists into GPU spends 273.447 ms
+2: LA Init RankMatrix takes 45.6926
+2: LA Init PRMatrix takes 15.5238
+2: LA Init PRMatrices in parallel on GPU spends 61.2232 ms
+2: Copy back PRMatrices to CPU spends 566.828 ms
+2: Total LA preprocessing time is 901.498 ms
+2: GS time is 71779.164062, LA time is 28055.521484, LA Speedup is 2.558468
 ```
 
 
@@ -1885,6 +1872,219 @@ Table for X1
 \bottomrule
 \end{tabular}
 \end{table*}
+```
+
+
+
+# BambooKernel
+
+```
+4:  current size is 500
+4: Exeuction Time:
+4: GS time is: 5.538517
+4:  PMW on GPU time is: 2.176199
+4:  PMW-MIN on GPU time is: 0.611710
+4:  PLA on GPU time is: 0.668032
+4:
+4:  current size is 1000
+4: Exeuction Time:
+4: GS time is: 25.329655
+4:  PMW on GPU time is: 4.801833
+4:  PMW-MIN on GPU time is: 1.755959
+4:  PLA on GPU time is: 1.626528
+4:
+4:  current size is 4000
+4: Exeuction Time:
+4: GS time is: 629.131775
+4:  PMW on GPU time is: 36.285572
+4:  PMW-MIN on GPU time is: 26.066961
+4:  PLA on GPU time is: 16.460159
+
+4:  current size is 8000
+4: Exeuction Time:
+4: GS time is: 3600.292236
+4:  PMW on GPU time is: 84.091263
+4:  PMW-MIN on GPU time is: 50.435001
+4:  PLA on GPU time is: 32.918720
+
+
+4:
+4:  current size is 10000
+4: Exeuction Time:
+4: GS time is: 6285.511719
+4:  PMW on GPU time is: 99.301331
+4:  PMW-MIN on GPU time is: 78.729095
+4:  PLA on GPU time is: 40.166782
+4:
+4:  current size is 15000
+4: Exeuction Time:
+4: GS time is: 15888.951172
+4:  PMW on GPU time is: 176.787323
+4:  PMW-MIN on GPU time is: 85.632607
+4:  PLA on GPU time is: 68.429245
+4:
+4:  current size is 20000
+4: Exeuction Time:
+4: GS time is: 29588.498047
+4:  PMW on GPU time is: 235.668808
+4:  PMW-MIN on GPU time is: 113.035721
+4:  PLA on GPU time is: 97.301987
+4:
+4:  current size is 25000
+4: Exeuction Time:
+4: GS time is: 48200.351562
+4:  PMW on GPU time is: 306.970764
+4:  PMW-MIN on GPU time is: 146.229675
+4:  PLA on GPU time is: 122.100990
+4:
+4:  current size is 30000
+4: Exeuction Time:
+4: GS time is: 123890.039062
+4:  PMW on GPU time is: 364.431915
+4:  PMW-MIN on GPU time is: 189.025650
+4:  PLA on GPU time is: 162.453796
+
+```
+
+
+
+# Performance of Preprocessing
+
+## RankMatrix
+
+```
+1:
+1:  current size is 500
+1: Time to preprocess RankMatrixW in serial is 1.473559
+1: Time to preprocess RankMatrixW in parallel on CPU is 2.550622 ms
+1: GS Copy PrefLists into GPU spends 0.307278 ms
+1: GS Init RankMatrixW  in parallel on GPU spends 5.88091 ms
+1: GS Copy back RankMatrixW to CPU spends 0.459323 ms
+1: Total GS preprocessing time on GPU is 6.64751 ms
+1: GS init other data structures require 0.025598 ms
+1:
+1:  current size is 1000
+1: Time to preprocess RankMatrixW in serial is 5.410116
+1: Time to preprocess RankMatrixW in parallel on CPU is 2.900290 ms
+1: GS Copy PrefLists into GPU spends 1.09447 ms
+1: GS Init RankMatrixW  in parallel on GPU spends 0.052679 ms
+1: GS Copy back RankMatrixW to CPU spends 2.04021 ms
+1: Total GS preprocessing time on GPU is 3.18736 ms
+1: GS init other data structures require 0.039674 ms
+1:
+1:  current size is 5000
+1: Time to preprocess RankMatrixW in serial is 151.741546
+1: Time to preprocess RankMatrixW in parallel on CPU is 30.429530 ms
+1: GS Copy PrefLists into GPU spends 8.2701 ms
+1: GS Init RankMatrixW  in parallel on GPU spends 0.657896 ms
+1: GS Copy back RankMatrixW to CPU spends 4.25392 ms
+1: Total GS preprocessing time on GPU is 13.1819 ms
+1: GS init other data structures require 0.192231 ms
+1:
+1:  current size is 10000
+1: Time to preprocess RankMatrixW in serial is 629.913602
+1: Time to preprocess RankMatrixW in parallel on CPU is 87.569610 ms
+1: GS Copy PrefLists into GPU spends 15.1329 ms
+1: GS Init RankMatrixW  in parallel on GPU spends 2.67334 ms
+1: GS Copy back RankMatrixW to CPU spends 34.7095 ms
+1: Total GS preprocessing time on GPU is 52.5158 ms
+1: GS init other data structures require 0.415191 ms
+1:
+1:  current size is 15000
+1: Time to preprocess RankMatrixW in serial is 1434.073909
+1: Time to preprocess RankMatrixW in parallel on CPU is 206.026311 ms
+1: GS Copy PrefLists into GPU spends 37.6041 ms
+1: GS Init RankMatrixW  in parallel on GPU spends 6.02224 ms
+1: GS Copy back RankMatrixW to CPU spends 38.0675 ms
+1: Total GS preprocessing time on GPU is 81.6939 ms
+1: GS init other data structures require 0.446359 ms
+1:
+1:  current size is 30000
+1: Time to preprocess RankMatrixW in serial is 6792.782255
+1: Time to preprocess RankMatrixW in parallel on CPU is 732.987768 ms
+1: GS Copy PrefLists into GPU spends 141.279 ms
+1: GS Init RankMatrixW  in parallel on GPU spends 21.6528 ms
+1: GS Copy back RankMatrixW to CPU spends 139.845 ms
+1: Total GS preprocessing time on GPU is 302.777 ms
+1: GS init other data structures require 0.671792 ms
+1: [       OK ] X1.X1SerialWorkloadTest1 (28235 ms)
+```
+
+
+
+## PRMatrix
+
+```
+1: [ RUN      ] X1.X1SerialWorkloadTest2
+1:
+1:  current size is 500
+1: Time to preprocess PRMatrices is 4.195855
+1: Time to preprocess PRMatrices in parallel on CPU is 5.034280 ms
+1: Start to Init LAZ
+1: LA Copy PrefLists into GPU spends 0.122 ms
+1: LA Init RankMatrix takes 0.109957
+1: LA Init PRMatrix takes 0.117912
+1: LA Init PRMatrices in parallel on GPU spends 0.247936 ms
+1: Copy back PRMatrices to CPU spends 0.091512 ms
+1: Total LA preprocessing time is 0.461448 ms
+1:
+1:  current size is 1000
+1: Time to preprocess PRMatrices is 17.903963
+1: Time to preprocess PRMatrices in parallel on CPU is 8.693816 ms
+1: Start to Init LAZ
+1: LA Copy PrefLists into GPU spends 0.526069 ms
+1: LA Init RankMatrix takes 0.04271
+1: LA Init PRMatrix takes 0.022302
+1: LA Init PRMatrices in parallel on GPU spends 0.07458 ms
+1: Copy back PRMatrices to CPU spends 0.331834 ms
+1: Total LA preprocessing time on GPU is 0.932483 ms
+1:
+1:  current size is 5000
+1: Time to preprocess PRMatrices is 1010.934233
+1: Time to preprocess PRMatrices in parallel on CPU is 216.605380 ms
+1: Start to Init LAZ
+1: LA Copy PrefLists into GPU spends 9.47015 ms
+1: LA Init RankMatrix takes 1.17231
+1: LA Init PRMatrix takes 0.375094
+1: LA Init PRMatrices in parallel on GPU spends 1.55834 ms
+1: Copy back PRMatrices to CPU spends 8.33214 ms
+1: Total LA preprocessing time on GPU is 19.3606 ms
+1:
+1:  current size is 10000
+1: Time to preprocess PRMatrices is 4522.389660
+1: Time to preprocess PRMatrices in parallel on CPU is 805.250986 ms
+1: Start to Init LAZ
+1: LA Copy PrefLists into GPU spends 30.899 ms
+1: LA Init RankMatrix takes 5.35957
+1: LA Init PRMatrix takes 1.65796
+1: LA Init PRMatrices in parallel on GPU spends 7.02881 ms
+1: Copy back PRMatrices to CPU spends 33.3441 ms
+1: Total LA preprocessing time on GPU is 71.2719 ms
+1:
+1:  current size is 15000
+1: Time to preprocess PRMatrices is 11114.977352
+1: Time to preprocess PRMatrices in parallel on CPU is 2349.929660 ms
+
+1: Start to Init LAZ
+1: LA Copy PrefLists into GPU spends 68.3196 ms
+1: LA Init RankMatrix takes 11.2017
+1: LA Init PRMatrix takes 3.53607
+1: LA Init PRMatrices in parallel on GPU spends 14.7499 ms
+1: Copy back PRMatrices to CPU spends 72.5171 ms
+1: Total LA preprocessing time on GPU is 155.587 ms
+1:
+1:  current size is 30000
+1: Time to preprocess PRMatrices is 46444.167153
+1: Time to preprocess PRMatrices in parallel on CPU is 15946.050177 ms
+
+1: Start to Init LAZ
+1: LA Copy PrefLists into GPU spends 270.31 ms
+1: LA Init RankMatrix takes 45.5065
+1: LA Init PRMatrix takes 15.0001
+1: LA Init PRMatrices in parallel on GPU spends 60.5185 ms
+1: Copy back PRMatrices to CPU spends 288.805 ms
+1: Total LA preprocessing time on GPU is 619.634 ms
+
 ```
 
 
@@ -1954,19 +2154,14 @@ n = 30k
 
 ```
 3: Running workload of size 30000
-3: GS Copy PrefLists into GPU spends 139.96 ms
-3: GS Init RankMatrixW  in parallel on GPU spends 25.5745 ms
-3: GS Copy back RankMatrixW to CPU spends 262.238 ms
-3: Total GS preprocessing time is 427.772 ms
-3: GS init other data structures require 0.752464 ms
-3: Preprocessing Time:
+
 3: GS:
 3: GS Copy PrefLists into GPU spends 139.63 ms
 3: GS Init RankMatrixW  in parallel on GPU spends 21.6265 ms
 3: GS Copy back RankMatrixW to CPU spends 262.339 ms
 3: Total GS preprocessing time is 423.595 ms
 3: GS init other data structures require 0.56954 ms
-3: number of iterations: 899970001
+
 3: PGS:
 3: GS Copy PrefLists into GPU spends 138.638 ms
 3: GS Init RankMatrixW  in parallel on GPU spends 21.6323 ms
@@ -1974,23 +2169,26 @@ n = 30k
 3: Total GS preprocessing time is 422.633 ms
 3: GS init other data structures require 0.604446 ms
 3: StartGSParallel
-3: Time to emplace all threads is 2.141304
+
 3: MW:
 3: MW Copy PrefLists into GPU spends 138.682 ms
 3: MW Init RankMatrixW  in parallel on GPU spends 21.634 ms
 3: Copy back RankMatrixW to CPU spends 262.106 ms
 3: Total MW preprocessing time is 422.421 ms
+
 3: PMW on CPU:
 3: MW Copy PrefLists into GPU spends 138.642 ms
 3: MW Init RankMatrixW  in parallel on GPU spends 21.6345 ms
 3: Copy back RankMatrixW to CPU spends 261.955 ms
 3: Total MW preprocessing time is 422.231 ms
 3: Time to emplace all threads is 4.218036
+
 3: PMW on GPU:
 3: MW Copy PrefLists into GPU spends 273.747 ms
 3: MW Init RankMatrixW  in parallel on GPU spends 21.6336 ms
 3: Copy back RankMatrixW to CPU spends 0 ms
 3: Total MW preprocessing time is 295.38 ms
+
 3: LA:
 3: Start to Init LAZ
 3: LA Copy PrefLists into GPU spends 273.824 ms
@@ -1999,6 +2197,7 @@ n = 30k
 3: LA Init PRMatrices in parallel on GPU spends 60.6576 ms
 3: Copy back PRMatrices to CPU spends 565.456 ms
 3: Total LA preprocessing time is 899.938 ms
+
 3: Bamboo:
 3: Start to Init LAZ
 3: LA Copy PrefLists into GPU spends 273.453 ms
@@ -2010,6 +2209,7 @@ n = 30k
 3: After 0 iterations and 0.527622 ms , only 1 woman are unmarried
 3: BambooSMP Copy back PRMatrices to CPU spends 566.237 ms CheckerKernel has finished after 1 iterations.
 3: Thread CPU is done
+
 3: Exeuction Time:
 3: GS time is: 20135.597656
 3:  MW time is: 24253.195312
@@ -2023,6 +2223,40 @@ n = 30k
 
 
 
+```
+Solo Case:
+
+3: Running workload of size 30000
+
+3: GS:
+3: Total GS preprocessing time is 423.595 ms
+
+3: PGS:
+3: Total GS preprocessing time is 422.633 ms
+
+3: MW:
+3: Total MW preprocessing time is 422.421 ms
+
+3: PMW on CPU:
+3: Total MW preprocessing time is 422.231 ms
+
+3: PMW on GPU:
+3: Total MW preprocessing time is 295.38 ms
+
+3: Bamboo:
+Total Bamboo preprocessing time is 900.182ms
+
+3: Exeuction Time:
+3: GS time is: 20135.597656
+3:  MW time is: 24253.195312
+3: PGS on CPU time is: 23377.496094
+3:  PMW on CPU time is: 23493.189453
+3:  PMW on GPU time is: 263197.875000
+3:  Bamboo time is: 3393.04
+```
+
+
+
 ## Congested Case
 
 For the congested case, the Locality-Aware GS using `atomicMin` on the GPU and Bamboo-SMP achieve the best results. The parallel MW algorithm on the GPU performs better than other parallel algorithms due to the GPU's high bandwidth. However, the Locality-Aware GS utilizing `atomicCAS` on the GPU outperforms the parallel MW algorithm because of more efficient data movements. The Locality-Aware GS with `atomicMin` further surpasses its `atomicCAS` counterpart by effectively eliminating wasted work. In this scenario, Bamboo-SMP's adaptive switching mechanism ensures that the GPU is always used for proposals in high-bandwidth environments, potentially avoiding switches when the thread count decreases gradually, thus maintaining optimal performance.
@@ -2031,11 +2265,7 @@ For the congested case, the Locality-Aware GS using `atomicMin` on the GPU and B
 
 ```
 3: Running workload of size 30000
-3: GS Copy PrefLists into GPU spends 138.958 ms
-3: GS Init RankMatrixW  in parallel on GPU spends 23.1986 ms
-3: GS Copy back RankMatrixW to CPU spends 143.222 ms
-3: Total GS preprocessing time is 305.378 ms
-3: GS init other data structures require 0.738437 ms
+
 3: Preprocessing Time:
 3: GS:
 3: GS Copy PrefLists into GPU spends 138.785 ms
@@ -2043,7 +2273,7 @@ For the congested case, the Locality-Aware GS using `atomicMin` on the GPU and B
 3: GS Copy back RankMatrixW to CPU spends 143.275 ms
 3: Total GS preprocessing time is 303.705 ms
 3: GS init other data structures require 0.588466 ms
-3: number of iterations: 450015000
+
 3: PGS:
 3: GS Copy PrefLists into GPU spends 139.022 ms
 3: GS Init RankMatrixW  in parallel on GPU spends 21.6411 ms
@@ -2052,22 +2282,26 @@ For the congested case, the Locality-Aware GS using `atomicMin` on the GPU and B
 3: GS init other data structures require 0.581433 ms
 3: StartGSParallel
 3: Time to emplace all threads is 1.798389
+
 3: MW:
 3: MW Copy PrefLists into GPU spends 138.813 ms
 3: MW Init RankMatrixW  in parallel on GPU spends 21.6519 ms
 3: Copy back RankMatrixW to CPU spends 138.209 ms
 3: Total MW preprocessing time is 298.674 ms
+
 3: PMW on CPU:
 3: MW Copy PrefLists into GPU spends 139.137 ms
 3: MW Init RankMatrixW  in parallel on GPU spends 21.6484 ms
 3: Copy back RankMatrixW to CPU spends 143.236 ms
 3: Total MW preprocessing time is 304.021 ms
 3: Time to emplace all threads is 2.308347
+
 3: PMW on GPU:
 3: MW Copy PrefLists into GPU spends 274.184 ms
 3: MW Init RankMatrixW  in parallel on GPU spends 21.651 ms
 3: Copy back RankMatrixW to CPU spends 0 ms
 3: Total MW preprocessing time is 295.835 ms
+
 3: LA:
 3: Start to Init LAZ
 3: LA Copy PrefLists into GPU spends 272.929 ms
@@ -2076,6 +2310,7 @@ For the congested case, the Locality-Aware GS using `atomicMin` on the GPU and B
 3: LA Init PRMatrices in parallel on GPU spends 60.6539 ms
 3: Copy back PRMatrices to CPU spends 292.658 ms
 3: Total LA preprocessing time is 626.241 ms
+
 3: Bamboo:
 3: Start to Init LAZ
 3: LA Copy PrefLists into GPU spends 273.736 ms
@@ -2087,6 +2322,7 @@ For the congested case, the Locality-Aware GS using `atomicMin` on the GPU and B
 3: After 3365 iterations and 157.262 ms , only 1 woman are unmarried
 3: LAHybrid GPU is done
 3: Thread GPU is done
+
 3: Exeuction Time:
 3: GS time is: 78702.484375
 3:  MW time is: 59914.789062
@@ -2101,6 +2337,52 @@ For the congested case, the Locality-Aware GS using `atomicMin` on the GPU and B
 
 
 
+```
+Congested Case:
+
+3: Running workload of size 30000
+
+3: Preprocessing Time:
+3: GS:
+3: Total GS preprocessing time is 303.705 ms
+
+3: PGS:
+3: Total GS preprocessing time is 303.909 ms
+
+3: MW:
+3: Total MW preprocessing time is 298.674 ms
+
+3: PMW on CPU:
+3: Total MW preprocessing time is 304.021 ms
+
+3: PMW on GPU:
+3: Total MW preprocessing time is 295.835 ms
+
+3: LA:
+3: Start to Init LAZ
+3: LA Copy PrefLists into GPU spends 272.929 ms
+3: LA Init RankMatrix takes 45.5237
+3: LA Init PRMatrix takes 15.1175
+3: LA Init PRMatrices in parallel on GPU spends 60.6539 ms
+3: Copy back PRMatrices to CPU spends 292.658 ms
+3: Total LA preprocessing time is 626.241 ms
+
+3: Bamboo:
+3: Total LA preprocessing time is 334.315 ms
+
+
+3: Exeuction Time:
+3: GS time is: 78702.484375
+3:  MW time is: 59914.789062
+3:  LA time is: 32403.560547
+3: PGS on CPU time is: 13374.874023
+3:  PMW on CPU time is: 16107.037109
+3:  PMW on GPU time is: 361.346222
+3:  Bamboo time is: 158.009109
+```
+
+
+
 ## Clustered Case
 
 In the clustered case, the Locality-Aware GS using `atomicCAS` on the GPU, the Locality-Aware GS using `atomicMin` on the GPU, and Bamboo-SMP deliver the best performance. Although the degree of parallelism decreases, bandwidth remains critical, allowing the GPU to have a significant impact. Thanks to more efficient data movements, these implementations outperform the parallel MW algorithm on the GPU. Bamboo-SMP's ability to adaptively leverage both CPU and GPU resources ensures consistently high performance even as parallelism decreases, highlighting its robustness and flexibility across varying workloads.
@@ -2109,11 +2391,7 @@ In the clustered case, the Locality-Aware GS using `atomicCAS` on the GPU, the L
 
 ```
 3: Running workload of size 30000
-3: GS Copy PrefLists into GPU spends 134.751 ms
-3: GS Init RankMatrixW  in parallel on GPU spends 23.7466 ms
-3: GS Copy back RankMatrixW to CPU spends 264.027 ms
-3: Total GS preprocessing time is 422.524 ms
-3: GS init other data structures require 0.756181 ms
+
 3: Preprocessing Time:
 3: GS:
 3: GS Copy PrefLists into GPU spends 134.795 ms
@@ -2121,7 +2399,7 @@ In the clustered case, the Locality-Aware GS using `atomicCAS` on the GPU, the L
 3: GS Copy back RankMatrixW to CPU spends 264.223 ms
 3: Total GS preprocessing time is 420.672 ms
 3: GS init other data structures require 0.57483 ms
-3: number of iterations: 449921785
+
 3: PGS:
 3: GS Copy PrefLists into GPU spends 134.802 ms
 3: GS Init RankMatrixW  in parallel on GPU spends 21.6646 ms
@@ -2130,22 +2408,26 @@ In the clustered case, the Locality-Aware GS using `atomicCAS` on the GPU, the L
 3: GS init other data structures require 0.578187 ms
 3: StartGSParallel
 3: Time to emplace all threads is 1.913556
+
 3: MW:
 3: MW Copy PrefLists into GPU spends 134.805 ms
 3: MW Init RankMatrixW  in parallel on GPU spends 21.6771 ms
 3: Copy back RankMatrixW to CPU spends 263.838 ms
 3: Total MW preprocessing time is 420.32 ms
+
 3: PMW on CPU:
 3: MW Copy PrefLists into GPU spends 134.8 ms
 3: MW Init RankMatrixW  in parallel on GPU spends 21.6776 ms
 3: Copy back RankMatrixW to CPU spends 264.126 ms
 3: Total MW preprocessing time is 420.603 ms
 3: Time to emplace all threads is 2.280645
+
 3: PMW on GPU:
 3: MW Copy PrefLists into GPU spends 269.545 ms
 3: MW Init RankMatrixW  in parallel on GPU spends 21.6608 ms
 3: Copy back RankMatrixW to CPU spends 0 ms
 3: Total MW preprocessing time is 291.206 ms
+
 3: LA:
 3: Start to Init LAZ
 3: LA Copy PrefLists into GPU spends 269.547 ms
@@ -2154,6 +2436,7 @@ In the clustered case, the Locality-Aware GS using `atomicCAS` on the GPU, the L
 3: LA Init PRMatrices in parallel on GPU spends 60.7562 ms
 3: Copy back PRMatrices to CPU spends 566.761 ms
 3: Total LA preprocessing time is 897.064 ms
+
 3: Bamboo:
 3: Start to Init LAZ
 3: LA Copy PrefLists into GPU spends 269.273 ms
@@ -2165,6 +2448,7 @@ In the clustered case, the Locality-Aware GS using `atomicCAS` on the GPU, the L
 3: After 2124 iterations and 94.5325 ms , only 1 woman are unmarried
 3: LAHybrid GPU is done
 3: Thread GPU is done
+
 3: Exeuction Time:
 3: GS time is: 40259.695312
 3:  MW time is: 38453.917969
@@ -2177,6 +2461,63 @@ In the clustered case, the Locality-Aware GS using `atomicCAS` on the GPU, the L
 ```
 
 
+
+```
+Clustered Case
+3: Running workload of size 30000
+
+3: Preprocessing Time:
+3: GS:
+3: Total GS preprocessing time is 420.672 ms
+
+3: PGS:
+3: Total GS preprocessing time is 420.687 ms
+
+3: MW:
+3: Total MW preprocessing time is 420.32 ms
+
+3: PMW on CPU:
+3: Total MW preprocessing time is 420.603 ms
+
+3: PMW on GPU:
+3: Total MW preprocessing time is 291.206 ms
+
+3: Bamboo:
+3: Total LA preprocessing time is 329.81 ms
+
+3: Exeuction Time:
+3: GS time is: 40259.695312
+3:  MW time is: 38453.917969
+3:  LA time is: 14501.206055
+3: PGS on CPU time is: 7612.938477
+3:  PMW on CPU time is: 7986.028320
+3:  PMW on GPU time is: 154.720688
+3:  Bamboo time is: 95.239120
+```
+
+
+
+## Data Movements: Execution Time:
+
+```
+Solo Case:
+3: GS time is: 20135.597656
+3:  MW time is: 24253.195312
+3:  LA time is: 3406.252441
+
+Congested Case:
+3: GS time is: 78702.484375
+3:  MW time is: 59914.789062
+3:  LA time is: 32403.560547
+
+
+Clustered Case:
+3: GS time is: 40259.695312
+3:  MW time is: 38453.917969
+3:  LA time is: 14501.206055
+
+
+```
 
 
 
@@ -2388,6 +2729,76 @@ Group the applicants into categories by a three-order sort: major-degree-work ex
 (2) Worker Side:
 
 Jobs will be ranked by Salary, every 10000 dollars will form a group
+
+
+
+# Bottleneck
+
+## Data Movement
+
+GS
+
+```
+10: [ RUN      ] gsMemAccessTest.gsMemAccessTestSerialCase
+10: GS Copy PrefLists into GPU spends 19.2566 ms
+10: GS Init RankMatrixW  in parallel on GPU spends 4.29089 ms
+10: GS Copy back RankMatrixW to CPU spends 16.9664 ms
+10: Total GS preprocessing time is 40.5139 ms
+10: GS init other data structures require 0.316324 ms
+10: Total time is 6405.182129
+10: Time to read RankMatrix is approximately 4749.728027, taking up 74.154457%
+
+10: [       OK ] gsMemAccessTest.gsMemAccessTestSerialCase (11051 ms)
+10: [ RUN      ] gsMemAccessTest.gsMemAccessTestClusteredCase
+10: GS Copy PrefLists into GPU spends 15.1417 ms
+10: GS Init RankMatrixW  in parallel on GPU spends 2.67417 ms
+10: GS Copy back RankMatrixW to CPU spends 16.9887 ms
+10: Total GS preprocessing time is 34.8045 ms
+10: GS init other data structures require 0.387598 ms
+10: Total time is 6278.331055
+10: Time to read RankMatrix is approximately 4340.038086, taking up 69.127258%
+
+10: [       OK ] gsMemAccessTest.gsMemAccessTestClusteredCase (56145 ms)
+10: [ RUN      ] gsMemAccessTest.gsMemAccessTestCongestesdInstance
+10: GS Copy PrefLists into GPU spends 15.4838 ms
+10: GS Init RankMatrixW  in parallel on GPU spends 2.65684 ms
+10: GS Copy back RankMatrixW to CPU spends 16.9938 ms
+10: Total GS preprocessing time is 35.1345 ms
+10: GS init other data structures require 0.208812 ms
+10: Total time is 7865.417969
+10: Time to read RankMatrix is approximately 4347.623535, taking up 55.275175%
+```
+
+
+
+MW
+
+```
+26: MW Copy PrefLists into GPU spends 24.27 ms
+26: MW Init RankMatrixW  in parallel on GPU spends 4.14041 ms
+26: Copy back RankMatrixW to CPU spends 16.944 ms
+26: Total MW preprocessing time is 45.3544 ms
+26: Total time is 6455.133301
+26: Time to read RankMatrix is approximately 4847.362793, taking up 75.093148%
+26: [       OK ] mwMemAccessTest.mwMemAccessTestSerialCase (10941 ms)
+
+26: [ RUN      ] mwMemAccessTest.mwMemAccessTestClusteredCase
+26: MW Copy PrefLists into GPU spends 16.4471 ms
+26: MW Init RankMatrixW  in parallel on GPU spends 2.67078 ms
+26: Copy back RankMatrixW to CPU spends 16.9424 ms
+26: Total MW preprocessing time is 36.0602 ms
+26: Total time is 5582.234863
+26: Time to read RankMatrix is approximately 3685.108643, taking up 66.014934%
+26: [       OK ] mwMemAccessTest.mwMemAccessTestClusteredCase (49009 ms)
+
+26: [ RUN      ] mwMemAccessTest.mwMemAccessTestCongestesdInstance
+26: MW Copy PrefLists into GPU spends 17.4026 ms
+26: MW Init RankMatrixW  in parallel on GPU spends 2.66447 ms
+26: Copy back RankMatrixW to CPU spends 16.9326 ms
+26: Total MW preprocessing time is 36.9997 ms
+26: Total time is 6007.318359
+26: Time to read RankMatrix is approximately 3537.212646, taking up 58.881725%
+```
 
 
 
