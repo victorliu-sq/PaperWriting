@@ -60,7 +60,7 @@ In contrast, GPUs are optimized for parallel tasks like graphics rendering and l
 
 Implementing the parallel McVitie-Wilson (MW) algorithm on a GPU is straightforward and quite similar to its CPU version. When the GPU kernel is executed, each CUDA thread is initially assigned a man and makes proposals in parallel using atomicCAS operations. The CUDA thread continues to make proposals for the man and any rejected individuals until he is accepted by an unmatched woman.
 
-On the other hand, implementing the parallel Gale-Shapley algorithm on a GPU is impractical due to excessive overhead. Unlike the MW algorithm, Gale-Shapley requires threads to work in groups and utilize a shared queue to manage unmatched men. This process necessitates additional synchronization, which significantly slows down the operation on a GPU, making it inefficient and unsuitable for such a parallel processing environment.
+On the other hand, implementing the parallel Gale-Shapley algorithm on a GPU is impractical due to excessive overhead. Unlike the MW algorithm, Gale-Shapley requires threads to work in groups and utilize a shared queue to manage unmatched men. This process necessitates additional synchronization, which significantly slows down the operation on a GPU.
 
 While GPUs excel in bandwidth and handling large data volumes in parallel, they have simpler two-level caches and lower clock speeds compared to CPUs. This memory hierarchy still works well for tasks with high parallelism because the high bandwidth of GPUs boosts the overall throughput and compensates for increased memory access latency. However, when tasks are unevenly distributed, some of the GPU’s parallel units remain idle, leading to reduced performance and inefficincies. 
 
