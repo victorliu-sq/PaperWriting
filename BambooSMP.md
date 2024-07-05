@@ -26,7 +26,7 @@ Through these strategies, Bamboo-SMP demonstrates a significant advancement in t
 
 As discussed in Section \ref{subsec:Challenges with Data Movement}, the primary overhead in the GS algorithm arises from random accesses to the rank matrix. 
 
-We argue that there is a crucial bijective function between each man’s decision on which specific woman to propose and his rank in the woman’s preference list. 
+We argue that there is a crucial bijection between each man’s decision on which specific woman to propose and his rank in the woman’s preference list. 
 
 By leveraging this relationship, we can create an innovative locality-aware data structure that optimizes the data access pattern of the rank matrix. This optimization minimizes global data access and improves algorithm performance.
 
@@ -68,7 +68,7 @@ Since the configuration of each entry in both the rank matrix and PRMatrix is in
 
 ## LA
 
-After constructing the PRMatrix, we have established the foundation for a locality-aware sequential implementation of the GS algorithm.
+After constructing the PRMatrix, we have established the groundwork for a locality-aware sequential implementation of the GS algorithm.
 
 
 
@@ -121,6 +121,39 @@ This optimization can significantly reduce the overhead associated with data acc
 
 
 # Contention Resolver
+
+As previously mentioned in Section \ref{subsec:Challenges with Synchronization}, in parallelized GS algorithms, each woman needs to select the best proposal with the minimum numerical value when multiple proposals are made simultaneously. However, traditional synchronization methods can be inefficient when updating \texttt{partnerRank} due to the high cost of coarse-grained synchronization and wasted work from \texttt{atomicCAS} failures under high memory contention.
+
+To overcome this problem, we need a fine-grained hardware primitive that handles high memory contention efficiently. Modern CPUs still rely on \texttt{atomicCAS} implementations to perform specific arithmetic functions. In contrast, modern GPU architectures, such as NVIDIA's CUDA, offer a comprehensive set of atomic functions for arithmetic operations. Among these, \texttt{atomicMin} effectively addresses the challenges of synchronization and high contention in parallelized GS algorithms.
+
+The \texttt{atomicMin} function in CUDA reads the 32-bit or 64-bit word \texttt{old} at the address in global or shared memory, computes the minimum of \texttt{old} and \texttt{val}, stores the result back to memory at the same address—all in one atomic transaction. The function then returns \texttt{old} so the caller can determine whether the value has been updated. If \texttt{old} is larger, the caller knows the value has been updated to \texttt{val}; otherwise, no update has occurred.
+
+
+
+The advantage of \texttt{atomicMin} in parallelizing GS is that it does not require an expected value to proceed only if the expected value matches the \texttt{old}. This ensures that each thread performs the operation only once, eliminating the need for repeated retries. 
+
+As a result, \texttt{atomicMin} significantly reduces the number of atomic operations compared to using \texttt{atomicCAS}. According to Lemma \ref{lem:smp_instance_min_times}, for a Stable Marriage Problem (SMP) instance with \(n\) men and \(n\) women, the total number of \texttt{atomicMin} operations is \(O(n^2)\), which is significantly smaller than the \(O(n^3)\) operations required by \texttt{atomicCAS}.
+
+
+
+By leveraging the atomic functions provided by modern GPU architectures, a parallel version of the Locality-Aware \texttt{GS} algorithm in Algorithm \ref{Algo:LA-GSAlgo} can efficiently solve \texttt{SMP} instances associated with high contention. 
+
+The parallel algorithm inherits most of the logic from its sequential version to exploit locality using \texttt{PRMatrix}, but the key difference lies in how it ensures mutual exclusion and prevents race conditions by using \texttt{atomicMin} to update the shared data structure \texttt{partnerRank}.
+
+Specifically, even if the returned value mismatches the previously read one but is still larger than \texttt{val}, \texttt{atomicMin} can proceed to update the minimum value with \texttt{val}, whereas \texttt{atomicCAS} would need to repeat the operation.
+
+
+
+Each thread, representing a man \(m\), starts by proposing to the highest-ranked woman on his preference list that he has not yet proposed to. After retrieving the current partner's rank \(p\_rank\) for woman \(w\) from \texttt{partnerRank[w]}, the algorithm checks if \(p\_rank\) is greater than \(m\_rank\). If \(p\_rank > m\_rank\), meaning the woman \(w\) prefers the current proposer \(m\) over her current partner, we attempt to update \texttt{partnerRank[w]} to \(m\_rank\) using \texttt{atomicMin}. 
+
+
+If the update is unsuccessful, as indicated by the returned value being not larger than \(m\_rank\), \(m\) will be rejected and will have to propose to the next woman on his preference list in the next iteration. 
+
+Otherwise, there are two scenarios to consider:
+
+```
+
+```
 
 
 
