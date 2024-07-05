@@ -24,35 +24,27 @@ Through these strategies, Bamboo-SMP demonstrates a significant advancement in t
 
 ## relationship
 
-As discussed in Section \ref{subsec:Challenges with Data Movement}, the primary overhead in the GS algorithm arises from random accesses to the rank matrix. We argue that there is a crucial bijective function between each man’s decision on which specific woman to propose and his rank in the woman’s preference list. 
+As discussed in Section \ref{subsec:Challenges with Data Movement}, the primary overhead in the GS algorithm arises from random accesses to the rank matrix. 
 
-By leveraging this relationship, we can create an innovative locality-aware data structure, optimizing the data access pattern of the rank matrix to minimize global data access and improve algorithm performance. 
+We argue that there is a crucial bijective function between each man’s decision on which specific woman to propose and his rank in the woman’s preference list. 
 
-
-
-In both the GS and MW algorithms, after retrieving the ID of the best woman who has not yet rejected the proposer from his preference list, the rank matrix is accessed to determine the man’s rank in the woman’s preference list. Specifically, when accessing the men’s preference list entry for man \texttt{m} at rank \texttt{r} (denoted as \texttt{PrefListM[m, r]}), we obtain woman \texttt{w}. This process requires a subsequent access to the rank matrix entry for woman \texttt{w} and man \texttt{m} (denoted as \texttt{RankMatrix[w, m]}) to determine the man’s rank in her list. 
+By leveraging this relationship, we can create an innovative locality-aware data structure that optimizes the data access pattern of the rank matrix. This optimization minimizes global data access and improves algorithm performance.
 
 
 
-This shows, given a man and next rank he is going to make proposal, there is a direct one-to-one correspondence between the entry that includes the woman in the men’s preference list and the entry that contains rank of man to the women in the women’s rank matrix. 
+In both the GS and MW algorithms, after retrieving the ID of the best woman who has not yet rejected the proposer from his preference list, the rank matrix is accessed to determine the man’s rank in the woman’s preference list. Specifically, when accessing the men’s preference list entry for man \texttt{m} at rank \texttt{r} (denoted as \texttt{PrefListM[m, r]}), we obtain woman \texttt{w}. This process requires a subsequent access to the rank matrix entry for woman \texttt{w} and man \texttt{m} (denoted as \texttt{RankMatrix[w, m]}) to determine the man’s rank in her list.
 
 
 
-If these interconnected entries are stored together, both pieces of information can be accessed with a single load instructio, eliminating the need to access \texttt{RankMatrix} separately. This optimization can significantly reduce the overhead associated with data access in the GS and MW algorithms.
+This shows that for a given man and the next rank he is going to propose, there is a direct one-to-one correspondence between each entry in the men’s preference list and its intrinsically linked entry in the women’s rank matrix.
 
 
 
-To achieve this goal, we introducea specialized data structure called PRMatrix, which integrates both the preference lists and the rank matrices. 
-
-The PRMatrix contains \(n \times n\) entries, referred to as PRNodes.
-
-each PRNode includes an entry from the men's preference list, indicating the woman a specific man would propose to at a given rank, along with the corresponding entry from the women's rank matrix, specifying the rank of that man on the woman’s preference list
+If these interconnected entries are stored together, both pieces of information can be accessed with a single load instruction, eliminating the need to access \texttt{RankMatrix} separately. 
 
 
 
-Each PRNode includes one entry in the men’s preference list is stored together with the unique entry in the women’s rank matrix that it is intrinsically linked to. 
-
-This integration provides opportunities to significantly reduce overhead by eliminating separate data accesses to rank matrix.
+To achieve this goal, we introduce a specialized data structure called PRMatrix.
 
 
 
@@ -60,51 +52,39 @@ This integration provides opportunities to significantly reduce overhead by elim
 
 ## PRMatrix
 
-By understanding and optimizing this dependent relationship between data access patterns, we can achieve significant performance improvements. This illustrates how a well-designed data structure can streamline computations and enhance overall efficiency in these algorithms.
+The PRMatrix contains n \times n entries, referred to as PRNodes. Each PRNode includes an entry from the men’s preference list, indicating the woman a specific man would propose to at a given rank, along with the corresponding entry from the women’s rank matrix, specifying the rank of that man on the woman’s preference list.
 
-
-
-To optimize the data access patterns discussed in Section 2, we introduce a specialized data structure called PRMatrix, which integrates both the preference lists and the rank matrices. This integration provides opportunities to significantly reduce overhead by eliminating separate data accesses to rank matrix.
-
-
-
-The PRMatrix contains \(n \times n\) entries, referred to as PRNodes. Each PRNode includes one element from the preference lists and one element from the rank matrices, combining these two pieces of information into a single structure. Because the preference lists and rank matrices are both of size \(n \times n\), where \(n\) represents the number of participants, PRMatrix also has \(n \times n\) entries, ensuring efficient organization and access to all necessary data.
-
-
-
-In PRMatrix, each PRNode includes an entry from the men's preference list, indicating the woman a specific man would propose to at a given rank, along with the corresponding entry from the women's rank matrix, specifying the rank of that man on the woman’s preference list. By storing these two elements together, they can be accessed simultaneously with a single load instruction.
-
-
-
-As mentioned in Section 2, the GS algorithms has an initialization step to setup rank matrix.
-
-In order to setup PRMatrix, an additional preprocessing step will be introduced once the rank matrix is in place.
+As mentioned in Section 2, the GS algorithm has an initialization step to set up the rank matrix. To set up the PRMatrix, an additional preprocessing operation is performed once the rank matrix is in place.
 
 In Figrue \cite{fig:PRMatrix}, the process of initialization of PRMatrix is show.
 
-or each man \texttt{m} and each rank \texttt{r\_w}, the algorithm retrieves the woman \texttt{w} corresponding to rank \texttt{r\_w} in the man's preference list. It then retrieves \texttt{r\_m}, which is the rank of man \texttt{m} in the woman's preference list from \texttt{RankMatrixW}. The \texttt{PRMatrixM} at position \texttt{(m, r\_w)} is then assigned the pair \texttt{(w, r\_m)}.
+Figure \cite{fig:PRMatrix} illustrates the initialization process of PRMatrix. For each man \texttt{m} and each rank \texttt{r_w}, the algorithm retrieves the woman \texttt{w} corresponding to rank \texttt{r_w} in the man’s preference list. It then retrieves \texttt{r_m}, which is the rank of man \texttt{m} in the woman’s preference list from \texttt{RankMatrixW}. The \texttt{PRMatrixM} at position \texttt{(m, r_w)} is then assigned the pair \texttt{(w, r_m)}.
 
 
 
-Here we introduce another principle: since the configuration of  each entry of both rank matrix and PRMatrix is independent of each other, the initialization of these data structures should leverage GPU to be executed in massive parallelism to maximize speedup. In Figure \cite{figure:initilaizationOnGPU}, we tested the performance of intialization step with and without PRMatrix (1) sequentially (2) in parallel on CPU (3) in parallel on GPU. To run the kernel on GPU, additional data transfer between host and device is also required. And the figure 6 shows that the time of initialization on GPU is the lowest .
+Since the configuration of each entry in both the rank matrix and PRMatrix is independent, we can leverage the GPU for massive parallelism to maximize speedup during initialization. In Figure \cite{figure:initilaizationOnGPU}, we tested the initialization performance of RankMatrix and PRMatrix under three conditions: (1) sequentially, (2) in parallel on the CPU, and (3) in parallel on the GPU. The results show that the GPU achieves the fastest initialization time, even considering the additional data transfer between host and device.
 
 
 
 ## LA
 
-After the construction of the PRMatrix structure. the foundation for a locality-aware **sequential** implementation of the GS algorithm is laid.
-
-This new locality-aware approach involves iterating through each man who has not yet made a proposal and invoking the \texttt{LocalityAwareMatching} procedure, which is illustrated in Algorithm 3, for each man. 
-
-Compared to GS and MW algorihtm, the main loop in performLocalityAwareMatching procedure works in a similar way but elimiates the random access to the rank matrix.
-
-During each iteration, for the current man at a specific rank, LocalityAwareMatching procedure retreives a PRNode and unbox the information about the woman to propose and his rank at the woman's preference list.
-
-By doing so, the random access to rank matrix is utterly eliminated and the efficiency of the algorithms have been greatly improved.  
-
-Also, no queue is required during this procedure. When a woman who is already paired with a partern,  accepts a new proposal, her previous partner will continue proposing to his next preference instead of being re-added to a queue.
+After constructing the PRMatrix, we have established the foundation for a locality-aware sequential implementation of the GS algorithm.
 
 
+
+This new approach involves iterating through and invoking the \texttt{LocalityAwareMatching} procedure for  each man who has not yet made a proposal.
+
+
+
+As shown in Algorithm 3, In contrast to the GS and MW algorithms, the main loop in the \texttt{LocalityAwareMatching} procedure eliminates random access to the rank matrix.
+
+
+
+During each iteration, for for a given man and the rank of woman who he is going to propose, the \texttt{LocalityAwareMatching} procedure retrieves a PRNode and extracts the information about which woman to propose to and his rank in her preference list. By loading this information in a single instruction, random access to the rank matrix is eliminated, greatly improving the algorithm’s efficiency.
+
+
+
+Additionally, no queue is required during this procedure. When a woman already paired with a partner accepts a new proposal, her previous partner will immediately proceed to make further proposals without being re-added to a queue, which makes it possible to be implemented on GPU.
 
 
 
@@ -135,6 +115,8 @@ If \texttt{p\_rank} is not equal to \texttt{n + 1}, meaning the woman is current
 Then, \texttt{w\_rank} is incremented by 1 to indicate the next rank of the woman the current man will propose to in the next iteration. The loop then checks whether a rejected man exists at the end of the loop to determine if it should terminate or continue.
 
 
+
+This optimization can significantly reduce the overhead associated with data access in the GS and MW algorithms.
 
 
 
