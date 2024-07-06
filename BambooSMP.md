@@ -168,15 +168,57 @@ After retrieving the current partner's rank \(p\_rank\) for woman \(w\) from \te
 
 If the update is unsuccessful, as indicated by the returned value being not larger than \(m\_rank\), \(m\) will be rejected and will have to propose to the next woman on his preference list in the next iteration. 
 
-
-
 Otherwise, there are two scenarios to consider:
 
 
 
-
-
 # Heterogeneous Computing Model
+
+While BambooKernel is effective at managing contention by minimizing retries and ensuring efficient updates, it remains an expensive operation due to the high overhead associated with atomic transactions. As discussed in Section \ref{subsec:Challenges with Implementations on GPU}, this overhead becomes particularly pronounced in solo case . In such scenarios, only one thread remains active and the advantages of parallel execution diminish.As a result,the costs associated with unnecessary atomic operations can outweigh their benefits, leading to inefficiencies.
+
+However, BambooKernel is also required to solve SMP workloads where parallelism is high, like congested cases and random cases.
+
+To address the workload-dependent limitation of SMP, we propose a parallel framework, called BambooSMP, that leverages a hybrid CPU-GPU execution model. 
+
+
+
+BambooSMP employs an effective exeuction policy such that it will run first BambooKernel for high parallelism and then transfer execution from the GPU to the CPU to run locality-aware implmenetation of GS sequentially when the active thread decreases dramatically and the overhead of synchronization among multiple threads outweighs the benefits of concurrent exeuction .
+
+In order to take advantage of the complementary strengths of both GPUs and CPUs, the framework needs to ensure a seamless transition between these processing units under varying conditions of parallelism, which requires addressing two fundamental questions: (1) when to switch and (2) how to switch.
+
+
+
+## \subsubsection{When to switch}
+
+The guiding principle of BambooSMP for switching from GPU to CPU execution is when the number of active threads reduces to one to avoid unnecessary cost by atomic function. In scenarios where only a single thread remains active on the GPU, the synchronization overhead and high latency inherent to GPU operations become significant bottlenecks. 
+
+Transitioning to CPU execution at this point allows for efficient handling of high parallelism when many threads are active, while avoiding the inefficiencies associated with reduced parallelism on the GPU. 
+
+The critical aspect of this switch is detecting when there is only one proposer left, signifying that only one thread remains active. This situation marks the transition from massively parallel GPU execution to more suitable sequential execution on the CPU.
+
+
+
+## \subsubsection{How to switch}
+
+To effectively switch to the CPU, two key sub-questions must be addressed to determine the appropriate timing and method:
+\begin{enumerate}
+    \item How to ascertain if only one man remains unpaired.
+    \item How to identify the free man's ID to proceed with the sequential algorithm.
+\end{enumerate}
+
+Determining if only one thread remains active relies on the \texttt{partnerRank} data structure, which is used during the execution of the parallel locality-aware GS algorithm. Since each woman's partner rank is initialized to \(n+1\), any rank value smaller than \(n+1\) indicates that the woman is paired, implying the presence of a paired man. If exactly one woman's partner rank is \(n+1\), it signifies that only one proposer remains free.
+
+Identifying the ID of the free man involves additional computations. After reading the partner ranks of all women to confirm that only one woman is unpaired, the algorithm calculates the total sum of IDs of all men, which is \(\frac{n(n+1)}{2}\). By subtracting the IDs of the paired men from this total sum, the algorithm determines the ID of the free man.
+
+The above calculations are repeated until it is confirmed that only one proposer remains active and the free man is identified. At this point, the computation transitions from the GPU to the CPU to efficiently handle the remaining sequential steps. This is accomplished by copying the \texttt{partnerRank} from device memory to host memory and invoking the procedure in Algorithm \ref{Algo:LA-GSAlgo} for the free man to make further proposals based on the existing \texttt{partnerRank}.
+
+This transition leverages the CPU's strengths in managing tasks with limited parallelism and more complex control flow, thereby maintaining the overall efficiency of the GS algorithm execution.
+
+
+
+## BambooSMP
+
+
 
 gpu-cpu hybrid system
 
@@ -239,3 +281,8 @@ FindUnmatchedMen(n, device_partnerRank, device_pref_lists_w, device_num_unmatche
   }
 ```
 
+
+
+## Unused
+
+By integrating the complementary strengths of both GPUs and CPUs, the framework aims to optimize performance under varying conditions of parallelism. 
