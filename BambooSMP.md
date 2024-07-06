@@ -181,7 +181,7 @@ Otherwise, there are two scenarios to consider:
 gpu-cpu hybrid system
 
 ```
-BambooSMPProcedure:
+BambooSMP:
 
 Init()
 std::thread t1(doWorkOnGPU)
@@ -200,5 +200,28 @@ if (terminateFlag.load() == 1) {
 	t1.detach()
 	postprocess(Bamboo::host_postproc)
 }
+====================================================
+doWorkOnGPU:
+BambooKernel<<<...>>>(...)
+setTerminateFlag(&terminateFlag, 1)
+
+====================================================
+doWorkOnCPU:
+while (host_num_unmatched_men > 1) {
+	FindUnmatchedMen<<<...>>>(partnerRank,device_num_unmatched_men)
+	cudaMemcpy(host_num_unmatched_men, device_num_unmatched_men)
+}
+
+if (# of unmatched men = 1) {
+	cudaMemcpy()
+	LAProcedure()
+	setTerminateFlag(&terminateFlag, 2)
+}
+
+====================================================
+setTerminateFlag(terminateFlag, mode):
+int expect = 0;
+terminateFlag.compare_exchange_strong(terminateFlag, mode);
+
 ```
 
