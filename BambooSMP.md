@@ -190,11 +190,13 @@ In order to take advantage of the complementary strengths of both GPUs and CPUs,
 
 ## \subsubsection{When to switch}
 
-The guiding principle of BambooSMP for switching from GPU to CPU execution is when the number of active threads reduces to one to avoid unnecessary cost by atomic function. In scenarios where only a single thread remains active on the GPU, the synchronization overhead and high latency inherent to GPU operations become significant bottlenecks. 
+The guiding principle of BambooSMP for switching from GPU to CPU execution is when the number of unmatched men reduces to one. In this scenario, only a single CUDA thread remains active on the GPU, the synchronization overhead and high latency inherent to GPU operations become significant bottlenecks.
 
 Transitioning to CPU execution at this point allows for efficient handling of high parallelism when many threads are active, while avoiding the inefficiencies associated with reduced parallelism on the GPU. 
 
-The critical aspect of this switch is detecting when there is only one proposer left, signifying that only one thread remains active. This situation marks the transition from massively parallel GPU execution to more suitable sequential execution on the CPU.
+The critical aspect of this switch is detecting when there is only one proposer left, signifying that only one thread remains active. 
+
+This situation marks the transition fr om massively parallel GPU execution to more suitable sequential execution on the CPU.
 
 
 
@@ -202,8 +204,8 @@ The critical aspect of this switch is detecting when there is only one proposer 
 
 To effectively switch to the CPU, two key sub-questions must be addressed to determine the appropriate timing and method:
 \begin{enumerate}
-    \item How to ascertain if only one man remains unpaired.
-    \item How to identify the free man's ID to proceed with the sequential algorithm.
+    \item How to ascertain if only one man remains unmatched.
+    \item How to identify the unmathced man to proceed with the sequential algorithm.
 \end{enumerate}
 
 Determining if only one thread remains active relies on the \texttt{partnerRank} data structure, which is used during the execution of the parallel locality-aware GS algorithm. Since each woman's partner rank is initialized to \(n+1\), any rank value smaller than \(n+1\) indicates that the woman is paired, implying the presence of a paired man. If exactly one woman's partner rank is \(n+1\), it signifies that only one proposer remains free.
