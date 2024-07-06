@@ -183,9 +183,10 @@ gpu-cpu hybrid system
 ```
 BambooSMP:
 
-Init()
+BambooInit();
 std::thread t1(doWorkOnGPU)
 std::thread t1(doWorkOnCPU)
+std::atomic<int> termianteFlag(0);
 
 while (terminateFlag.load() == 0) {
 	sleep()
@@ -208,13 +209,13 @@ setTerminateFlag(&terminateFlag, 1)
 ====================================================
 doWorkOnCPU:
 while (host_num_unmatched_men > 1) {
-	FindUnmatchedMen<<<...>>>(partnerRank,device_num_unmatched_men)
-	cudaMemcpy(host_num_unmatched_men, device_num_unmatched_men)
+	FindUnmatchedMen<<<...>>>(partnerRank,device_num_unmatched_men, device_unmatched_man)
+	cudaMemcpy(&host_num_unmatched_men, device_num_unmatched_men)
 }
 
 if (# of unmatched men = 1) {
-	cudaMemcpy()
-	LAProcedure()
+	cudaMemcpy(&host_unmatched_man,device_unmatched_man)
+	LAProcedure(unmatched_man)
 	setTerminateFlag(&terminateFlag, 2)
 }
 
@@ -223,5 +224,18 @@ setTerminateFlag(terminateFlag, mode):
 int expect = 0;
 terminateFlag.compare_exchange_strong(terminateFlag, mode);
 
+====================================================
+FindUnmatchedMen(n, device_partnerRank, device_pref_lists_w, device_num_unmatched_men, device_unmatched_man,):
+  int w = blockIdx.x * blockDim.x + threadIdx.x;
+
+  if (w < n) {
+    int partner_rank = husband_rank[w];
+    split_husband_rank[w] = partner_rank;
+    if (partner_rank == n + 1) {
+      atomicAdd(device_num_unmatched_men, 1);
+    } else {
+      atomicSub(device_unmatched_man, pref_lists_w[wi * n + hr]);
+    }
+  }
 ```
 
