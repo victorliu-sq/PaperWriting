@@ -142,9 +142,17 @@ By leveraging the atomic functions provided by modern GPU architectures, we deve
 
 BambooKernel kernel inherits most of the logic of the GPU kernel of parallel MW algortihm. 
 
-The key differences lie in how it  it exploits locality using \texttt{PRMatrix} and how it ensures mutual exclusion and prevents race conditions by using \texttt{atomicMin} to update the shared data structure \texttt{partnerRank}.
+The key differences lie in how it  it exploits locality using \texttt{PRMatrix} and how it ensures m
+
+utual exclusion and prevents race conditions by using \texttt{atomicMin} to update the shared data structure \texttt{partnerRank}.
+
+Specifically, even if the returned value mismatches the previously read one but is still larger than \texttt{val}, \texttt{atomicMin} can proceed to update the minimum value with \texttt{val}, whereas \texttt{atomicCAS} would need to repeat the operation.
+
+If the update is unsuccessful, as indicated by the returned value being not larger than \(m\_rank\), \(m\) will be rejected and will have to propose to the next woman on his preference list in the next iteration. 
 
 
+
+### Unused
 
 Specifically, even if the returned value mismatches the previously read one but is still larger than \texttt{val}, \texttt{atomicMin} can proceed to update the minimum value with \texttt{val}, whereas \texttt{atomicCAS} would need to repeat the operation.
 
@@ -171,3 +179,26 @@ Otherwise, there are two scenarios to consider:
 # Heterogeneous Computing Model
 
 gpu-cpu hybrid system
+
+```
+BambooSMPProcedure:
+
+Init()
+std::thread t1(doWorkOnGPU)
+std::thread t1(doWorkOnCPU)
+
+while (terminateFlag.load() == 0) {
+	sleep()
+}
+
+if (terminateFlag.load() == 1) {
+	t1.join()
+	t2.detach()
+	postprocess(Bamboo::device_postproc)
+} else {
+	t2.join()
+	t1.detach()
+	postprocess(Bamboo::host_postproc)
+}
+```
+
