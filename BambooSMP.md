@@ -68,9 +68,9 @@ The substantial reduction in initialization time afforded by GPU parallelism is 
 
 Following the construction of the PRMatrix, we have established a solid foundation for a Locality-Aware sequential implementation of the GS algorithm (LA). 
 
-LA iterates through and invokes the \texttt{LocalityAwareMatching} procedure for each man who has not yet made a proposal.
+LA iterates through and invokes the \texttt{LAProposalProcedure} for each man who has not yet made a proposal.
 
-As demonstrated in Algorithm 3, the \texttt{LocalityAwareMatching} procedure distinguishes itself from the traditional GS and MW algorithms by access PRMatrix instead of Rank. During each iteration, the \texttt{LocalityAwareMatching} procedure retrieves a PRNode for the given man and the rank of the woman he is proposing to. This PRNode includes the combined information of both the woman’s identity and the man’s rank in her preference list, thereby eliminating random access to the rank matrix in its main loop and increasing the algorithmic performance.
+As demonstrated in Algorithm 3, the \texttt{LAProposalProcedure} distinguishes itself from the traditional GS and MW algorithms by access PRMatrix instead of Rank. During each iteration, a PRNode is retrieved  for the given man and the rank of the woman he is proposing to. This PRNode includes the combined information of both the woman’s identity and the man’s rank in her preference list, thereby eliminating random access to the rank matrix in its main loop and increasing the algorithmic performance.
 
 Furthermore, this procedure also eliminates the need for a queue, smilar to MW. When a woman already paired with a partner accepts a new proposal, her previous partner immediately proceeds to make further proposals without being re-added to a queue. This streamlined process makes LA well-suited for parallel execution on a GPU.
 
@@ -90,7 +90,7 @@ During each iteration, we retrieve the woman \texttt{w} and the rank \texttt{m\_
 
 and significantly improve the efficiency of the stable mathcing process
 
-Within \texttt{performLocalityAwareMatching}, we initialize \texttt{done} to \texttt{False} and \texttt{w\_rank} to 1, as the man \texttt{m} has not been rejected by any woman yet and can propose to the highest-ranked woman on his list. 
+Within \texttt{LAProposalProcedure}, we initialize \texttt{done} to \texttt{False} and \texttt{w\_rank} to 1, as the man \texttt{m} has not been rejected by any woman yet and can propose to the highest-ranked woman on his list. 
 
 
 
