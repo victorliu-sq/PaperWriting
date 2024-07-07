@@ -172,51 +172,27 @@ Otherwise, there are two scenarios to consider:
 
 
 
-# Heterogeneous Computing Model
+# BambooSMP
 
-Although The Locality-Aware (LA) implementation is excellent at minimizing data movements and BambooKernel effectively manages contention, both approaches still have their limitations for certain workloads.
+## Adaptive Execution Policy
 
-To be specific, LA cannot achieve optimal performance for workloads that benefit from concurrent processing whereas BambooKernel becomes expensive in solo case due to the high overhead associated with atomic transactions and high latency of operation inherent in GPU.
-
-
-
-The Locality-Aware (LA) implementation is excellent at minimizing data movements by leveraging locality, making it ideal for solo cases where sequential execution is the primary approach. In contrast, BambooKernel effectively manages contention by minimizing retries and ensuring efficient updates, making it essential for high-parallelism SMP workloads. 
-
-However, both of them fail to handle for particular workloads.
-
-LA cannot achieve optimal performance for workloads that benefit from concurrent processing whereas BambooKernel becomes expensive in solo case due to the high overhead associated with atomic transactions and high latency of operation inherent in GPU.
+While the Locality-Aware (LA) implementation excels at minimizing data movements and BambooKernel effectively manages contention, both approaches have limitations for certain workloads. The LA implementation struggles with workloads that benefit from concurrent processing, whereas BambooKernel becomes costly in solo cases due to the unnecessary synchronization overhead and high latency inherent to GPU operations discussed in section {Challenges}.
 
 
 
-The above description highlights that the Locality-Aware (LA) implementation excels at minimizing data movements by exploiting locality, making it the best optimization method for solo cases where sequential execution predominates. However, sequential execution cannot achieve optimal performance for workloads with high parallelism, such as congested and random cases.
+To address workload-dependent limitations, we propose a parallel framework called BambooSMP, which optimizes performance for varying workloads through an adaptive execution policy.
 
-In contrast, BambooKernel effectively manages contention by minimizing retries and ensuring efficient updates, making it essential for high-parallelism SMP workloads. Nonetheless, it remains expensive due to the high overhead associated with atomic transactions and high latency of operation inherent in GPU. As discussed in Section \ref{subsec:Challenges with Implementations on GPU}, this overhead becomes particularly pronounced in solo cases.
+This policy maximizes computational efficiency by adjusting processing units according to the varying levels of parallelism in the SMP workload.
 
-In solo scenarios, the advantages of parallel execution diminish, and the costs associated with unnecessary atomic operations can outweigh their benefits, leading to inefficiencies.
+Specifically, at the beginning of any workload, all men are unmatched and ready to make their initial proposals. BambooSMP starts by running BambooKernel on the GPU, allowing for efficient handling of high parallelism.
 
+As kernel execution progresses, the number of unmatched men decreases, eventually leading to a fully serial execution.
 
-
-To address the workload-dependent limitations of both methods, we propose a parallel framework called BambooSMP. This framework leverages a hybrid CPU-GPU execution model to provide a more efficient, adaptive solution for varying workloads.
-
-
-
-BambooSMP employs an effective execution policy by first running BambooKernel for high parallelism and then transferring execution from the GPU to the CPU. This transition occurs when the number of active threads decreases significantly, and the overhead of synchronization among multiple threads outweighs the benefits of concurrent execution.
-
-To take advantage of the complementary strengths of both GPUs and CPUs, the framework ensures a seamless transition between these processing units under varying conditions of parallelism. This requires addressing two fundamental questions: (1) when to switch and (2) how to switch.
+At this point, BambooSMP transitions from massively parallel GPU execution to more suitable sequential execution on the CPU to avoid the inefficiencies associated with reduced parallelism on the GPU.
 
 
 
-## \subsubsection{When to switch}
-
-The guiding principle of BambooSMP for switching from GPU to CPU execution is when the number of unmatched men reduces to one, then LAProcedure can be invoked with the unmathced man as argument to finish the remaining proposing process.
-
-In this scenario, only a single CUDA thread remains active, the synchronization overhead and high latency inherent to GPU operations become significant bottlenecks, thus it marks the transition from massively parallel GPU execution to more suitable sequential execution on the CPU.
-
-Transitioning to CPU execution at this point allows for efficient handling of high parallelism while avoiding the inefficiencies associated with reduced parallelism on the GPU.
-
-
-
-## \subsubsection{How to switch}
+## FindUnmatchedManKernel
 
 Now we clarify that the critical aspect of this switch is detecting when there is only one proposer left, signifying that only one thread remains active. 
 
@@ -226,13 +202,25 @@ To effectively switch to the CPU under that condition, two key sub-questions mus
     \item How to identify the unmathced man to proceed with the sequential algorithm.
 \end{enumerate}
 
+
+
 Determining if only one thread remains active relies on the \texttt{partnerRank} data structure, which is used during the execution of BambooKernel on the first GPU. Since each woman's partner rank is initialized to \(n+1\), any rank value smaller than \(n+1\) indicates that the woman is paired, implying the presence of a paired man. If exactly one woman's partner rank is \(n+1\), it signifies that only one proposer remains free.
+
+
 
 Identifying the ID of the free man involves additional computations. After reading the partner ranks of all women to confirm that only one woman is unpaired, the algorithm calculates the total sum of IDs of all men, which is \(\frac{n(n+1)}{2}\) and will be reinitialized every time the identification is performed. By subtracting the IDs of the paired men from this total sum, the algorithm determines the unmatched man.
 
-The above calculations will be performed repeatedly by `FindUnmatchedManKernel` by second GPU until it is confirmed that only one proposer remains active and the unmatched man is identified
+
+
+The above calculations will be performed repeatedly by `FindUnmatchedManKernel` by second GPU until it is confirmed that only one proposer remains active and the unmatched man is identified.
+
+
 
 As illustrated in Algorithm3, in this kernel, each CUDA thread read out the rank of current partner for a woman, checking whether it is still the initial value and substract the man from the sum of partnerRanks.
+
+
+
+the LAProcedure can be invoked with the unmatched man as an argument to complete the remaining sequential proposing process.
 
 
 
@@ -376,10 +364,6 @@ if both BambooKernel and LAProcedure are invoked,
 then the copied PartnerRank, each woman will have a partner who has a rank at most as good as her final result from BambooKernel.
 
 Because only after the woman has accepted a proposal and the entry of Next in device 1 for that man will be updated to the next woman, 
-
-
-
-
 
 
 
