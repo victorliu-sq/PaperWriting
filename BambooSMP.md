@@ -1,3 +1,11 @@
+# Requirement
+
+rewrite these sentences in more deep and academical way .
+
+develop these sentences in a more natural way? You can add sentences or remove duplicate contents to strengthen the connections between sentences
+
+
+
 # Overview
 
 Bamboo-SMP is a parallel framework developed to solve SMP in parallel with optimal perfroamnce.
@@ -22,7 +30,7 @@ Through these strategies, Bamboo-SMP demonstrates a significant advancement in t
 
 # LA
 
-## subsec:relationship
+## PRMatrix
 
 As elaborated in Section \ref{subsec:Challenges with Data Movement}, a significant performance bottleneck in the GS stems from the frequent lookups of rank matrix required to determine ranks. Those accesses to rank matrix are non-sequential and incur substantial overhead.
 
@@ -46,9 +54,11 @@ For example, consider a scenario where man \texttt{M1} is proposing to a woman a
 
 For man \texttt{M1} proposing to woman at \texttt{Rank1},   the woman \texttt{W2} is retrieved from  the man’s preference list. It then retrieves \texttt{Rank2}, which is the rank of man \texttt{M1} from the woman \texttt{W2}'s preference list from \texttt{RankMatrix}. The \texttt{PRMatrix} at position \texttt{(M1, Rank1)} is then assigned the pair \texttt{(W2, Rank2)}.
 
+
+
+## LA
+
 We argue that although the initialization of both the RankMatrix and the PRMatrix involves square-level time complexity, leveraging GPUs can significantly expedite this process. The massive parallelism capabilities of GPUs allow for rapid initialization, ensuring that the overall execution time is not adversely impacted.
-
-
 
 The configuration of each entry in the RankMatrix and PRMatrix is inherently independent, making it highly amenable to parallel processing. Utilizing the GPU for this initialization process enables significant acceleration due to its ability to handle extensive parallel workloads. This approach efficiently prepares the data structures required for the subsequent algorithmic steps.
 
@@ -56,25 +66,13 @@ To empirically validate the performance benefits of this approach, we conducted 
 
 The substantial reduction in initialization time afforded by GPU parallelism is pivotal to the overall performance of the GS algorithm, as it ensures that the initialization step does not become a bottleneck.
 
-## subsec:LA Algorithm
+Following the construction of the PRMatrix, we have established a solid foundation for a Locality-Aware sequential implementation of the GS algorithm (LA). 
 
-After constructing the PRMatrix, we have established the groundwork for a locality-aware sequential implementation of the GS algorithm.
+LA iterates through and invokes the \texttt{LocalityAwareMatching} procedure for each man who has not yet made a proposal.
 
+As demonstrated in Algorithm 3, the \texttt{LocalityAwareMatching} procedure distinguishes itself from the traditional GS and MW algorithms by access PRMatrix instead of Rank. During each iteration, the \texttt{LocalityAwareMatching} procedure retrieves a PRNode for the given man and the rank of the woman he is proposing to. This PRNode includes the combined information of both the woman’s identity and the man’s rank in her preference list, thereby eliminating random access to the rank matrix in its main loop and increasing the algorithmic performance.
 
-
-This new approach involves iterating through and invoking the \texttt{LocalityAwareMatching} procedure for  each man who has not yet made a proposal.
-
-
-
-As shown in Algorithm 3, In contrast to the GS and MW algorithms, the main loop in the \texttt{LocalityAwareMatching} procedure eliminates random access to the rank matrix.
-
-
-
-During each iteration, for for a given man and the rank of woman who he is going to propose, the \texttt{LocalityAwareMatching} procedure retrieves a PRNode and extracts the information about which woman to propose to and his rank in her preference list. By loading this information in a single instruction, random access to the rank matrix is eliminated, greatly improving the algorithm’s efficiency.
-
-
-
-Additionally, no queue is required during this procedure. When a woman already paired with a partner accepts a new proposal, her previous partner will immediately proceed to make further proposals without being re-added to a queue, which makes it possible to be implemented on GPU.
+Furthermore, this procedure also eliminates the need for a queue, smilar to MW. When a woman already paired with a partner accepts a new proposal, her previous partner immediately proceeds to make further proposals without being re-added to a queue. This streamlined process makes LA well-suited for parallel execution on a GPU.
 
 
 
