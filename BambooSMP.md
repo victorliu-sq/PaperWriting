@@ -176,65 +176,41 @@ Otherwise, there are two scenarios to consider:
 
 ## Adaptive Execution Policy
 
-While the Locality-Aware (LA) implementation excels at minimizing data movements and BambooKernel effectively manages contention, both approaches have limitations for certain workloads. The LA implementation struggles with workloads that benefit from concurrent processing, whereas BambooKernel becomes costly in solo cases due to the unnecessary synchronization overhead and high latency inherent to GPU operations discussed in section {Challenges}.
+While the Locality-Aware (LA) implementation excels at minimizing data movements and BambooKernel effectively manages contention, both approaches have limitations for certain workloads. The LA implementation struggles with workloads that benefit from concurrent processing, whereas BambooKernel becomes costly in solo cases due to the unnecessary synchronization overhead and high latency inherent to GPU operations, as discussed in section {Challenges}.
 
+To overcome these workload-dependent limitations, we propose a parallel framework called BambooSMP. This framework optimizes performance across diverse workloads through an adaptive execution policy that dynamically adjusts processing units based on the varying levels of parallelism inherent in the SMP workload.
 
+At the beginning of any workload, when all men are unmatched and ready to make their initial proposals, BambooSMP initiates by running BambooKernel on the GPU. This approach leverages the GPU’s capacity for massive parallelism, efficiently handling the initial phase where numerous proposals are made concurrently.
 
-To address workload-dependent limitations, we propose a parallel framework called BambooSMP, which optimizes performance for varying workloads through an adaptive execution policy.
+As the kernel execution progresses and the number of unmatched men decreases, the workload gradually transitions from a highly parallel to a more serial nature. Recognizing this shift, BambooSMP adapts by transitioning from the massively parallel GPU execution to a more suitable sequential execution on the CPU. This transition is crucial to avoid the inefficiencies associated with reduced parallelism on the GPU.
 
-This policy maximizes computational efficiency by adjusting processing units according to the varying levels of parallelism in the SMP workload.
-
-Specifically, at the beginning of any workload, all men are unmatched and ready to make their initial proposals. BambooSMP starts by running BambooKernel on the GPU, allowing for efficient handling of high parallelism.
-
-As kernel execution progresses, the number of unmatched men decreases, eventually leading to a fully serial execution.
-
-At this point, BambooSMP transitions from massively parallel GPU execution to more suitable sequential execution on the CPU to avoid the inefficiencies associated with reduced parallelism on the GPU.
+By dynamically balancing the load between the GPU and CPU, BambooSMP ensures optimal performance and resource utilization. This seamless transition highlights the framework’s ability to adapt to varying workload demands, thereby optimizing computational efficiency.
 
 
 
 ## FindUnmatchedManKernel
 
-To effectively implement the adaptive execution policy, we propose a kernel named `FindUnmatchedManKernel` to perform two critical operations:
+To effectively implement the adaptive execution policy, we propose another GPU kernel named `FindUnmatchedManKernel` to perform two critical operations:
 \begin{enumerate}
     \item ascertain if only one man remains unmatched.
     \item Identify the sole unmatched man to proceed with the sequential algorithm.
 \end{enumerate}
 
-These two operations rely on the  \texttt{partnerRank} data structure, which is used during the execution of BambooKernel on the first GPU.
+These two operations fundamentally rely on the partnerRank data structure, which is integral to the execution of BambooKernel on the primary GPU.
 
-To determine if only one man remains unmatched, The number of unmatched men is initialized to 0. To identify the sole unmatched man, the kernel uses total sum of IDs of all men, which is \frac{n(n+1)}{2}.  Both of them will be reinitialized each time before the `FindUnmatchedManKernel` is launched . 
+To determine if only one man remains unmatched, the variable`num_unmatched` is initialized to zero. And the ID of the unmatched man `id_unmatched` is set to the total sum of IDs of all men, calculated as \frac{n(n+1)}{2}. Both variables are reinitialized prior to each launch of FindUnmatchedManKernel.
 
-In `FindUnmatchedManKernel`, each CUDA thread read out the rank of current partner for a woman from `parterRank`.  
+Within FindUnmatchedManKernel, each CUDA thread assesses the rank of a woman’s current partner by referencing partnerRank. If a woman’s partner rank is n+1, it signifies an unmatched man. Consequently, the thread atomically increments num_unmatched to keep track of the number of unmatched men. Conversely, if the woman is paired, her partner’s ID—retrieved from her preference list at the corresponding rank—is subtracted atomically from `id_unmatched` to pinpoint the ID of the unmatched man.
 
-If the partner rank equals n + 1, it indicates that the woman is still unpaired, corresponding to one unmatched man, and the thread atomically increments num_unproposed to track the number of unmatched men. 
+These calculations are iteratively executed on the secondary GPU until the number of unmatched men is definitively confirmed to be less than or equal to one.
 
-Otherwise, the woman is paired with a man, can it will subtracting the IDs of the paired men from this total sum atomically.
+If the count of unmatched men reduces to one, the sole unmatched man is then precisely identified. At this point, the LAProcedure can be invoked, passing the unmatched man’s ID as  an argument to finalize the remaining sequential proposing process.
 
-The above calculations will be performed repeatedly by `FindUnmatchedManKernel` by second GPU until it is confirmed that the number of unmached man becomes less than or equal to one.
-
-Specifically, if the number is one, the sum of IDs of men will correspond to the sole unmathced man and the unmatched man is identified. Then LAProcedure can be invoked with the unmatched man as an argument to complete the remaining sequential proposing process.
-
-If the number of unmathced man is zero, meaning every man is matched and the proposal progress has finished,  so there is no need for further sequential execution.
+However, when the count of unmatched men drops to zero without ever reaching one, it indicates that the proposal process is already complete, thus eliminating the need for further sequential execution. 
 
 
 
-
-
-Determining if only one man remains unmatched relies on the \texttt{partnerRank} data structure, which is used during the execution of BambooKernel on the first GPU. Since each woman's partner rank is initialized to \(n+1\), any rank value smaller than \(n+1\) indicates that the woman is paired, implying the presence of a paired man. The number of unmatched men is initialized as n, reinitialized each time the identification is performed. If the rank of current partner for a woman is still the initial value, substract one from the number of unmatched men.
-
-Identifying the ID of the unmatched man involves additional computations. After confirming that only one woman is unpaired by reading the partner ranks, the algorithm calculates the total sum of IDs of all men, which is \frac{n(n+1)}{2}, reinitialized each time the identification is performed. By subtracting the IDs of the paired men from this total sum, the algorithm determines the unmatched man.
-
-, checking whether it is still the initial value and substract the man from the sum of partnerRanks.
-
-The above calculations will be performed repeatedly by `FindUnmatchedManKernel` by second GPU until it is confirmed that only one proposer remains active and the unmatched man is identified.
-
-Once it has been confirmed that only one man remains unmatched and he has been identified, the LAProcedure can be invoked with the unmatched man as an argument to complete the remaining sequential proposing process.
-
-
-
-# BambooSMP
-
-## Data structure
+## Host and Device Data structure
 
 Based on the execution policy, we are able to develop a complete parallel framework called Bamboo to handle.
 
