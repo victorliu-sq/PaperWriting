@@ -66,7 +66,7 @@ Since the configuration of each entry in both the rank matrix and PRMatrix is in
 
 
 
-## LA
+## LA Algorithm
 
 After constructing the PRMatrix, we have established the groundwork for a locality-aware sequential implementation of the GS algorithm.
 
@@ -174,17 +174,25 @@ Otherwise, there are two scenarios to consider:
 
 # Heterogeneous Computing Model
 
-While BambooKernel is effective at managing contention by minimizing retries and ensuring efficient updates, it remains an expensive operation due to the high overhead associated with atomic transactions. As discussed in Section \ref{subsec:Challenges with Implementations on GPU}, this overhead becomes particularly pronounced in solo case . In such scenarios, only one thread remains active and the advantages of parallel execution diminish.As a result,the costs associated with unnecessary atomic operations can outweigh their benefits, leading to inefficiencies.
+Locality-Aware implementation has 
 
-However, BambooKernel is also required to solve SMP workloads where parallelism is high, like congested cases and random cases.
+
+
+BambooKernel effectively manages contention by minimizing retries and ensuring efficient updates. However, it remains an expensive operation due to the high overhead associated with atomic transactions.
+
+As discussed in Section \ref{subsec:Challenges with Implementations on GPU}, this overhead becomes particularly pronounced in solo case . 
+
+In such scenarios, the advantages of parallel execution diminish, and the costs associated with unnecessary atomic operations can outweigh their benefits, leading to inefficiencies.
+
+Despite this, BambooKernel is also essential for solving SMP workloads with high parallelism, such as congested and random cases.
 
 To address the workload-dependent limitation of SMP, we propose a parallel framework, called BambooSMP, that leverages a hybrid CPU-GPU execution model. 
 
 
 
-BambooSMP employs an effective exeuction policy such that it will run first BambooKernel for high parallelism and then transfer execution from the GPU to the CPU to run locality-aware implmenetation of GS sequentially when the active thread decreases dramatically and the overhead of synchronization among multiple threads outweighs the benefits of concurrent exeuction .
+BambooSMP employs an effective execution policy by first running BambooKernel for high parallelism and then transferring execution from the GPU to the CPU. This transition occurs when the number of active threads decreases significantly, and the overhead of synchronization among multiple threads outweighs the benefits of concurrent execution.
 
-In order to take advantage of the complementary strengths of both GPUs and CPUs, the framework needs to ensure a seamless transition between these processing units under varying conditions of parallelism, which requires addressing two fundamental questions: (1) when to switch and (2) how to switch.
+To take advantage of the complementary strengths of both GPUs and CPUs, the framework ensures a seamless transition between these processing units under varying conditions of parallelism. This requires addressing two fundamental questions: (1) when to switch and (2) how to switch.
 
 
 
@@ -276,7 +284,6 @@ BambooSMP:
 BambooInit();
 std::thread t1(doWorkOnGPU)
 std::thread t1(doWorkOnCPU)
-std::atomic<int> termianteFlag(0);
 
 while (terminateFlag.load() == 0) {
 	sleep()
@@ -291,6 +298,11 @@ if (terminateFlag.load() == 1) {
 	t1.detach()
 	postprocess(Bamboo::host_postproc)
 }
+====================================================
+BambooInit();
+
+std::atomic<int> termianteFlag(0);
+
 ====================================================
 doWorkOnGPU:
 BambooKernel<<<...>>>(...)
@@ -334,8 +346,30 @@ postprocess(int* partnerRank, int* S) {
 	if (w < n) {
 		S[w] = pref_lists_w[w * n + partnerRank[w]]
 	}
-}
+}7
 ```
+
+
+
+## Why Correct?
+
+(1) BambooKernel is correct
+
+
+
+(2) BambooSMP is correct
+
+if only BambooKernel is used, then done
+
+if both BambooKernel and LAProcedure are invoked,
+
+then the copied PartnerRank, each woman will have a partner who has a rank at most as good as her final result from BambooKernel.
+
+Because only after the woman has accepted a proposal and the entry of Next in device 1 for that man will be updated to the next woman, 
+
+
+
+
 
 
 
