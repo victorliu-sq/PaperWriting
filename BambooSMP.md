@@ -194,33 +194,41 @@ At this point, BambooSMP transitions from massively parallel GPU execution to mo
 
 ## FindUnmatchedManKernel
 
-Now we clarify that the critical aspect of this switch is detecting when there is only one proposer left, signifying that only one thread remains active. 
-
-To effectively switch to the CPU under that condition, two key sub-questions must be addressed to determine the appropriate timing and method:
+To effectively implement the adaptive execution policy, we propose a kernel named `FindUnmatchedManKernel` to perform two critical operations:
 \begin{enumerate}
-    \item How to ascertain if only one man remains unmatched.
-    \item How to identify the unmathced man to proceed with the sequential algorithm.
+    \item ascertain if only one man remains unmatched.
+    \item Identify the sole unmatched man to proceed with the sequential algorithm.
 \end{enumerate}
 
+These two operations rely on the  \texttt{partnerRank} data structure, which is used during the execution of BambooKernel on the first GPU.
+
+To determine if only one man remains unmatched, The number of unmatched men is initialized to 0. To identify the sole unmatched man, the kernel uses total sum of IDs of all men, which is \frac{n(n+1)}{2}.  Both of them will be reinitialized each time before the `FindUnmatchedManKernel` is launched . 
+
+In `FindUnmatchedManKernel`, each CUDA thread read out the rank of current partner for a woman from `parterRank`.  
+
+If the partner rank equals n + 1, it indicates that the woman is still unpaired, corresponding to one unmatched man, and the thread atomically increments num_unproposed to track the number of unmatched men. 
+
+Otherwise, the woman is paired with a man, can it will subtracting the IDs of the paired men from this total sum atomically.
+
+The above calculations will be performed repeatedly by `FindUnmatchedManKernel` by second GPU until it is confirmed that the number of unmached man becomes less than or equal to one.
+
+Specifically, if the number is one, the sum of IDs of men will correspond to the sole unmathced man and the unmatched man is identified. Then LAProcedure can be invoked with the unmatched man as an argument to complete the remaining sequential proposing process.
+
+If the number of unmathced man is zero, meaning every man is matched and the proposal progress has finished,  so there is no need for further sequential execution.
 
 
-Determining if only one thread remains active relies on the \texttt{partnerRank} data structure, which is used during the execution of BambooKernel on the first GPU. Since each woman's partner rank is initialized to \(n+1\), any rank value smaller than \(n+1\) indicates that the woman is paired, implying the presence of a paired man. If exactly one woman's partner rank is \(n+1\), it signifies that only one proposer remains free.
 
 
 
-Identifying the ID of the free man involves additional computations. After reading the partner ranks of all women to confirm that only one woman is unpaired, the algorithm calculates the total sum of IDs of all men, which is \(\frac{n(n+1)}{2}\) and will be reinitialized every time the identification is performed. By subtracting the IDs of the paired men from this total sum, the algorithm determines the unmatched man.
+Determining if only one man remains unmatched relies on the \texttt{partnerRank} data structure, which is used during the execution of BambooKernel on the first GPU. Since each woman's partner rank is initialized to \(n+1\), any rank value smaller than \(n+1\) indicates that the woman is paired, implying the presence of a paired man. The number of unmatched men is initialized as n, reinitialized each time the identification is performed. If the rank of current partner for a woman is still the initial value, substract one from the number of unmatched men.
 
+Identifying the ID of the unmatched man involves additional computations. After confirming that only one woman is unpaired by reading the partner ranks, the algorithm calculates the total sum of IDs of all men, which is \frac{n(n+1)}{2}, reinitialized each time the identification is performed. By subtracting the IDs of the paired men from this total sum, the algorithm determines the unmatched man.
 
+, checking whether it is still the initial value and substract the man from the sum of partnerRanks.
 
 The above calculations will be performed repeatedly by `FindUnmatchedManKernel` by second GPU until it is confirmed that only one proposer remains active and the unmatched man is identified.
 
-
-
-As illustrated in Algorithm3, in this kernel, each CUDA thread read out the rank of current partner for a woman, checking whether it is still the initial value and substract the man from the sum of partnerRanks.
-
-
-
-the LAProcedure can be invoked with the unmatched man as an argument to complete the remaining sequential proposing process.
+Once it has been confirmed that only one man remains unmatched and he has been identified, the LAProcedure can be invoked with the unmatched man as an argument to complete the remaining sequential proposing process.
 
 
 
@@ -379,3 +387,12 @@ At this point, the computation transitions from the GPU to the CPU to efficientl
 
 This transition leverages the CPU's strengths in managing tasks with limited parallelism and more complex control flow, thereby maintaining the overall efficiency of the GS algorithm execution.
 
+
+
+Now we clarify that the critical aspect of this switch is detecting when there is only one proposer left, signifying that only one thread remains active. 
+
+
+
+
+
+If exactly one woman's partner rank is \(n+1\), it signifies that only one proposer remains free. 
