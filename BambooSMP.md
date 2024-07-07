@@ -190,35 +190,81 @@ In order to take advantage of the complementary strengths of both GPUs and CPUs,
 
 ## \subsubsection{When to switch}
 
-The guiding principle of BambooSMP for switching from GPU to CPU execution is when the number of unmatched men reduces to one. In this scenario, only a single CUDA thread remains active on the GPU, the synchronization overhead and high latency inherent to GPU operations become significant bottlenecks.
+The guiding principle of BambooSMP for switching from GPU to CPU execution is when the number of unmatched men reduces to one, then LAProcedure can be invoked with the unmathced man as argument to finish the remaining proposing process.
 
-Transitioning to CPU execution at this point allows for efficient handling of high parallelism when many threads are active, while avoiding the inefficiencies associated with reduced parallelism on the GPU. 
+In this scenario, only a single CUDA thread remains active, the synchronization overhead and high latency inherent to GPU operations become significant bottlenecks, thus it marks the transition from massively parallel GPU execution to more suitable sequential execution on the CPU.
 
-The critical aspect of this switch is detecting when there is only one proposer left, signifying that only one thread remains active. 
-
-This situation marks the transition fr om massively parallel GPU execution to more suitable sequential execution on the CPU.
+Transitioning to CPU execution at this point allows for efficient handling of high parallelism while avoiding the inefficiencies associated with reduced parallelism on the GPU.
 
 
 
 ## \subsubsection{How to switch}
 
-To effectively switch to the CPU, two key sub-questions must be addressed to determine the appropriate timing and method:
+Now we clarify that the critical aspect of this switch is detecting when there is only one proposer left, signifying that only one thread remains active. 
+
+To effectively switch to the CPU under that condition, two key sub-questions must be addressed to determine the appropriate timing and method:
 \begin{enumerate}
     \item How to ascertain if only one man remains unmatched.
     \item How to identify the unmathced man to proceed with the sequential algorithm.
 \end{enumerate}
 
-Determining if only one thread remains active relies on the \texttt{partnerRank} data structure, which is used during the execution of the parallel locality-aware GS algorithm. Since each woman's partner rank is initialized to \(n+1\), any rank value smaller than \(n+1\) indicates that the woman is paired, implying the presence of a paired man. If exactly one woman's partner rank is \(n+1\), it signifies that only one proposer remains free.
+Determining if only one thread remains active relies on the \texttt{partnerRank} data structure, which is used during the execution of BambooKernel on the first GPU. Since each woman's partner rank is initialized to \(n+1\), any rank value smaller than \(n+1\) indicates that the woman is paired, implying the presence of a paired man. If exactly one woman's partner rank is \(n+1\), it signifies that only one proposer remains free.
 
-Identifying the ID of the free man involves additional computations. After reading the partner ranks of all women to confirm that only one woman is unpaired, the algorithm calculates the total sum of IDs of all men, which is \(\frac{n(n+1)}{2}\). By subtracting the IDs of the paired men from this total sum, the algorithm determines the ID of the free man.
+Identifying the ID of the free man involves additional computations. After reading the partner ranks of all women to confirm that only one woman is unpaired, the algorithm calculates the total sum of IDs of all men, which is \(\frac{n(n+1)}{2}\) and will be reinitialized every time the identification is performed. By subtracting the IDs of the paired men from this total sum, the algorithm determines the unmatched man.
 
-The above calculations are repeated until it is confirmed that only one proposer remains active and the free man is identified. At this point, the computation transitions from the GPU to the CPU to efficiently handle the remaining sequential steps. This is accomplished by copying the \texttt{partnerRank} from device memory to host memory and invoking the procedure in Algorithm \ref{Algo:LA-GSAlgo} for the free man to make further proposals based on the existing \texttt{partnerRank}.
+The above calculations will be performed repeatedly by `FindUnmatchedManKernel` by second GPU until it is confirmed that only one proposer remains active and the unmatched man is identified
 
-This transition leverages the CPU's strengths in managing tasks with limited parallelism and more complex control flow, thereby maintaining the overall efficiency of the GS algorithm execution.
+As illustrated in Algorithm3, in this kernel, each CUDA thread read out the rank of current partner for a woman, checking whether it is still the initial value and substract the man from the sum of partnerRanks.
 
 
 
-## BambooSMP
+# BambooSMP
+
+## Data structure
+
+Based on the execution policy, we are able to develop a complete parallel framework called Bamboo to handle.
+
+BambooSMP will use 3 parts: device1 (GPU1), device2(GPU2) and host.
+
+Each part has its own data structures to complete the BambooSMP.
+
+BambooKernel is going to be executed on device 1, it requires  both men's and women's preference lists copied into the device, and rankMatrix, and PRMatrix are initialized on the device 1.
+
+ `FindUnmatchedManKernel` needs to be executed on the seond device to  use women's preference lists, CUDA have ...(some techniques) to allow the device 2 to access women's preference lists from device1. 
+
+That the computation transitions from the GPU to the CPU to efficiently handle the remaining sequential steps is accomplished by copying the \texttt{partnerRank} from device memory to host memory and invoking the procedure in Algorithm \ref{Algo:LA-GSAlgo} for the unmatched man to make further proposals based on the existing \texttt{partnerRank}.
+
+It needs to have a Next array and PartnerRank on the device and host side separately.
+
+In order to know whether the proposing kernel on the GPU finishes or the proposing procedure on the CPU finishes first, an atomic int called termianteFlag will be utiliazed.
+
+In summary, 
+
+on the host side, men' preference lists and women's preference lists are inputs so allocated. And we need a Next array and PartnerRank for the LAProcedure that efficiently handle the remaining sequential steps after there is only one active thread. And an atomic int called terminate will be allocated on the host side.
+
+On the device1, PRMatrix, Next, PartnerRank is initialized, women's preference lists are copied for BambooKernel executed on device 1 and FindUnmatchedManKernel on device 2
+
+On the device2, Next, PartnerRank on device 1 will be copied into device 2.  
+
+
+
+## Algorithm
+
+As shown in Algorithm 4, after copying the men's preference lists and women's preference lists from host into device 1,  the main thread of BambooSMP  BambooSMP will first initialize rankMatrix and PRMatrix , along with other data structures like partnerRank and Next array on device 1 first.
+
+Then, the main thread will initialize termianteFlag to 0 on the host, indicating the proposal work on both GPU and CPU has not finished yet.
+
+After that, the main thread will launch 2 threads, t1 and t2 to run doWorkOnGPU and doWorkOnCPU individually.
+
+Specifically, doWorkOnGPU will launch BambooKernel on a GPU to make proposals in parallel whereas doWorkOnCPU will repeatedly launch `FindUnmatchedManKernel` on the second GPU, if there is only one unmathced man, it will copy PRMatrix from the first GPU into host memory, and run LAProcedure to make proposal in serial.
+
+doWorkOnGPU and doWorkOnCPU will compete to use an atomicCAS operation to set the termianteFlag to 1 and 2 respectively to indicate BambooKernel completes first or the copying and the sequential LA completes first.
+
+In the main thread, if termianteFlag is set to 1, meaning the BambooKernel finishes first, and main thread will join t1 and detach t2. In addition, the partnerRank that is stored in the first GPU will  be postprocessed into a stable matching.
+
+On the other hand, if termianteFlag is set to 2, meaning the procedure executing on CPU completes first, and the main thread will join t2 and detach t1.
+
+In this case, the he partnerRank that in the host memory will  be copied into GPU, then postprocessed into a stable matching.
 
 
 
@@ -273,7 +319,7 @@ FindUnmatchedMen(n, device_partnerRank, device_pref_lists_w, device_num_unmatche
   int w = blockIdx.x * blockDim.x + threadIdx.x;
 
   if (w < n) {
-    int partner_rank = husband_rank[w];
+    int partner_rank = partner_ranks[w];
     split_husband_rank[w] = partner_rank;
     if (partner_rank == n + 1) {
       atomicAdd(device_num_unmatched_men, 1);
@@ -281,6 +327,14 @@ FindUnmatchedMen(n, device_partnerRank, device_pref_lists_w, device_num_unmatche
       atomicSub(device_unmatched_man, pref_lists_w[wi * n + hr]);
     }
   }
+  
+====================================================
+postprocess(int* partnerRank, int* S) {
+	int w = blockIdx.x * blockDim.x + threadIdx.x;
+	if (w < n) {
+		S[w] = pref_lists_w[w * n + partnerRank[w]]
+	}
+}
 ```
 
 
@@ -288,3 +342,12 @@ FindUnmatchedMen(n, device_partnerRank, device_pref_lists_w, device_num_unmatche
 ## Unused
 
 By integrating the complementary strengths of both GPUs and CPUs, the framework aims to optimize performance under varying conditions of parallelism. 
+
+
+
+
+
+At this point, the computation transitions from the GPU to the CPU to efficiently handle the remaining sequential steps. This is accomplished by copying the \texttt{partnerRank} from device memory to host memory and invoking the procedure in Algorithm \ref{Algo:LA-GSAlgo} for the free man to make further proposals based on the existing \texttt{partnerRank}.
+
+This transition leverages the CPU's strengths in managing tasks with limited parallelism and more complex control flow, thereby maintaining the overall efficiency of the GS algorithm execution.
+
