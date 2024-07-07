@@ -36,11 +36,11 @@ As elaborated in Section \ref{subsec:Challenges with Data Movement}, a significa
 
 To optmize the data access pattern of rank matrix, we propose a crucial observation: there exists a bijection between a man’s decision regarding which woman to propose to and his corresponding rank in her preference list.
 
-In both the GS and MW algorithms, after a man retrieves the ID of the most preferred woman who has not yet rejected him from his preference list, it is necessary to access the rank matrix to determine his rank in her preference list. 
+Suppose we have two variables, PrefListsM and RankMatrix, to represent the men’s preference lists and the women’s rank matrix, respectively.
 
-Specifically, for a given man \texttt{m} at rank \texttt{r} in his preference list (\texttt{PrefListM[m, r]}), we identify woman \texttt{w}. The subsequent step involves accessing the rank matrix at \texttt{RankMatrix[w, m]} to determine the man’s rank in the woman’s preference list.
+In both the GS and MW algorithms, for a given man \texttt{m} proposing to the woman at rank \texttt{r} in his preference list, the woman (\texttt{PrefListM[m, r]}) is identified. The subsequent step involves accessing the rank matrix at \texttt{RankMatrix[PrefListM[m, r], m]} to determine the man’s rank in the woman’s preference list.
 
-This reveals a direct one-to-one correspondence between each entry in the men’s preference list and its implicitly linked entry in the women’s rank matrix. 
+This process reveals a direct one-to-one correspondence between each entry in the men’s preference list and its implicitly linked entry in the women’s rank matrix. 
 
 By harnessing this inherent relationship, we introduce a locality-aware data structure known as PRMatrix. 
 
