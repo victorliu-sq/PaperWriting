@@ -174,19 +174,29 @@ Otherwise, there are two scenarios to consider:
 
 # Heterogeneous Computing Model
 
-Locality-Aware implementation has 
+Although The Locality-Aware (LA) implementation is excellent at minimizing data movements and BambooKernel effectively manages contention, both approaches still have their limitations for certain workloads.
+
+To be specific, LA cannot achieve optimal performance for workloads that benefit from concurrent processing whereas BambooKernel becomes expensive in solo case due to the high overhead associated with atomic transactions and high latency of operation inherent in GPU.
 
 
 
-BambooKernel effectively manages contention by minimizing retries and ensuring efficient updates. However, it remains an expensive operation due to the high overhead associated with atomic transactions.
+The Locality-Aware (LA) implementation is excellent at minimizing data movements by leveraging locality, making it ideal for solo cases where sequential execution is the primary approach. In contrast, BambooKernel effectively manages contention by minimizing retries and ensuring efficient updates, making it essential for high-parallelism SMP workloads. 
 
-As discussed in Section \ref{subsec:Challenges with Implementations on GPU}, this overhead becomes particularly pronounced in solo case . 
+However, both of them fail to handle for particular workloads.
 
-In such scenarios, the advantages of parallel execution diminish, and the costs associated with unnecessary atomic operations can outweigh their benefits, leading to inefficiencies.
+LA cannot achieve optimal performance for workloads that benefit from concurrent processing whereas BambooKernel becomes expensive in solo case due to the high overhead associated with atomic transactions and high latency of operation inherent in GPU.
 
-Despite this, BambooKernel is also essential for solving SMP workloads with high parallelism, such as congested and random cases.
 
-To address the workload-dependent limitation of SMP, we propose a parallel framework, called BambooSMP, that leverages a hybrid CPU-GPU execution model. 
+
+The above description highlights that the Locality-Aware (LA) implementation excels at minimizing data movements by exploiting locality, making it the best optimization method for solo cases where sequential execution predominates. However, sequential execution cannot achieve optimal performance for workloads with high parallelism, such as congested and random cases.
+
+In contrast, BambooKernel effectively manages contention by minimizing retries and ensuring efficient updates, making it essential for high-parallelism SMP workloads. Nonetheless, it remains expensive due to the high overhead associated with atomic transactions and high latency of operation inherent in GPU. As discussed in Section \ref{subsec:Challenges with Implementations on GPU}, this overhead becomes particularly pronounced in solo cases.
+
+In solo scenarios, the advantages of parallel execution diminish, and the costs associated with unnecessary atomic operations can outweigh their benefits, leading to inefficiencies.
+
+
+
+To address the workload-dependent limitations of both methods, we propose a parallel framework called BambooSMP. This framework leverages a hybrid CPU-GPU execution model to provide a more efficient, adaptive solution for varying workloads.
 
 
 
