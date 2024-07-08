@@ -52,7 +52,17 @@ The configuration of each entry in the RankMatrix and PRMatrix is inherently ind
 
 To empirically validate the performance benefits of this approach, we conducted a series of tests comparing the initialization times of the RankMatrix and PRMatrix under three different conditions: (1) sequential execution, (2) parallel execution on the CPU, and (3) parallel execution on the GPU. As illustrated in Figure \cite{figure:initilaizationOnGPU}, our findings unequivocally demonstrate that the GPU achieves the fastest initialization times, even when accounting for the additional data transfer overhead between the host and the device.
 
+
+
+
+
 The substantial reduction in initialization time afforded by GPU parallelism is pivotal to the overall performance of the GS algorithm, as it ensures that the initialization step does not become a bottleneck.
+
+
+
+
+
+
 
 Following the construction of the PRMatrix, we have established a solid foundation for a Locality-Aware sequential implementation of the GS algorithm (LA). 
 
@@ -151,13 +161,13 @@ Otherwise, there are two scenarios to consider:
 
 ## Adaptive Execution Policy
 
-While PRMatrix excels at minimizing data movements and BambooKernel effectively manages contention, both approaches have limitations for certain workloads. The LA struggles with workloads that benefit from concurrent processing, whereas BambooKernel becomes costly in solo cases due to the unnecessary synchronization overhead and high latency inherent to GPU operations, as discussed in section {Challenges}.
+While PRMatrix excels at minimizing data movements and BambooKernel effectively manages contention, both approaches exhibit limitations for certain workloads. The LA strategy struggles with workloads that benefit from parallel processing, whereas BambooKernel becomes costly in solo cases due to the unnecessary synchronization overhead and high latency inherent to GPU operations, as discussed in section {Challenges}.
 
-To overcome these workload-dependent limitations, we propose a parallel processing software framework called BambooSMP. This framework optimizes performance across diverse workloads through an adaptive execution policy that dynamically adjusts processing units based on the varying levels of parallelism inherent in the SMP workload.
+To overcome these workload-dependent limitations, we propose a parallel processing software framework called BambooSMP. This framework optimizes performance across diverse workloads through an adaptive execution policy dynamically adjusts processing units in response to the varying levels of parallelism during the execution of SMP workloads.
 
-At the beginning of any workload, when all men are unmatched and ready to make their initial proposals, BambooSMP initiates by running BambooKernel on the GPU. This approach leverages the GPU’s capacity for massive parallelism, efficiently handling the initial phase where numerous proposals are made concurrently.
+At the beginning of any workload, when all men are unmatched and prepared to make their initial proposals, BambooSMP initiates execution by launching the BambooKernel on the GPU. This approach leverages the GPU’s capacity for massive parallelism, efficiently handling the initial phase where numerous proposals are made concurrently.
 
-As the kernel execution progresses and the number of unmatched men decreases, the workload gradually transitions from a highly parallel to a more serial nature. Recognizing this shift, BambooSMP adapts by transitioning from the massively parallel GPU execution to a more suitable sequential execution on the CPU. This transition is crucial to avoid the inefficiencies associated with reduced parallelism on the GPU.
+As the kernel execution progresses and the number of unmatched men decreases, the workload gradually transitions from a highly parallel to a more serial one. Recognizing this shift, BambooSMP adapts by transitioning from the massively parallel GPU execution to a lower-latency sequential execution on the CPU. This transition is crucial to circumvent the inefficiencies associated with reduced parallelism on the GPU.
 
 By dynamically balancing the load between the GPU and CPU, BambooSMP ensures optimal performance and resource utilization. This seamless transition highlights the framework’s ability to adapt to varying workload demands, thereby optimizing computational efficiency.
 
@@ -335,3 +345,13 @@ Now we clarify that the critical aspect of this switch is detecting when there i
 
 
 If exactly one woman's partner rank is \(n+1\), it signifies that only one proposer remains free. 
+
+
+
+# Experiment
+
+To empirically validate the performance benefits of this approach, we conducted a series of tests comparing the initialization times of the RankMatrix and PRMatrix under three different conditions: (1) sequential execution, (2) parallel execution on the CPU, and (3) parallel execution on the GPU. As illustrated in Figure \ref{fig:PPResult}, we show that the GPU achieves the lowest initialization times consistently, even when accounting for the additional data transfer overhead between the host and the device. 
+
+For an SMP workload of size 30,000, the time required to initialize the RankMatrix was $6792.78$ milliseconds when executed sequentially on a single CPU core. When utilizing multicore parallel execution on the CPU, this time was reduced to $732.99$ milliseconds. However, the most dramatic improvement was observed with GPU execution, where the total initialization time was reduced to $302.77$ milliseconds, including $281.12$ milliseconds for data transfer between the host and the device. A similar trend was observed when initializing both the RankMatrix and PRMatrix. Sequential execution on a single CPU core required $46,444.17$ milliseconds, while multicore parallel execution on the CPU reduced this time to $15,946.05$ milliseconds. In contrast, GPU execution achieved the lowest initialization time of $619.63$ milliseconds, which includes $559.12$ milliseconds for data transfer. These results underscore the substantial performance advantages of GPU execution for large-scale data initialization tasks.
+
+The preprocessing times by GPU are 1 to 2 orders of magnitude lower than those using CPU and multicore. This effective GPU acceleration allows us to leverage the initialization step as a critical component to significantly improve the overall performance of the GS algorithm. 
