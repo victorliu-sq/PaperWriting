@@ -100,33 +100,30 @@ This optimization can significantly reduce the overhead associated with data acc
 
 # Contention Resolver
 
-As previously mentioned in Section \ref{subsec:Challenges with Synchronization}, in parallelized GS algorithms, each woman needs to select the best proposal with the minimum numerical value when multiple proposals are made simultaneously. However, traditional synchronization methods can be inefficient when updating \texttt{partnerRank} due to the high cost of coarse-grained synchronization and wasted work from \texttt{atomicCAS} failures under high memory contention.
+As previously discussed in Section \ref{subsec:Challenges with Synchronization}, a significant challenge in parallelized Gale-Shapley (GS) algorithms is the requirement for each woman to select the best proposal, which corresponds to the proposal with the minimum rank value, when multiple proposals are made simultaneously. Traditional synchronization methods, however, tend to be inefficient when updating the \texttt{partnerRank} due to the high cost of coarse-grained synchronization and the wasted work arising from \texttt{atomicCAS} failures under high memory contention.
 
-To overcome this problem, we need a fine-grained hardware primitive that handles high memory contention efficiently. Modern CPUs still rely on \texttt{atomicCAS} implementations to perform specific arithmetic functions. In contrast, modern GPU architectures, such as NVIDIA's CUDA, offer a comprehensive set of atomic functions for arithmetic operations. Among these, \texttt{atomicMin} effectively addresses the challenges of synchronization and high contention in parallelized GS algorithms.
+To overcome these inefficiencies, a find-grained hardware primitive capable of efficiently managing high memory contention is necessary. Modern CPU architectures continue to rely on \texttt{atomicCAS} implementations for certain arithmetic operations, but this approach often falls short in high contention scenarios. In contrast, modern GPU architectures, such as NVIDIA’s CUDA, provide a robust set of atomic functions for arithmetic operations, among which \texttt{atomicMin} stands out as particularly effective for addressing synchronization challenges in parallelized GS algorithms.
 
-The \texttt{atomicMin} function in CUDA reads the 32-bit or 64-bit word \texttt{old} at the address in global or shared memory, computes the minimum of \texttt{old} and \texttt{val}, stores the result back to memory at the same address—all in one atomic transaction. The function then returns \texttt{old} so the caller can determine whether the value has been updated. If \texttt{old} is larger, the caller knows the value has been updated to \texttt{val}; otherwise, no update has occurred.
+The \texttt{atomicMin} function in CUDA takes two parameters: an address in global or shared memory and a given value (\texttt{val}). It performs an atomic transaction consisting of three operations: first, it reads the current value (\texttt{old}) at the specified address; second, it computes the minimum of \texttt{old} and \texttt{val}; and third, it stores the minimum value back at the same address. Finally, this function returns \texttt{old}, enabling the caller to determine whether the memory value has been updated. If \texttt{old} is larger than \texttt{val}, the caller can infer that the value has been updated to \texttt{val}; otherwise, no update has occurred.
 
-
-
-The advantage of \texttt{atomicMin} in parallelizing GS is that it does not require an expected value to proceed only if the expected value matches the \texttt{old}. This ensures that each thread performs the operation only once, eliminating the need for repeated retries. 
-
-To provide a rigorous proof that \texttt{atomicMin} significantly reduces the number of atomic operations compared to using \texttt{atomicCAS}, we provide Lemma \ref{lem:smp_instance_min_times}, which indicates that, in the congested case, for a Stable Marriage Problem (SMP) instance with \(n\) men and \(n\) women, the total number of \texttt{atomicMin} operations is \(O(n^2)\), which is significantly smaller than the \(O(n^3)\) operations required by \texttt{atomicCAS}.
+The advantage of \texttt{atomicMin} in parallelizing GS is its ability to proceed without requiring an expected value to match current value. This feature ensures that each thread completes its operation in a single attempt, thereby eliminating the need for repeated retries and reducing wasted work.
 
 
 
-By leveraging the atomic functions provided by modern GPU architectures, we develop a GPU kernel, BambooKernel, which is essentialy a parallel version of the Locality-Aware \texttt{GS} algorithm in Algorithm \ref{Algo:LA-GSAlgo}, to efficiently solve \texttt{SMP} instances associated with high contention. 
+To rigorously demonstrate the efficiency of \texttt{atomicMin}, we present Lemma \ref{lem:smp_instance_min_times}, which proves that in highly congested scenarios of the Stable Marriage Problem (SMP) with n men and n women, the total number of \texttt{atomicMin} operations is O(n^2). This is a marked improvement over the O(n^3) operations required when using \texttt{atomicCAS}, underscoring the superior performance of \texttt{atomicMin} in high contention environments.
 
 
 
-BambooKernel kernel inherits most of the logic of the GPU kernel of parallel MW algortihm. 
+By leveraging the advanced atomic functions provided by modern GPU architectures, we have developed a specialized GPU kernel named BambooKernel. This kernel represents a parallelized adaptation of the Locality-Aware GS algorithm detailed in Algorithm \ref{Algo:LA-GSAlgo}, specifically designed to efficiently handle SMP instances characterized by high contention. BambooKernel inherits much of the logic from the parallel MW algorithm’s GPU kernel. However, its key innovations lie in exploiting data locality through the use of \texttt{PRMatrix} and implementing \texttt{atomicMin} to ensure mutual exclusion and prevent race conditions during updates to the shared data structure \texttt{PartnerRank}. The use of \texttt{atomicMin} allows for a direct update of the rank of \texttt{PartnerRank[w]} with \texttt{m_rank} without requiring an expected value. 
 
-The key differences lie in how it  it exploits locality using \texttt{PRMatrix} and how it ensures m
+If the update is unsuccessful, indicated by the returned value being not larger than m\_rank, the man m will be rejected and will have to propose to the next woman on his preference list in the next iteration.
 
-utual exclusion and prevents race conditions by using \texttt{atomicMin} to update the shared data structure \texttt{partnerRank}.
+Otherwise, there are two scenarios to consider:
 
-Specifically, even if the returned value mismatches the previously read one but is still larger than \texttt{val}, \texttt{atomicMin} can proceed to update the minimum value with \texttt{val}, whereas \texttt{atomicCAS} would need to repeat the operation.
+	1.	If p\_rank equals n + 1, indicating that the woman was previously unpaired and no man is rejected, the variable \texttt{done} is set to \texttt{true} to terminate the main loop.
+	2.	If p\_rank is not equal to n + 1, meaning the woman is currently paired with another partner whom she prefers less, the ID of that partner and the rank of his last proposed woman are retrieved from \texttt{PRNodesW[w, m_rank]}.
 
-If the update is unsuccessful, as indicated by the returned value being not larger than \(m\_rank\), \(m\) will be rejected and will have to propose to the next woman on his preference list in the next iteration. 
+These innovations collectively enhance the efficiency and robustness of the BambooKernel, making it well-suited for handling high contention scenarios.
 
 
 
@@ -154,9 +151,9 @@ Otherwise, there are two scenarios to consider:
 
 ## Adaptive Execution Policy
 
-While the Locality-Aware (LA) implementation excels at minimizing data movements and BambooKernel effectively manages contention, both approaches have limitations for certain workloads. The LA implementation struggles with workloads that benefit from concurrent processing, whereas BambooKernel becomes costly in solo cases due to the unnecessary synchronization overhead and high latency inherent to GPU operations, as discussed in section {Challenges}.
+While PRMatrix excels at minimizing data movements and BambooKernel effectively manages contention, both approaches have limitations for certain workloads. The LA struggles with workloads that benefit from concurrent processing, whereas BambooKernel becomes costly in solo cases due to the unnecessary synchronization overhead and high latency inherent to GPU operations, as discussed in section {Challenges}.
 
-To overcome these workload-dependent limitations, we propose a parallel framework called BambooSMP. This framework optimizes performance across diverse workloads through an adaptive execution policy that dynamically adjusts processing units based on the varying levels of parallelism inherent in the SMP workload.
+To overcome these workload-dependent limitations, we propose a parallel processing software framework called BambooSMP. This framework optimizes performance across diverse workloads through an adaptive execution policy that dynamically adjusts processing units based on the varying levels of parallelism inherent in the SMP workload.
 
 At the beginning of any workload, when all men are unmatched and ready to make their initial proposals, BambooSMP initiates by running BambooKernel on the GPU. This approach leverages the GPU’s capacity for massive parallelism, efficiently handling the initial phase where numerous proposals are made concurrently.
 
