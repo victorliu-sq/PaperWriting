@@ -161,7 +161,7 @@ Otherwise, there are two scenarios to consider:
 
 ## Adaptive Execution Policy
 
-While PRMatrix excels at minimizing data movements and BambooKernel effectively manages contention, both approaches exhibit limitations for certain workloads. The locality-aware sequential implementation struggles with workloads that benefit from parallel processing, whereas BambooKernel becomes costly in solo cases due to the unnecessary synchronization overhead and high latency inherent to GPU operations, as discussed in section {Challenges}.
+While PRMatrix excels at minimizing data movements and BambooKernel effectively manages contention, both approaches exhibit limitations for certain workloads. The locality-aware sequential implementation struggles with workloads that benefit from parallel processing, whereas BambooKernel becomes costly in solo cases due to the unnecessary synchronization overhead and high latency inherent to GPU operations.
 
 To overcome these workload-dependent limitations, we propose a parallel processing software framework called BambooSMP. This framework optimizes performance across diverse workloads through an adaptive execution policy that dynamically adjusts processing units in response to the varying levels of parallelism during the execution of SMP workloads.
 
@@ -191,7 +191,7 @@ If a woman’s partner rank is n+1, the thread atomically increments unmatchedNu
 
 Otherwise, her partner’s ID—retrieved from her preference list at the corresponding rank—is atomically subtracted from `unmatchedID` to pinpoint the ID of the unmatched man.
 
-To prepare for the potential sequential proposing process following the execution of IdentifyUnmatchedManKernel, an additional set of PartnerRank and Next data structures are allocated on the secondary GPU. Each CUDA thread within the IdentifyUnmatchedManKernel is responsible for reading an entry from these data structures on the primary GPU and duplicating it into the corresponding structures on the secondary GPU. 
+To prepare for the potential sequential proposing process following the execution of `IdentifyUnmatchedManKernel`, an additional set of PartnerRank and Next data structures are allocated on the secondary GPU. Each CUDA thread within the IdentifyUnmatchedManKernel is responsible for reading an entry from these data structures on the primary GPU and duplicating it into the corresponding structures on the secondary GPU. 
 
 These calculations are iteratively executed on the secondary GPU until the number of unmatched men is confirmed to be less than or equal to one.
 
@@ -201,13 +201,15 @@ On the other hand, If the count of unmatched men drops to zero without ever reac
 
 
 
-## BambooSMP
+## BambooSMP Parallel Framework
 
 Building upon the adaptive execution policy, the BambooSMP leverages a coordinated interplay between the Primary GPU, the Secondary GPU,and the Host CPU to manage data structures and dynamically adjust its execution strategy to ensure optimal performance. 
 
-The main thread of BambooSMP initiates the process by transferring the men’s and women’s preference lists from the Host CPU to the Primary GPU, establishing the foundation for the preprocessing of the PRMatrix. Following this, The PRMatrix, PartnerRank and Next arrays are initialized on the Primary GPU  for the subsequent execution of the BambooKernel.
+BambooSMP has a prechecking step to handle the prefect case.At the beginning, each participant selects their top choices from their preference lists, and a corresponding match is established. If all participants have distinct top choices, the matching is stable, making further steps unnecessary. Otherwise, the algorithm proceeds to the initialization step to prepare data structures for further proposals.
 
-After that, two threads, represented by t1 and t2, are then launched to execute procedures `doWorkOnGPU` and `doWorkOnCPU`, respectively. As name indicates, `doWorkOnGPU` will launch the `BambooKernel` on the primary GPU to handle proposals in parallel. Concurrently, t2 will repeatedly executes `IdentifyUnmatchedManKernel` on the Secondary GPU and perform potential operations on the host.
+During the intilization step, BambooSMP transfers the men’s and women’s preference lists from the Host CPU to the Primary GPU, establishing the foundation for the preprocessing of the PRMatrix. After that, the PRMatrix, PartnerRank and Next arrays are initialized on the Primary GPU for the subsequent execution of the BambooKernel.
+
+Following the initlialization, two threads, represented by t1 and t2, are then launched to execute procedures `doWorkOnGPU` and `doWorkOnCPU`, respectively. As name indicates, `doWorkOnGPU` will launch the `BambooKernel` on the primary GPU to handle proposals in parallel. Concurrently, t2 will repeatedly executes `IdentifyUnmatchedManKernel` on the Secondary GPU and perform potential operations on the host.
 
 Given that  `IdentifyUnmatchedManKernel` requires access to women’s preference lists and `PartnerRank`, Peer-to-Peer memory access is employed. This allows the Secondary GPU to directly access these data structures on the Primary GPU. Additionally, duplicate sets of Next and PartnerRank are allocated on the Secondary GPU to mirror the corresponding contents on the Primary GPU. If IdentifyUnmatchedManKernel determines that only one man remains unmatched, the replicated data structures on the Secondary GPU, along with the PRMatrix on the Primary GPU, are transferred back to the host system to facilitate subsequent serial proposals on the host.
 
@@ -218,8 +220,6 @@ As t1 and t2 progresses, the main thread monitors terminateFlag to determine the
 If terminateFlag is set to 1, indicating that BambooKernel completes processing first, the main thread joins t1 and detaches t2, postprocessing the partnerRank on the Primary GPU into a stable matching.  
 
 Conversely, If terminateFlag is set to 2, indicating that the `doWorkOnCPU` finished first, the main thread joins t2 and detaches t1. The `PartnerRank` in Host CPU memory is then copied back to the GPU and postprocessed, ensuring efficient and accurate completion of the proposal process.
-
-
 
 
 
