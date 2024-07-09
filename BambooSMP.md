@@ -175,35 +175,41 @@ By dynamically balancing the load between the GPU and CPU, BambooSMP ensures opt
 
 ## FindUnmatchedManKernel
 
-To effectively implement the adaptive execution policy, we propose another GPU kernel named `FindUnmatchedManKernel` to perform two critical operations:
+To effectively implement the adaptive execution policy, we introduce a GPU kernel named `IdentifyUnmatchedManKernel`.
+
+When BambooKernel processes an SMP workload  on the primary GPU, `IdentifyUnmatchedManKernel` concurrently operates on the secondary GPU to monitor the workload’s level of parallelism by carrying out two critical tasks:
 \begin{enumerate}
     \item ascertain if only one man remains unmatched.
     \item Identify the sole unmatched man to proceed with the sequential algorithm.
 \end{enumerate}
 
-These two operations fundamentally rely on the partnerRank data structure, which is integral to the execution of BambooKernel on the primary GPU.
+To determine if only one man remains unmatched, the variable`unmatchedNum` is initialized to zero.  The ID of the unmatched man, unmatchedID, is set to the sum of the IDs of all men, \frac{n(n+1)}{2}. Both variables, unmatchedNum and unmatchedID, will be reinitialized prior to each launch of the IdentifyUnmatchedManKernel.
 
-To determine if only one man remains unmatched, the variable`num_unmatched` is initialized to zero. And the ID of the unmatched man `id_unmatched` is set to the total sum of IDs of all men, calculated as \frac{n(n+1)}{2}. Both variables are reinitialized prior to each launch of FindUnmatchedManKernel.
+Within IdentifyUnmatchedManKernel, each CUDA thread assesses the rank of a woman’s current partner by referencing the partnerRank data structure, which is stored on the primary GPU and integral to the execution of BambooKernel.
 
-Within FindUnmatchedManKernel, each CUDA thread assesses the rank of a woman’s current partner by referencing partnerRank. If a woman’s partner rank is n+1, it signifies an unmatched man. Consequently, the thread atomically increments num_unmatched to keep track of the number of unmatched men. Conversely, if the woman is paired, her partner’s ID—retrieved from her preference list at the corresponding rank—is subtracted atomically from `id_unmatched` to pinpoint the ID of the unmatched man.
+If a woman’s partner rank is n+1, the thread atomically increments unmatchedNum to account for the presence of an unmatched man.
 
-These calculations are iteratively executed on the secondary GPU until the number of unmatched men is definitively confirmed to be less than or equal to one.
+Conversely, if the woman is paired, her partner’s ID—retrieved from her preference list at the corresponding rank—is atomically subtracted from `unmatchedID` to pinpoint the ID of the unmatched man.
 
-If the count of unmatched men reduces to one, the sole unmatched man is then precisely identified. At this point, the LAProcedure can be invoked, passing the unmatched man’s ID as  an argument to finalize the remaining sequential proposing process.
+To prepare for the potential sequential proposing process following the execution of IdentifyUnmatchedManKernel, an additional set of PartnerRank and Next data structures are allocated on the secondary GPU. Each CUDA thread within the IdentifyUnmatchedManKernel is responsible for reading an entry from these data structures on the primary GPU and duplicating it into the corresponding structures on the secondary GPU. 
 
-However, when the count of unmatched men drops to zero without ever reaching one, it indicates that the proposal process is already complete, thus eliminating the need for further sequential execution. 
+These calculations are iteratively executed on the secondary GPU until the number of unmatched men is confirmed to be less than or equal to one.
+
+If the count of unmatched men reduces to one, it implies that all IDs of the other n - 1 matched men have been subtracted from unmatchedID, thereby precisely identifying the sole unmatched man. Following this identification, the replicated data structures on the secondary GPU, along with the PRMatrix on the primary GPU, will be copied back to the host system. Subsequently, then the LAProposalProcedure can be invoked, passing the unmatched man’s ID as an argument to finalize the remaining sequential proposing process. 
+
+On the other hand, If the count of unmatched men drops to zero without ever reaching one, it indicates that BambooKernel already completes, thus eliminating the need for further sequential execution. 
 
 
 
 ## BambooSMP
 
-Building upon the adaptive execution policy and GPU Kernel to identify the unmatched man, the BambooSMP framework leverages a coordinated interplay between the Primary GPU, the Secondary GPU, and the Host CPU to manage data structures efficiently and ensure optimal performance. Each of these components plays a critical role in the framework’s execution, handling specific data structures necessary for the framework’s operations.
+Building upon the adaptive execution policy and the GPU Kernel to identify the unmatched man, the BambooSMP framework leverages a coordinated interplay between the Primary GPU, the Secondary GPU, and the Host CPU to manage data structures and ensure optimal performance. Each of these components plays a critical role in the framework’s execution, handling specific data structures necessary for the framework’s operations.
 
-On the Primary GPU, BambooKernel is executed to handle the parallel processing of proposals. For this, both men’s and women’s preference lists are copied into the Primary GPU. Additionally, the rankMatrix and PRMatrix are initialized on the Primary GPU to facilitate efficient computation.
+On the Primary GPU, BambooKernel is executed to handle the parallel processing of proposals. For this, both men’s and women’s preference lists are copied into the Primary GPU to initialize PRMatrix.  `Next` and `PartnerRank` are also initialized on the Primiray GPU.
 
-FindUnmatchedManKernel is executed on the Secondary GPU, which requires access to women’s preference lists. Peer-to-Peer (P2P) memory access is employed to allow the Secondary GPU to access these lists directly from the Primary GPU, ensuring seamless data sharing and minimizing overhead.
+The `IdentifyUnmatchedManKernel` is executed on the Secondary GPU, which requires access to women’s preference lists and `PartnerRank`. In this way, Peer-to-Peer (P2P) memory access is employed to allow the Secondary GPU to access these data structures directly from the Primary GPU. And an additional set of `Next` and `PartnerRank` are required on the secondary GPU to duplicated corresponding contents on the primary GPU.
 
-The Host CPU manages several key data structures and coordinates the transition of computation from the GPU to the CPU. The partnerRank and Next on the secondary GPU are copied from device memory to host memory to handle the remaining sequential steps efficiently. The procedure in Algorithm \ref{Algo:LA-GSAlgo} is invoked to enable the unmatched man to make further proposals based on the existing partnerRank.
+The Host CPU manages several key data structures and coordinates the transition of computation from the GPU to the CPU. The partnerRank and Next on the secondary GPU are copied from device memory to host memory to handle the remaining sequential steps efficiently. The `LAProposalProcedure` in Algorithm \ref{Algo:LA-GSAlgo} is invoked to enable the unmatched man to make further proposals based on the existing partnerRank.
 
 Both the secondary GPU and Host CPU maintain the Next array and PartnerRank. The Host CPU also allocates an atomic integer, terminateFlag, to monitor and determine the completion of the proposing process on either the GPU or CPU.
 
