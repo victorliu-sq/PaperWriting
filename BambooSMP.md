@@ -195,7 +195,7 @@ To prepare for the potential sequential proposing process following the executio
 
 These calculations are iteratively executed on the secondary GPU until the number of unmatched men is confirmed to be less than or equal to one.
 
-If the count of unmatched men reduces to one, it implies that all IDs of the other n - 1 matched men have been subtracted from unmatchedID, thereby precisely identifying the sole unmatched man. Following this identification, the replicated data structures on the secondary GPU, along with the PRMatrix on the primary GPU, will be copied back to the host system. Subsequently, then the LAProposalProcedure can be invoked, passing the unmatched man’s ID as an argument to finalize the remaining sequential proposing process. 
+If the count of unmatched men reduces to one, it implies that all IDs of the other n - 1 matched men have been subtracted from unmatchedID, thereby precisely identifying the sole unmatched man. Following this identification, necessary data structures on the device will be copied into the host system and then the LAProposalProcedure can be invoked, passing the unmatched man’s ID as an argument to finalize the remaining sequential proposing process. 
 
 On the other hand, If the count of unmatched men drops to zero without ever reaching one, it indicates that BambooKernel already completes, thus eliminating the need for further sequential execution. 
 
@@ -203,7 +203,29 @@ On the other hand, If the count of unmatched men drops to zero without ever reac
 
 ## BambooSMP
 
-Building upon the adaptive execution policy and the GPU Kernel to identify the unmatched man, the BambooSMP framework leverages a coordinated interplay between the Primary GPU, the Secondary GPU, and the Host CPU to manage data structures and ensure optimal performance. Each of these components plays a critical role in the framework’s execution, handling specific data structures necessary for the framework’s operations.
+Building upon the adaptive execution policy and the GPU Kernel to identify the unmatched man, the BambooSMP framework leverages a coordinated interplay between the Primary GPU, the Secondary GPU,and the Host CPU to manage data structures and dynamically adjust its execution strategy to ensure optimal performance. 
+
+The main thread of BambooSMP begins with copying the men’s and women’s preference lists from the Host CPU to the Primary GPU. Then it initializes the PRMatrix, PartnerRank, and the Next array on the Primary GPU. 
+
+After that, two threads, t1 and t2, are then launched to execute doWorkOnGPU and doWorkOnCPU, respectively. As name indicates, t1 will launch BambooKernel on the primary GPU to  handle proposals in parallel on the Primiary GPU. Concurrently, t2 willrepeatedly executes `IdentifyUnmatchedManKernel` on the Secondary GPU to monitor the level of parallelism and make proposals in sequential on the host if necessary.
+
+And the main thread  will join the earlier completed thread while detaching the other to guarantee the optimal performance.  
+
+As disscussed earlier, Since `IdentifyUnmatchedManKernel` requires access to women’s preference lists and `PartnerRank`. In this way, Peer-to-Peer (P2P) memory access is employed to allow the Secondary GPU to access these data structures directly from the Primary GPU. And an additional set of `Next` and `PartnerRank` are allocated on the secondary GPU for duplicated corresponding contents on the primary GPU.
+
+If it determines that only one man remains unmatched, the replicated data structures on the secondary GPU, along with the PRMatrix on the primary GPU, will be copied back to the host system for the subsequent proposals in serial on the host sytem . 
+
+To determine which process completes first, another atomic vairable, `terminateFlag`,  is initialized to 0 on the Host CPU, indicating that neither the GPU nor the CPU has completed the proposal work.  Then, both t1 and t2 use an atomicCAS operation to set terminateFlag to either 1 or 2. If terminateFlag is set to 1, indicating that BambooKernel finished first, the main thread joins t1 and detaches t2, postprocessing the partnerRank on the Primary GPU into a stable matching. If terminateFlag is set to 2, indicating that the CPU procedure finished first, the main thread joins t2 and detaches t1. The partnerRank in Host CPU memory is then copied back to the GPU and postprocessed, ensuring efficient and accurate completion of the proposal process.
+
+
+
+
+
+
+
+
+
+Each of these components plays a critical role in the framework’s execution, handling specific data structures necessary for the framework’s operations.
 
 On the Primary GPU, BambooKernel is executed to handle the parallel processing of proposals. For this, both men’s and women’s preference lists are copied into the Primary GPU to initialize PRMatrix.  `Next` and `PartnerRank` are also initialized on the Primiray GPU.
 
@@ -215,13 +237,13 @@ Both the secondary GPU and Host CPU maintain the Next array and PartnerRank. The
 
 
 
+
+
 ## Algorithm
 
 By initializing and maintaining these critical data structures, BambooSMP can dynamically adjust its execution strategy based on the current state of the computation, optimizing performance and resource utilization.
 
-As illustrated in Algorithm 4, the workflow of BambooSMP begins with copying the men’s and women’s preference lists from the Host CPU to the Primary GPU. The main thread of BambooSMP initializes the rankMatrix, PRMatrix, partnerRank, and the Next array on the Primary GPU.
-
-
+As illustrated in Algorithm 4, the workflow of BambooSMP begins with copying the men’s and women’s preference lists from the Host CPU to the Primary GPU. The main thread of BambooSMP initializes the rankMatrix, PRMatrix, PartnerRank, and the Next array on the Primary GPU.
 
 The terminateFlag is set to 0 on the Host CPU, indicating that neither the GPU nor the CPU has completed the proposal work. Two threads, t1 and t2, are then launched to execute doWorkOnGPU and doWorkOnCPU, respectively.
 
