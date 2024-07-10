@@ -10,7 +10,7 @@ This section presents a comprehensive set of experiments conducted to demonstrat
 
 
 
-# Experimental Setup
+## Experimental Setup
 
 Other names: Platform, Experimental Environment
 
@@ -22,27 +22,55 @@ All implementations were evaluated on a desktop node at the Ohio Supercomputer C
 
 ## Baseline Algorithms
 
-To fairly compare the  performance and illustrate the effectiveness of all innovative techniques that we used in this paper, We have implemented 5  baseline algorithms:
+To fairly compare the  performance and illustrate the effectiveness of all innovative techniques that we used in this paper, We have implemented 7 baseline algorithms:
 
     \item \textbf{GS-sequential-CPU}: A sequential GS on CPU.
     \item \textbf{MW-sequential-GPU}: A sequential MW on CPU.
     \item \textbf{GS-parallel-CPU}: A parallel GS on CPU.
     \item \textbf{MW-parallel-CPU}: A parallel MW on CPU.
     \item \textbf{MW-parallel-GPU}: A parallel MW on {\bf GPU}.
+    \item \textbf{MW-parallel-GPU-MIN}: A parallel MW on {\bf GPU}.
+    \item \textbf{LA}: The locality-aware sequential implementation of GS
+
+Specifically, In addition to the 5 algorithms that we implemented in Section 3.3, we also implemented Locality-Aware implmentation of GS and another versions of parallel-MW-GPU using atomicMin. original  parallel-MW-GPU uses `atomicCAS`  whereas  named  parallel-MW-GPU uses `atomicMin`.
 
 
 
-Specifically, the parallel MW algorithm was implemented for both the CPU using the C++ thread library and the GPU using CUDA. Similarly, the parallel GS algorithm was implemented on the CPU. These implementations serve as parallel baselines, providing a robust foundation for comparison.
+the parallel MW algorithm was implemented for both the CPU using the C++ thread library and the GPU using CUDA. Similarly, the parallel GS algorithm was implemented on the CPU. These implementations serve as parallel baselines, providing a robust foundation for comparison.
+
+These 2 implementations are to  to contrast the effectiveness of PRMatrix in exploiting locality and and atomicMin in resolving contention, repetitively.
 
 
 
 ## Datasets
 
-Since there is no real-world SMP workloads exists, all of our experiements used synthesized data.  we have generated the workload of all types as described in the Figure 2 and of size up to size 30000, which is the largest data that we can use in our experiemal GPU.
+Since there is no real-world SMP workloads exists, all of our experiements used synthesized data.  we have generated the workload of all types as described in the Figure 2 and of size from 500 up to size 30000, which is the largest data that we can use in our experiemal GPU.
 
 
 
-# Performance
+# Overall Performance
+
+To demonstrate Bamboo-SMP’s high performance and superiority over existing algorithms across different scenarios, 
+
+we tested all baseline algorithms and compare them with Bamboo-SMP in congested case, random case, and solo case of maximum size that we can implement on GPU (30000).
+
+And we record the resulting the time of initialization phase, execution phase, postprocessing pahse, and the total time in Table 3, 4, and 5 respectively.
+
+
+
+we highlighted significant performance improvements and the versatility of Bamboo-SMP across different types of workloads. 
+
+Basically, the extra overhead of Bamboo-SMP comes from the preprocessing step that initializes PRMatrix in the intiailization phase. However, the performance gains from execution phase outperforms these time cost, resulting in the significant performance improvements made by Bamboo-SMP.
+
+The maxmimum speedups across all types of workloads are made by Bamboo-SMP, showcasing the robustness and superiority of Bamboo-SMP as a comprehensive solution across different types of workloads.
+
+
+
+# Where does time go
+
+By doing so, we confirm that the combination of locality-aware optimizations, advanced synchronization methods, and a heterogeneous computing system greatly improves the algorithm's efficiency, 
+
+
 
 ## Locality
 
@@ -66,14 +94,6 @@ This substantial improvement confirms that addressing inefficient data movement 
 
 To validate the effectiveness of atomicMin in its ability in resolving the contention, we 
 
-In addition to BambooKernel, we also implemented another versions of parallel-MW-GPU: 
-
-original one still using `atomicCAS` as baseline, and the other using `atomicMin` to contrast : 
-
-They are named parallel-MW-GPU(the-state-of-art algorithm) and parallel-MW-GPU-MIN, respectively.
-
-To contrast the effectiveness of atomicMin over atomicCAS in its capability of eliminating wasted work and improve the efficency, 
-
 
 
 we tested the parallel-MW-GPU, BambooKernel, and BambooKernel-noLocality on the congested cases from size 500 to 30000 and recorded the result in Figrue 6.
@@ -86,17 +106,15 @@ Further, thanks to the locality-exploitation,  BambooKernel reduces to 163.35740
 
 ## Hybrid
 
-we tested all state-of-the-art both sequential and parallel versions of the GS and MW algorithms to compare it with Bamboo-SMP in congested case, random case, and solo case and the resulting the time of execution phase and the time of all phases,  recorded these. times in Table 3, 4, and 5 respectively.
-
-These times demonstrate Bamboo-SMP’s high performance and superiority over existing algorithms across different scenarios. 
-
-In addition to the hybrid system used by Bamboo-SMP, we also implemented the Locality-Aware GS algorithm on both the CPU and GPU. For the GPU implementation, we created two versions of the Locality-Aware GS algorithm: one using `atomicCAS` as a contrast, and the other using `atomicMin`. This was done to specifically illustrate the effectiveness of the `atomicMin` function in resolving contention and enhancing efficiency.
-
-By incorporating these techniques, we demonstrate that they are essential to Bamboo-SMP and significantly enhance its overall performance. The results confirm that the combination of locality-aware optimizations, advanced synchronization methods, and a heterogeneous computing system greatly improves the algorithm's efficiency, showcasing the robustness and superiority of Bamboo-SMP as a comprehensive solution.
 
 
 
-To convincingly demonstrate the robustness of Bamboo-SMP and the effectiveness of the techniques employed, we tested it against baseline algorithms in various scenarios discussed in Section 3.1. By focusing on more complex and representative scenarios, we highlighted significant performance improvements and the versatility of Bamboo-SMP across different types of workloads. The best-case scenario was excluded due to its trivial nature, ensuring that our evaluations remained rigorous and meaningful.
+
+By incorporating these techniques, we demonstrate that they are essential to Bamboo-SMP and significantly enhance its overall performance. 
+
+To convincingly demonstrate the robustness of Bamboo-SMP and the effectiveness of the techniques employed, we tested it against baseline algorithms in various scenarios discussed in Section 3.1. 
+
+By focusing on more complex and representative scenarios, we highlighted significant performance improvements and the versatility of Bamboo-SMP across different types of workloads. The perfect case scenario was excluded due to its trivial nature, ensuring that our evaluations remained rigorous and meaningful.
 
 
 
@@ -116,9 +134,55 @@ While the preprocessing step may overshadow performance improvements in the rand
 
 # Where does time go?
 
+In this section, we focus on illustrating the how techniques that have been utilized in Bamboo-SMP take effects on optimizing the performance.
+
+For each type of workload, we will comapre the state-of-art algorithm that achieves the best performance with Bamboo-SMP. And also one our newly developed algorithms with one single technique:
+
+
+
+
+
+Solo Case:
+
+GS => LA => Bamboo-SMP
+
+In this case, sequenital proposals on CPU completes first, so Bamboo-SMP needs to initialize PRMatrix and transfer this data structure into host memory as LA.
+
+LA: PRMatrix-only
+
+LA => Bamboo-SMP
+
+Both LA and Bamboo-SMP has an additional preprocessing step to intialize PRMatrix, and the size of PRMatrix is bigger than Rank Matrix, so they will use more time in the initialization pahse. However, the performance again in the execution phase much outweights the additional overhead in the initialization phase.
+
+
+
+Congested Case:
+
+Parallel-MW-GPU => Parallel-MW-GPU-MIN => Bamboo-SMP
+
+In this case, GPU Kernel completes first, Bamboo-SMP only needs to initialize PRMatrix on the GPU but does not need to take the extra time to transfer them out.
+
+Parallel-MW-GPU-MIN: atomicMIN-only, 
+
+
+
+
+
+Random Case:
+
+Parallel-MW-GPU => Parallel-MW-GPU-MIN => Bamboo-SMP
+
+In this case, GPU Kernel completes first , Bamboo-SMP stilll only needs to initialize PRMatrix on the GPU but does not need to take the extra time to transfer them out.
+
+
+
 
 
 # Unused
+
+The perfect case scenario was excluded due to its trivial nature, ensuring that our evaluations remained rigorous and meaningful.
+
+
 
 ## Solo
 
